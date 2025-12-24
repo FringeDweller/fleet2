@@ -79,6 +79,105 @@ async function seed() {
         console.log(`✓ Created demo user: ${demoUser.email}`)
         console.log('  Password: admin123')
       }
+
+      // Create asset categories
+      console.log('Creating asset categories...')
+      const categoryData = [
+        { name: 'Trucks', description: 'Heavy duty trucks and semi-trailers' },
+        { name: 'Vans', description: 'Delivery vans and cargo vehicles' },
+        { name: 'Cars', description: 'Passenger vehicles' },
+        { name: 'Equipment', description: 'Machinery and equipment' }
+      ]
+
+      const insertedCategories = await db
+        .insert(schema.assetCategories)
+        .values(categoryData.map(c => ({ ...c, organisationId: demoOrg.id })))
+        .onConflictDoNothing()
+        .returning()
+
+      console.log(`✓ Created ${insertedCategories.length} asset categories`)
+
+      // Create sample assets
+      console.log('Creating sample assets...')
+      const trucksCategory = insertedCategories.find(c => c.name === 'Trucks')
+      const vansCategory = insertedCategories.find(c => c.name === 'Vans')
+      const carsCategory = insertedCategories.find(c => c.name === 'Cars')
+
+      const assetData = [
+        {
+          assetNumber: 'FLT-0001',
+          make: 'Toyota',
+          model: 'Hilux',
+          year: 2023,
+          vin: '1HGBH41JXMN109186',
+          licensePlate: 'ABC-123',
+          mileage: '45000',
+          operationalHours: '1200',
+          status: 'active' as const,
+          categoryId: trucksCategory?.id,
+          description: 'Primary delivery truck'
+        },
+        {
+          assetNumber: 'FLT-0002',
+          make: 'Ford',
+          model: 'Transit',
+          year: 2022,
+          vin: '2FMDK3GC5DBA12345',
+          licensePlate: 'DEF-456',
+          mileage: '62000',
+          operationalHours: '1800',
+          status: 'active' as const,
+          categoryId: vansCategory?.id,
+          description: 'Cargo van for city deliveries'
+        },
+        {
+          assetNumber: 'FLT-0003',
+          make: 'Mercedes-Benz',
+          model: 'Sprinter',
+          year: 2021,
+          vin: 'WDAPF4CC4F9123456',
+          licensePlate: 'GHI-789',
+          mileage: '78000',
+          operationalHours: '2100',
+          status: 'maintenance' as const,
+          categoryId: vansCategory?.id,
+          description: 'Large capacity delivery van - scheduled for service'
+        },
+        {
+          assetNumber: 'FLT-0004',
+          make: 'Volkswagen',
+          model: 'Amarok',
+          year: 2024,
+          vin: 'WVWZZZ3CZWE123456',
+          licensePlate: 'JKL-012',
+          mileage: '12000',
+          operationalHours: '350',
+          status: 'active' as const,
+          categoryId: trucksCategory?.id,
+          description: 'New fleet addition'
+        },
+        {
+          assetNumber: 'FLT-0005',
+          make: 'Toyota',
+          model: 'Camry',
+          year: 2023,
+          vin: '4T1BF1FK5CU123456',
+          licensePlate: 'MNO-345',
+          mileage: '28000',
+          operationalHours: '800',
+          status: 'active' as const,
+          categoryId: carsCategory?.id,
+          description: 'Executive vehicle'
+        }
+      ]
+
+      const insertedAssets = await db
+        .insert(schema.assets)
+        .values(assetData.map(a => ({ ...a, organisationId: demoOrg.id })))
+        .onConflictDoNothing()
+        .returning()
+
+      console.log(`✓ Created ${insertedAssets.length} sample assets`)
     }
 
     console.log('\n✅ Database seed completed successfully!')
