@@ -1,0 +1,12 @@
+import { defineConfig } from 'drizzle-kit'
+
+export default defineConfig({
+  schema: './server/db/schema/index.ts',
+  out: './server/db/migrations',
+  dialect: 'postgresql',
+  dbCredentials: {
+    url: process.env.NUXT_DATABASE_URL || 'postgresql://fleet:fleet_dev_password@localhost:54837/fleet'
+  },
+  verbose: true,
+  strict: true
+})

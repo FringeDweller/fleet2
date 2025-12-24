@@ -6,13 +6,15 @@ venv/
 __pycache__/
 *.pyc
 
-# Build outputs
+# Nuxt build outputs
+.output/
+.data/
+.nuxt/
+.nitro/
 dist/
 build/
 *.egg-info/
 .next/
-.nuxt/
-.output/
 
 # Environment and secrets
 .env
@@ -27,6 +29,8 @@ build/
 *.swp
 *.swo
 *~
+.fleet/
+.history/
 
 # OS files
 .DS_Store
@@ -41,6 +45,8 @@ coverage/
 .coverage
 htmlcov/
 .pytest_cache/
+playwright-report/
+test-results/
 
 # Misc
 *.tmp
