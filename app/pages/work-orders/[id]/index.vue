@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { formatDistanceToNow, format, parseISO, isPast } from 'date-fns'
+import { format, parseISO, isPast } from 'date-fns'
 
 definePageMeta({
   middleware: 'auth'
@@ -26,6 +26,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
+  addedBy?: { id: string, firstName: string, lastName: string }
 }
 
 interface Photo {
@@ -35,6 +36,7 @@ interface Photo {
   photoType: 'before' | 'during' | 'after' | 'issue' | 'other'
   caption: string | null
   createdAt: string
+  uploadedBy?: { id: string, firstName: string, lastName: string }
 }
 
 interface StatusHistoryItem {
@@ -96,14 +98,14 @@ const { data: workOrder, status, error, refresh } = await useFetch<WorkOrder>(`/
   lazy: true
 })
 
-const statusColors = {
+const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'error'> = {
   draft: 'neutral',
   open: 'info',
   in_progress: 'warning',
-  pending_parts: 'orange',
+  pending_parts: 'warning',
   completed: 'success',
   closed: 'neutral'
-} as const
+}
 
 const priorityColors = {
   low: 'neutral',
@@ -171,6 +173,7 @@ async function changeStatus(newStatus: string) {
 
 async function archiveWorkOrder() {
   try {
+    // @ts-expect-error - Nuxt route typing issue with DELETE method
     await $fetch(`/api/work-orders/${route.params.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Work order archived',
@@ -207,14 +210,6 @@ const checklistProgress = computed(() => {
   return { completed, total, percentage: Math.round((completed / total) * 100) }
 })
 
-const totalPartsCost = computed(() => {
-  if (!workOrder.value?.parts.length) return null
-  const total = workOrder.value.parts.reduce((sum, p) => {
-    return sum + (p.totalCost ? parseFloat(p.totalCost) : 0)
-  }, 0)
-  return total.toFixed(2)
-})
-
 const tabs = computed(() => [
   { label: 'Details', value: 'details', icon: 'i-lucide-file-text' },
   {
@@ -245,7 +240,7 @@ const tabs = computed(() => [
           <div class="flex gap-2">
             <UDropdownMenu
               v-if="workOrder && validTransitions[workOrder.status]?.length"
-              :items="validTransitions[workOrder.status].map(t => ({
+              :items="(validTransitions[workOrder!.status] ?? []).map(t => ({
                 label: t.label,
                 onSelect: () => changeStatus(t.value)
               }))"
@@ -476,196 +471,37 @@ const tabs = computed(() => [
 
         <!-- Checklist Tab -->
         <div v-else-if="activeTab === 'checklist'">
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="font-medium">
-                  Checklist Items
-                </h3>
-                <span v-if="checklistProgress" class="text-sm text-muted">
-                  {{ checklistProgress.percentage }}% complete
-                </span>
-              </div>
-            </template>
-
-            <div v-if="workOrder.checklistItems.length === 0" class="text-center py-8 text-muted">
-              <UIcon name="i-lucide-check-square" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No checklist items</p>
-            </div>
-
-            <div v-else class="space-y-3">
-              <div
-                v-for="item in workOrder.checklistItems"
-                :key="item.id"
-                class="flex items-start gap-3 p-3 rounded-lg"
-                :class="item.isCompleted ? 'bg-success/10' : 'bg-muted/50'"
-              >
-                <UIcon
-                  :name="item.isCompleted ? 'i-lucide-check-circle-2' : 'i-lucide-circle'"
-                  :class="item.isCompleted ? 'text-success' : 'text-muted'"
-                  class="w-5 h-5 mt-0.5"
-                />
-                <div class="flex-1">
-                  <p :class="item.isCompleted ? 'line-through text-muted' : 'font-medium'">
-                    {{ item.title }}
-                    <span v-if="item.isRequired" class="text-error">*</span>
-                  </p>
-                  <p v-if="item.description" class="text-sm text-muted mt-1">
-                    {{ item.description }}
-                  </p>
-                  <p v-if="item.completedBy" class="text-xs text-muted mt-2">
-                    Completed by {{ item.completedBy.firstName }} {{ item.completedBy.lastName }}
-                    {{ formatDistanceToNow(parseISO(item.completedAt!), { addSuffix: true }) }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </UCard>
+          <WorkOrderChecklist
+            :work-order-id="workOrder.id"
+            :items="workOrder.checklistItems"
+            :readonly="workOrder.status === 'closed'"
+            @refresh="refresh"
+          />
         </div>
 
         <!-- Parts Tab -->
         <div v-else-if="activeTab === 'parts'">
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between">
-                <h3 class="font-medium">
-                  Parts Used
-                </h3>
-                <span v-if="totalPartsCost" class="text-sm font-medium">
-                  Total: ${{ totalPartsCost }}
-                </span>
-              </div>
-            </template>
-
-            <div v-if="workOrder.parts.length === 0" class="text-center py-8 text-muted">
-              <UIcon name="i-lucide-wrench" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No parts recorded</p>
-            </div>
-
-            <div v-else class="divide-y divide-default">
-              <div
-                v-for="part in workOrder.parts"
-                :key="part.id"
-                class="py-3 first:pt-0 last:pb-0"
-              >
-                <div class="flex items-start justify-between">
-                  <div>
-                    <p class="font-medium">
-                      {{ part.partName }}
-                    </p>
-                    <p v-if="part.partNumber" class="text-sm text-muted">
-                      Part #: {{ part.partNumber }}
-                    </p>
-                  </div>
-                  <div class="text-right">
-                    <p class="font-medium">
-                      x{{ part.quantity }}
-                    </p>
-                    <p v-if="part.totalCost" class="text-sm text-muted">
-                      ${{ part.totalCost }}
-                    </p>
-                  </div>
-                </div>
-                <p v-if="part.notes" class="text-sm text-muted mt-2">
-                  {{ part.notes }}
-                </p>
-              </div>
-            </div>
-          </UCard>
+          <WorkOrderParts
+            :work-order-id="workOrder.id"
+            :parts="workOrder.parts"
+            :readonly="workOrder.status === 'closed'"
+            @refresh="refresh"
+          />
         </div>
 
         <!-- Photos Tab -->
         <div v-else-if="activeTab === 'photos'">
-          <UCard>
-            <template #header>
-              <h3 class="font-medium">
-                Photos
-              </h3>
-            </template>
-
-            <div v-if="workOrder.photos.length === 0" class="text-center py-8 text-muted">
-              <UIcon name="i-lucide-image" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No photos uploaded</p>
-            </div>
-
-            <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <div
-                v-for="photo in workOrder.photos"
-                :key="photo.id"
-                class="relative group"
-              >
-                <img
-                  :src="photo.thumbnailUrl || photo.photoUrl"
-                  :alt="photo.caption || 'Work order photo'"
-                  class="w-full h-32 object-cover rounded-lg"
-                >
-                <div class="absolute top-2 right-2">
-                  <UBadge
-                    color="neutral"
-                    variant="solid"
-                    class="capitalize text-xs"
-                  >
-                    {{ photo.photoType }}
-                  </UBadge>
-                </div>
-                <p v-if="photo.caption" class="text-xs text-muted mt-1 truncate">
-                  {{ photo.caption }}
-                </p>
-              </div>
-            </div>
-          </UCard>
+          <WorkOrderPhotos
+            :work-order-id="workOrder.id"
+            :photos="workOrder.photos"
+            :readonly="workOrder.status === 'closed'"
+            @refresh="refresh"
+          />
         </div>
 
         <!-- History Tab -->
         <div v-else-if="activeTab === 'history'">
-          <UCard>
-            <template #header>
-              <h3 class="font-medium">
-                Status History
-              </h3>
-            </template>
-
-            <div class="space-y-4">
-              <div
-                v-for="(entry, index) in workOrder.statusHistory"
-                :key="entry.id"
-                class="flex gap-4"
-              >
-                <div class="flex flex-col items-center">
-                  <UAvatar
-                    :src="entry.changedBy.avatarUrl || undefined"
-                    :alt="`${entry.changedBy.firstName} ${entry.changedBy.lastName}`"
-                    size="sm"
-                  />
-                  <div
-                    v-if="index < workOrder.statusHistory.length - 1"
-                    class="w-0.5 flex-1 bg-default mt-2"
-                  />
-                </div>
-                <div class="flex-1 pb-4">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-medium">{{ entry.changedBy.firstName }} {{ entry.changedBy.lastName }}</span>
-                    <span class="text-muted">changed status</span>
-                    <template v-if="entry.fromStatus">
-                      <UBadge :color="statusColors[entry.fromStatus as keyof typeof statusColors]" variant="subtle" size="xs">
-                        {{ statusLabels[entry.fromStatus as keyof typeof statusLabels] }}
-                      </UBadge>
-                      <UIcon name="i-lucide-arrow-right" class="w-4 h-4 text-muted" />
-                    </template>
-                    <UBadge :color="statusColors[entry.toStatus as keyof typeof statusColors]" variant="subtle" size="xs">
-                      {{ statusLabels[entry.toStatus as keyof typeof statusLabels] }}
-                    </UBadge>
-                  </div>
-                  <p class="text-sm text-muted mt-1">
-                    {{ formatDistanceToNow(parseISO(entry.createdAt), { addSuffix: true }) }}
-                  </p>
-                  <p v-if="entry.notes" class="text-sm mt-2 p-2 bg-muted/50 rounded">
-                    {{ entry.notes }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </UCard>
+          <WorkOrderStatusHistory :history="workOrder.statusHistory" />
         </div>
       </div>
     </template>

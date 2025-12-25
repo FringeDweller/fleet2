@@ -79,8 +79,8 @@ watch(workOrder, (wo) => {
     state.dueDate = wo.dueDate ? format(parseISO(wo.dueDate), 'yyyy-MM-dd') : undefined
     state.estimatedDuration = wo.estimatedDuration || undefined
     state.actualDuration = wo.actualDuration || undefined
-    state.notes = wo.notes
-    state.completionNotes = wo.completionNotes
+    state.notes = wo.notes ?? undefined
+    state.completionNotes = wo.completionNotes ?? undefined
   }
 }, { immediate: true })
 
@@ -90,6 +90,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
     await $fetch(`/api/work-orders/${route.params.id}`, {
+      // @ts-expect-error - Nuxt route typing issue with PUT method
       method: 'PUT',
       body: {
         ...event.data,
@@ -204,10 +205,11 @@ const technicianOptions = computed(() => {
             <div class="space-y-4">
               <UFormField label="Assign To" name="assignedToId">
                 <USelect
-                  v-model="state.assignedToId"
+                  :model-value="state.assignedToId ?? undefined"
                   :items="technicianOptions"
                   placeholder="Select a technician (optional)"
                   class="w-full"
+                  @update:model-value="state.assignedToId = $event"
                 />
               </UFormField>
 

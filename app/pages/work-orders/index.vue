@@ -106,6 +106,7 @@ function getRowItems(row: Row<WorkOrder>) {
 
 async function archiveWorkOrder(id: string) {
   try {
+    // @ts-expect-error - Nuxt route typing issue with DELETE method
     await $fetch(`/api/work-orders/${id}`, { method: 'DELETE' })
     toast.add({
       title: 'Work order archived',

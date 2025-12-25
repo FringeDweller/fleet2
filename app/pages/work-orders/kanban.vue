@@ -44,30 +44,30 @@ const { data, status, refresh } = await useFetch<KanbanData>('/api/work-orders/k
   lazy: true
 })
 
-const statusColors = {
+const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'error'> = {
   draft: 'neutral',
   open: 'info',
   in_progress: 'warning',
-  pending_parts: 'orange',
+  pending_parts: 'warning',
   completed: 'success',
   closed: 'neutral'
-} as const
+}
 
-const priorityColors = {
+const priorityColors: Record<string, 'neutral' | 'info' | 'warning' | 'error'> = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
   critical: 'error'
-} as const
+}
 
-const columnBgColors = {
+const columnBgColors: Record<string, string> = {
   draft: 'bg-neutral-100 dark:bg-neutral-900',
   open: 'bg-info-50 dark:bg-info-950',
   in_progress: 'bg-warning-50 dark:bg-warning-950',
-  pending_parts: 'bg-orange-50 dark:bg-orange-950',
+  pending_parts: 'bg-amber-50 dark:bg-amber-950',
   completed: 'bg-success-50 dark:bg-success-950',
   closed: 'bg-neutral-100 dark:bg-neutral-900'
-} as const
+}
 
 // Valid status transitions for drag-drop
 const validTransitions: Record<string, string[]> = {
