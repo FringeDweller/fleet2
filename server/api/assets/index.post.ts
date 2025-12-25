@@ -70,6 +70,13 @@ export default defineEventHandler(async (event) => {
     })
     .returning()
 
+  if (!asset) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to create asset'
+    })
+  }
+
   // Log the creation in audit log
   await db.insert(schema.auditLog).values({
     organisationId: session.user.organisationId,
