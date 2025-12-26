@@ -9,11 +9,24 @@ const checklistItemSchema = z.object({
   order: z.number().int().min(0)
 })
 
+const requiredPartSchema = z.object({
+  id: z.string().uuid(),
+  partName: z.string().min(1).max(200),
+  partNumber: z.string().max(100).optional(),
+  quantity: z.number().int().positive().default(1),
+  estimatedCost: z.number().positive().optional(),
+  notes: z.string().optional()
+})
+
 const createTemplateSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   description: z.string().optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
   estimatedDuration: z.number().int().positive().optional().nullable(),
+  estimatedCost: z.number().positive().optional().nullable(),
+  skillLevel: z.enum(['entry', 'intermediate', 'advanced', 'expert']).optional().nullable(),
   checklistItems: z.array(checklistItemSchema).default([]),
+  requiredParts: z.array(requiredPartSchema).default([]),
   isActive: z.boolean().default(true)
 })
 
@@ -44,8 +57,12 @@ export default defineEventHandler(async (event) => {
       organisationId: session.user.organisationId,
       name: result.data.name,
       description: result.data.description,
+      category: result.data.category,
       estimatedDuration: result.data.estimatedDuration,
+      estimatedCost: result.data.estimatedCost?.toString(),
+      skillLevel: result.data.skillLevel,
       checklistItems: result.data.checklistItems,
+      requiredParts: result.data.requiredParts,
       isActive: result.data.isActive
     })
     .returning()

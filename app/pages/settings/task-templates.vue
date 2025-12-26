@@ -7,17 +7,40 @@ interface TemplateChecklistItem {
   order: number
 }
 
+interface TemplateRequiredPart {
+  id: string
+  partName: string
+  partNumber?: string
+  quantity: number
+  estimatedCost?: number
+  notes?: string
+}
+
+type SkillLevel = 'entry' | 'intermediate' | 'advanced' | 'expert'
+
 interface TaskTemplate {
   id: string
   name: string
   description: string | null
+  category: string | null
   estimatedDuration: number | null
+  estimatedCost: string | null
+  skillLevel: SkillLevel | null
   checklistItems: TemplateChecklistItem[]
+  requiredParts: TemplateRequiredPart[]
+  version: number
   isActive: boolean
   isArchived: boolean
   createdAt: string
   updatedAt: string
 }
+
+const skillLevelOptions = [
+  { label: 'Entry Level', value: 'entry' },
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+  { label: 'Expert', value: 'expert' }
+]
 
 const toast = useToast()
 const search = ref('')
@@ -39,8 +62,12 @@ const currentTemplate = ref({
   id: '',
   name: '',
   description: '',
+  category: '',
   estimatedDuration: null as number | null,
+  estimatedCost: null as number | null,
+  skillLevel: 'entry' as SkillLevel,
   checklistItems: [] as TemplateChecklistItem[],
+  requiredParts: [] as TemplateRequiredPart[],
   isActive: true
 })
 
@@ -50,14 +77,26 @@ const newChecklistItem = ref({
   isRequired: false
 })
 
+const newRequiredPart = ref({
+  partName: '',
+  partNumber: '',
+  quantity: 1,
+  estimatedCost: null as number | null,
+  notes: ''
+})
+
 function openCreateModal() {
   isEditing.value = false
   currentTemplate.value = {
     id: '',
     name: '',
     description: '',
+    category: '',
     estimatedDuration: null,
+    estimatedCost: null,
+    skillLevel: 'entry',
     checklistItems: [],
+    requiredParts: [],
     isActive: true
   }
   modalOpen.value = true
@@ -69,11 +108,34 @@ function openEditModal(template: TaskTemplate) {
     id: template.id,
     name: template.name,
     description: template.description || '',
+    category: template.category || '',
     estimatedDuration: template.estimatedDuration,
+    estimatedCost: template.estimatedCost ? parseFloat(template.estimatedCost) : null,
+    skillLevel: template.skillLevel || 'entry',
     checklistItems: [...template.checklistItems],
+    requiredParts: [...(template.requiredParts || [])],
     isActive: template.isActive
   }
   modalOpen.value = true
+}
+
+function addRequiredPart() {
+  if (!newRequiredPart.value.partName.trim()) return
+
+  currentTemplate.value.requiredParts.push({
+    id: crypto.randomUUID(),
+    partName: newRequiredPart.value.partName.trim(),
+    partNumber: newRequiredPart.value.partNumber.trim() || undefined,
+    quantity: newRequiredPart.value.quantity,
+    estimatedCost: newRequiredPart.value.estimatedCost || undefined,
+    notes: newRequiredPart.value.notes.trim() || undefined
+  })
+
+  newRequiredPart.value = { partName: '', partNumber: '', quantity: 1, estimatedCost: null, notes: '' }
+}
+
+function removeRequiredPart(id: string) {
+  currentTemplate.value.requiredParts = currentTemplate.value.requiredParts.filter(p => p.id !== id)
 }
 
 function addChecklistItem() {
@@ -129,8 +191,12 @@ async function saveTemplate() {
     const body = {
       name: currentTemplate.value.name.trim(),
       description: currentTemplate.value.description.trim() || null,
+      category: currentTemplate.value.category.trim() || null,
       estimatedDuration: currentTemplate.value.estimatedDuration,
+      estimatedCost: currentTemplate.value.estimatedCost,
+      skillLevel: currentTemplate.value.skillLevel,
       checklistItems: currentTemplate.value.checklistItems,
+      requiredParts: currentTemplate.value.requiredParts,
       isActive: currentTemplate.value.isActive
     }
 
@@ -284,10 +350,27 @@ function getRowActions(template: TaskTemplate) {
           class="flex items-center gap-4 p-4 hover:bg-elevated/50 transition-colors"
         >
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <h3 class="font-medium truncate" :class="{ 'text-muted line-through': template.isArchived }">
                 {{ template.name }}
               </h3>
+              <UBadge
+                v-if="template.category"
+                color="info"
+                variant="subtle"
+                size="xs"
+              >
+                {{ template.category }}
+              </UBadge>
+              <UBadge
+                v-if="template.skillLevel"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+                class="capitalize"
+              >
+                {{ template.skillLevel }}
+              </UBadge>
               <UBadge
                 v-if="!template.isActive && !template.isArchived"
                 color="warning"
@@ -304,18 +387,29 @@ function getRowActions(template: TaskTemplate) {
               >
                 Archived
               </UBadge>
+              <span v-if="template.version > 1" class="text-xs text-muted">
+                v{{ template.version }}
+              </span>
             </div>
             <p v-if="template.description" class="text-sm text-muted truncate mt-1">
               {{ template.description }}
             </p>
-            <div class="flex items-center gap-4 mt-2 text-xs text-muted">
+            <div class="flex items-center gap-4 mt-2 text-xs text-muted flex-wrap">
               <span class="flex items-center gap-1">
                 <UIcon name="i-lucide-check-square" class="w-3 h-3" />
                 {{ template.checklistItems.length }} items
               </span>
+              <span v-if="template.requiredParts?.length" class="flex items-center gap-1">
+                <UIcon name="i-lucide-package" class="w-3 h-3" />
+                {{ template.requiredParts.length }} parts
+              </span>
               <span v-if="template.estimatedDuration" class="flex items-center gap-1">
                 <UIcon name="i-lucide-clock" class="w-3 h-3" />
                 {{ template.estimatedDuration }} min
+              </span>
+              <span v-if="template.estimatedCost" class="flex items-center gap-1">
+                <UIcon name="i-lucide-dollar-sign" class="w-3 h-3" />
+                ${{ parseFloat(template.estimatedCost).toFixed(2) }}
               </span>
             </div>
           </div>
@@ -364,6 +458,23 @@ function getRowActions(template: TaskTemplate) {
               </UFormField>
 
               <div class="grid grid-cols-2 gap-4">
+                <UFormField label="Category">
+                  <UInput
+                    v-model="currentTemplate.category"
+                    placeholder="e.g., Preventive, Corrective"
+                  />
+                </UFormField>
+
+                <UFormField label="Skill Level">
+                  <USelect
+                    v-model="currentTemplate.skillLevel"
+                    :items="skillLevelOptions"
+                    placeholder="Select skill level"
+                  />
+                </UFormField>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
                 <UFormField label="Estimated Duration (minutes)">
                   <UInput
                     v-model.number="currentTemplate.estimatedDuration"
@@ -373,11 +484,19 @@ function getRowActions(template: TaskTemplate) {
                   />
                 </UFormField>
 
-                <UFormField label="Status">
-                  <div class="flex items-center h-full pt-1">
-                    <UCheckbox v-model="currentTemplate.isActive" label="Active template" />
-                  </div>
+                <UFormField label="Estimated Cost ($)">
+                  <UInput
+                    v-model.number="currentTemplate.estimatedCost"
+                    type="number"
+                    :min="0"
+                    :step="0.01"
+                    placeholder="e.g., 150.00"
+                  />
                 </UFormField>
+              </div>
+
+              <div class="flex items-center pt-2">
+                <UCheckbox v-model="currentTemplate.isActive" label="Active template" />
               </div>
             </div>
 
@@ -452,6 +571,95 @@ function getRowActions(template: TaskTemplate) {
                     variant="soft"
                     :disabled="!newChecklistItem.title.trim()"
                     @click="addChecklistItem"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Required Parts Section -->
+            <div class="border-t border-default pt-6">
+              <h4 class="font-medium mb-4">
+                Required Parts
+              </h4>
+
+              <div v-if="currentTemplate.requiredParts.length > 0" class="space-y-2 mb-4">
+                <div
+                  v-for="part in currentTemplate.requiredParts"
+                  :key="part.id"
+                  class="flex items-start gap-2 p-3 bg-muted/50 rounded-lg"
+                >
+                  <div class="flex-1 min-w-0">
+                    <p class="font-medium">
+                      {{ part.partName }}
+                      <span v-if="part.partNumber" class="text-muted font-normal">
+                        ({{ part.partNumber }})
+                      </span>
+                    </p>
+                    <div class="flex items-center gap-4 text-sm text-muted mt-1">
+                      <span>Qty: {{ part.quantity }}</span>
+                      <span v-if="part.estimatedCost">${{ part.estimatedCost.toFixed(2) }}</span>
+                    </div>
+                    <p v-if="part.notes" class="text-sm text-muted mt-1">
+                      {{ part.notes }}
+                    </p>
+                  </div>
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    size="xs"
+                    color="error"
+                    variant="ghost"
+                    @click="removeRequiredPart(part.id)"
+                  />
+                </div>
+              </div>
+
+              <div class="p-4 border border-dashed border-default rounded-lg space-y-3">
+                <div class="grid grid-cols-2 gap-3">
+                  <UFormField label="Part Name">
+                    <UInput
+                      v-model="newRequiredPart.partName"
+                      placeholder="e.g., Oil Filter"
+                    />
+                  </UFormField>
+                  <UFormField label="Part Number (optional)">
+                    <UInput
+                      v-model="newRequiredPart.partNumber"
+                      placeholder="e.g., OF-123"
+                    />
+                  </UFormField>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <UFormField label="Quantity">
+                    <UInput
+                      v-model.number="newRequiredPart.quantity"
+                      type="number"
+                      :min="1"
+                    />
+                  </UFormField>
+                  <UFormField label="Est. Cost ($)">
+                    <UInput
+                      v-model.number="newRequiredPart.estimatedCost"
+                      type="number"
+                      :min="0"
+                      :step="0.01"
+                      placeholder="0.00"
+                    />
+                  </UFormField>
+                </div>
+                <UFormField label="Notes (optional)">
+                  <UInput
+                    v-model="newRequiredPart.notes"
+                    placeholder="Any notes about this part"
+                  />
+                </UFormField>
+                <div class="flex justify-end">
+                  <UButton
+                    label="Add Part"
+                    icon="i-lucide-plus"
+                    size="sm"
+                    variant="soft"
+                    :disabled="!newRequiredPart.partName.trim()"
+                    @click="addRequiredPart"
                   />
                 </div>
               </div>
