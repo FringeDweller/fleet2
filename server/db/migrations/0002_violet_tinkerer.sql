@@ -1,0 +1,2 @@
+ALTER TABLE "asset_categories" ADD COLUMN "default_maintenance_schedules" jsonb DEFAULT '[]'::jsonb;--> statement-breakpoint
+ALTER TABLE "asset_categories" ADD COLUMN "default_parts" jsonb DEFAULT '[]'::jsonb;

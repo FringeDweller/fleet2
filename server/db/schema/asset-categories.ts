@@ -1,5 +1,25 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, index } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, timestamp, boolean, index, jsonb } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
+
+export interface MaintenanceSchedule {
+  id: string
+  name: string
+  description?: string
+  intervalDays?: number
+  intervalHours?: number
+  intervalMileage?: number
+  estimatedDuration?: number
+  checklistItems?: string[]
+}
+
+export interface DefaultPart {
+  id: string
+  partName: string
+  partNumber?: string
+  quantity: number
+  estimatedCost?: number
+  notes?: string
+}
 
 export const assetCategories = pgTable(
   'asset_categories',
@@ -11,6 +31,8 @@ export const assetCategories = pgTable(
     parentId: uuid('parent_id'),
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
+    defaultMaintenanceSchedules: jsonb('default_maintenance_schedules').$type<MaintenanceSchedule[]>().default([]),
+    defaultParts: jsonb('default_parts').$type<DefaultPart[]>().default([]),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
