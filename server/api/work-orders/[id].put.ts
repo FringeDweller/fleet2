@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
+import { createWorkOrderAssignedNotification, createWorkOrderUnassignedNotification } from '../../utils/notifications'
 
 const updateWorkOrderSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -101,6 +102,37 @@ export default defineEventHandler(async (event) => {
     oldValues: existing,
     newValues: workOrder
   })
+
+  // Handle assignment notifications
+  const assignedByName = `${session.user.firstName} ${session.user.lastName}`
+  const oldAssignee = existing.assignedToId
+  const newAssignee = workOrder.assignedToId
+
+  // If assignee changed
+  if (oldAssignee !== newAssignee) {
+    // Notify the old assignee they were unassigned
+    if (oldAssignee && oldAssignee !== session.user.id) {
+      await createWorkOrderUnassignedNotification({
+        organisationId: session.user.organisationId,
+        userId: oldAssignee,
+        workOrderNumber: workOrder.workOrderNumber,
+        workOrderTitle: workOrder.title,
+        unassignedByName: assignedByName
+      })
+    }
+
+    // Notify the new assignee they were assigned
+    if (newAssignee && newAssignee !== session.user.id) {
+      await createWorkOrderAssignedNotification({
+        organisationId: session.user.organisationId,
+        userId: newAssignee,
+        workOrderNumber: workOrder.workOrderNumber,
+        workOrderTitle: workOrder.title,
+        workOrderId: workOrder.id,
+        assignedByName
+      })
+    }
+  }
 
   return workOrder
 })

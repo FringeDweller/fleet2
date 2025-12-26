@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { eq, and, sql } from 'drizzle-orm'
+import { createWorkOrderAssignedNotification } from '../../utils/notifications'
 
 const createWorkOrderSchema = z.object({
   assetId: z.string().uuid('Asset is required'),
@@ -133,6 +134,18 @@ export default defineEventHandler(async (event) => {
     entityId: workOrder.id,
     newValues: workOrder
   })
+
+  // Notify assignee if work order was created with an assignment
+  if (workOrder.assignedToId && workOrder.assignedToId !== session.user.id) {
+    await createWorkOrderAssignedNotification({
+      organisationId: session.user.organisationId,
+      userId: workOrder.assignedToId,
+      workOrderNumber: workOrder.workOrderNumber,
+      workOrderTitle: workOrder.title,
+      workOrderId: workOrder.id,
+      assignedByName: `${session.user.firstName} ${session.user.lastName}`
+    })
+  }
 
   return workOrder
 })

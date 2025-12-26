@@ -1,5 +1,5 @@
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, lte } from 'drizzle-orm'
+import { eq, and, ilike, or, lte, isNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -37,7 +37,11 @@ export default defineEventHandler(async (event) => {
   }
 
   if (assignedToId) {
-    conditions.push(eq(schema.workOrders.assignedToId, assignedToId))
+    if (assignedToId === 'null') {
+      conditions.push(isNull(schema.workOrders.assignedToId))
+    } else {
+      conditions.push(eq(schema.workOrders.assignedToId, assignedToId))
+    }
   }
 
   if (assetId) {

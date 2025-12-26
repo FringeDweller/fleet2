@@ -47,6 +47,7 @@ const UAvatar = resolveComponent('UAvatar')
 const toast = useToast()
 const table = useTemplateRef('table')
 const router = useRouter()
+const route = useRoute()
 
 const columnFilters = ref([{
   id: 'workOrderNumber',
@@ -55,8 +56,52 @@ const columnFilters = ref([{
 const columnVisibility = ref()
 const rowSelection = ref({})
 
+// Filter state - initialize from URL query params
+const statusFilter = ref((route.query.status as string) || 'all')
+const priorityFilter = ref((route.query.priority as string) || 'all')
+const assigneeFilter = ref(
+  route.query.assignedToId === 'null'
+    ? 'unassigned'
+    : (route.query.assignedToId as string) || 'all'
+)
+
+// Computed query params for API
+const queryParams = computed(() => {
+  const params: Record<string, string> = {}
+  if (statusFilter.value !== 'all') params.status = statusFilter.value
+  if (priorityFilter.value !== 'all') params.priority = priorityFilter.value
+  if (assigneeFilter.value === 'unassigned') params.assignedToId = 'null'
+  else if (assigneeFilter.value !== 'all') params.assignedToId = assigneeFilter.value
+  return params
+})
+
+interface Technician {
+  id: string
+  firstName: string
+  lastName: string
+}
+
+const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
+
+const assigneeOptions = computed(() => {
+  const options = [
+    { label: 'All Assignees', value: 'all' },
+    { label: 'Unassigned', value: 'unassigned' }
+  ]
+  if (technicians.value) {
+    for (const tech of technicians.value) {
+      options.push({
+        label: `${tech.firstName} ${tech.lastName}`,
+        value: tech.id
+      })
+    }
+  }
+  return options
+})
+
 const { data, status, refresh } = await useFetch<WorkOrder[]>('/api/work-orders', {
-  lazy: true
+  lazy: true,
+  query: queryParams
 })
 
 function getRowItems(row: Row<WorkOrder>) {
@@ -126,7 +171,7 @@ const statusColors = {
   draft: 'neutral',
   open: 'info',
   in_progress: 'warning',
-  pending_parts: 'orange',
+  pending_parts: 'warning',
   completed: 'success',
   closed: 'neutral'
 } as const
@@ -273,23 +318,6 @@ const columns: TableColumn<WorkOrder>[] = [
   }
 ]
 
-const statusFilter = ref('all')
-const priorityFilter = ref('all')
-
-watch(() => statusFilter.value, (newVal) => {
-  if (!table?.value?.tableApi) return
-  const statusColumn = table.value.tableApi.getColumn('status')
-  if (!statusColumn) return
-  statusColumn.setFilterValue(newVal === 'all' ? undefined : newVal)
-})
-
-watch(() => priorityFilter.value, (newVal) => {
-  if (!table?.value?.tableApi) return
-  const priorityColumn = table.value.tableApi.getColumn('priority')
-  if (!priorityColumn) return
-  priorityColumn.setFilterValue(newVal === 'all' ? undefined : newVal)
-})
-
 const search = computed({
   get: (): string => {
     return (table.value?.tableApi?.getColumn('workOrderNumber')?.getFilterValue() as string) || ''
@@ -314,6 +342,14 @@ const pagination = ref({
         </template>
 
         <template #right>
+          <UButton
+            label="Assignments"
+            icon="i-lucide-users"
+            color="neutral"
+            variant="outline"
+            class="mr-2"
+            @click="router.push('/work-orders/assignments')"
+          />
           <UButton
             label="Kanban View"
             icon="i-lucide-kanban"
@@ -367,6 +403,12 @@ const pagination = ref({
             ]"
             placeholder="Filter priority"
             class="min-w-36"
+          />
+          <USelect
+            v-model="assigneeFilter"
+            :items="assigneeOptions"
+            placeholder="Filter assignee"
+            class="min-w-40"
           />
           <UDropdownMenu
             :items="

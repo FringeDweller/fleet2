@@ -12,6 +12,7 @@ import { workOrderStatusHistory } from './work-order-status-history'
 import { workOrderChecklistItems } from './work-order-checklist-items'
 import { workOrderParts } from './work-order-parts'
 import { workOrderPhotos } from './work-order-photos'
+import { notifications } from './notifications'
 
 export const organisationsRelations = relations(organisations, ({ many }) => ({
   users: many(users),
@@ -19,7 +20,8 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   assets: many(assets),
   auditLogs: many(auditLog),
   taskTemplates: many(taskTemplates),
-  workOrders: many(workOrders)
+  workOrders: many(workOrders),
+  notifications: many(notifications)
 }))
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -38,7 +40,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   sessions: many(sessions),
   auditLogs: many(auditLog),
   assignedWorkOrders: many(workOrders, { relationName: 'assignedWorkOrders' }),
-  createdWorkOrders: many(workOrders, { relationName: 'createdWorkOrders' })
+  createdWorkOrders: many(workOrders, { relationName: 'createdWorkOrders' }),
+  notifications: many(notifications)
 }))
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -170,6 +173,18 @@ export const workOrderPhotosRelations = relations(workOrderPhotos, ({ one }) => 
   }),
   uploadedBy: one(users, {
     fields: [workOrderPhotos.uploadedById],
+    references: [users.id]
+  })
+}))
+
+// Notifications Relations
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [notifications.organisationId],
+    references: [organisations.id]
+  }),
+  user: one(users, {
+    fields: [notifications.userId],
     references: [users.id]
   })
 }))

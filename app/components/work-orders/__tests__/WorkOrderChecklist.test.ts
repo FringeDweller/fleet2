@@ -198,8 +198,9 @@ describe('WorkOrderPhotos Logic', () => {
       }
 
       for (const photo of photos) {
-        if (groups[photo.photoType]) {
-          groups[photo.photoType].push(photo)
+        const group = groups[photo.photoType]
+        if (group) {
+          group.push(photo)
         }
       }
 
