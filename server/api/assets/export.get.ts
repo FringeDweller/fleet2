@@ -1,5 +1,5 @@
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, gte, lte, sql, asc, desc } from 'drizzle-orm'
+import { eq, and, ilike, or, gte, lte, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -29,15 +29,6 @@ export default defineEventHandler(async (event) => {
   const hoursMin = query.hoursMin ? parseFloat(query.hoursMin as string) : undefined
   const hoursMax = query.hoursMax ? parseFloat(query.hoursMax as string) : undefined
 
-  // Pagination
-  const limit = Math.min(Math.max(parseInt(query.limit as string) || 50, 1), 100)
-  const offset = Math.max(parseInt(query.offset as string) || 0, 0)
-
-  // Sorting
-  const sortBy = query.sortBy as string || 'createdAt'
-  const sortOrder = query.sortOrder as string || 'desc'
-  const validSortFields = ['assetNumber', 'make', 'model', 'year', 'status', 'mileage', 'operationalHours', 'createdAt', 'updatedAt']
-
   const conditions = [eq(schema.assets.organisationId, session.user.organisationId)]
 
   if (!includeArchived) {
@@ -52,7 +43,6 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(schema.assets.categoryId, categoryId))
   }
 
-  // Global search across multiple fields
   if (search) {
     conditions.push(
       or(
@@ -66,7 +56,6 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  // Advanced filters
   if (make) {
     conditions.push(ilike(schema.assets.make, `%${make}%`))
   }
@@ -99,37 +88,68 @@ export default defineEventHandler(async (event) => {
     conditions.push(lte(sql`CAST(${schema.assets.operationalHours} AS NUMERIC)`, hoursMax))
   }
 
-  const whereClause = and(...conditions)
-
-  // Get total count for pagination
-  const countResult = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(schema.assets)
-    .where(whereClause)
-
-  const total = countResult[0]?.count || 0
-
-  // Build sort field
-  const sortField = validSortFields.includes(sortBy) ? sortBy : 'createdAt'
-  const sortFn = sortOrder === 'asc' ? asc : desc
-
   const assets = await db.query.assets.findMany({
-    where: whereClause,
+    where: and(...conditions),
     with: {
       category: true
     },
-    orderBy: assets => [sortFn(assets[sortField as keyof typeof assets])],
-    limit,
-    offset
+    orderBy: (assets, { asc }) => [asc(assets.assetNumber)]
   })
 
-  return {
-    data: assets,
-    pagination: {
-      total,
-      limit,
-      offset,
-      hasMore: offset + assets.length < total
+  // Generate CSV
+  const headers = [
+    'Asset Number',
+    'VIN',
+    'Make',
+    'Model',
+    'Year',
+    'License Plate',
+    'Status',
+    'Category',
+    'Mileage',
+    'Operational Hours',
+    'Description',
+    'Created At'
+  ]
+
+  const escapeCSV = (value: string | number | null | undefined): string => {
+    if (value === null || value === undefined) return ''
+    const str = String(value)
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`
     }
+    return str
   }
+
+  const rows = assets.map(asset => [
+    escapeCSV(asset.assetNumber),
+    escapeCSV(asset.vin),
+    escapeCSV(asset.make),
+    escapeCSV(asset.model),
+    escapeCSV(asset.year),
+    escapeCSV(asset.licensePlate),
+    escapeCSV(asset.status),
+    escapeCSV(asset.category?.name),
+    escapeCSV(asset.mileage),
+    escapeCSV(asset.operationalHours),
+    escapeCSV(asset.description),
+    escapeCSV(asset.createdAt?.toISOString())
+  ].join(','))
+
+  const csv = [headers.join(','), ...rows].join('\n')
+
+  // Audit log
+  await db.insert(schema.auditLog).values({
+    organisationId: session.user.organisationId,
+    userId: session.user.id,
+    action: 'export',
+    entityType: 'assets',
+    newValues: { count: assets.length, filters: { search, status, categoryId, make, model } }
+  })
+
+  // Set response headers for CSV download
+  setHeader(event, 'Content-Type', 'text/csv')
+  setHeader(event, 'Content-Disposition', `attachment; filename="assets-export-${new Date().toISOString().split('T')[0]}.csv"`)
+
+  return csv
 })
