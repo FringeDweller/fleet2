@@ -12,6 +12,7 @@ import { workOrderStatusHistory } from './work-order-status-history'
 import { workOrderChecklistItems } from './work-order-checklist-items'
 import { workOrderParts } from './work-order-parts'
 import { workOrderPhotos } from './work-order-photos'
+import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
 import { savedSearches } from './saved-searches'
 
@@ -22,6 +23,7 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   auditLogs: many(auditLog),
   taskTemplates: many(taskTemplates),
   workOrders: many(workOrders),
+  maintenanceSchedules: many(maintenanceSchedules),
   notifications: many(notifications),
   savedSearches: many(savedSearches)
 }))
@@ -78,7 +80,8 @@ export const assetCategoriesRelations = relations(assetCategories, ({ one, many 
   children: many(assetCategories, {
     relationName: 'parentChild'
   }),
-  assets: many(assets)
+  assets: many(assets),
+  maintenanceSchedules: many(maintenanceSchedules)
 }))
 
 export const assetsRelations = relations(assets, ({ one, many }) => ({
@@ -90,7 +93,8 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
     fields: [assets.categoryId],
     references: [assetCategories.id]
   }),
-  workOrders: many(workOrders)
+  workOrders: many(workOrders),
+  maintenanceSchedules: many(maintenanceSchedules)
 }))
 
 // Task Templates Relations
@@ -201,5 +205,48 @@ export const savedSearchesRelations = relations(savedSearches, ({ one }) => ({
   user: one(users, {
     fields: [savedSearches.userId],
     references: [users.id]
+  })
+}))
+
+// Maintenance Schedules Relations
+export const maintenanceSchedulesRelations = relations(maintenanceSchedules, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [maintenanceSchedules.organisationId],
+    references: [organisations.id]
+  }),
+  asset: one(assets, {
+    fields: [maintenanceSchedules.assetId],
+    references: [assets.id]
+  }),
+  category: one(assetCategories, {
+    fields: [maintenanceSchedules.categoryId],
+    references: [assetCategories.id]
+  }),
+  template: one(taskTemplates, {
+    fields: [maintenanceSchedules.templateId],
+    references: [taskTemplates.id]
+  }),
+  defaultAssignee: one(users, {
+    fields: [maintenanceSchedules.defaultAssigneeId],
+    references: [users.id],
+    relationName: 'scheduleDefaultAssignee'
+  }),
+  createdBy: one(users, {
+    fields: [maintenanceSchedules.createdById],
+    references: [users.id],
+    relationName: 'scheduleCreatedBy'
+  }),
+  generatedWorkOrders: many(maintenanceScheduleWorkOrders)
+}))
+
+// Maintenance Schedule Work Orders Relations
+export const maintenanceScheduleWorkOrdersRelations = relations(maintenanceScheduleWorkOrders, ({ one }) => ({
+  schedule: one(maintenanceSchedules, {
+    fields: [maintenanceScheduleWorkOrders.scheduleId],
+    references: [maintenanceSchedules.id]
+  }),
+  workOrder: one(workOrders, {
+    fields: [maintenanceScheduleWorkOrders.workOrderId],
+    references: [workOrders.id]
   })
 }))

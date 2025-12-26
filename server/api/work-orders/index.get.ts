@@ -1,5 +1,5 @@
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, lte, isNull } from 'drizzle-orm'
+import { eq, and, ilike, or, lte, isNull, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
   const priority = query.priority as string | undefined
   const assignedToId = query.assignedToId as string | undefined
   const assetId = query.assetId as string | undefined
+  const scheduleId = query.scheduleId as string | undefined
   const overdue = query.overdue === 'true'
   const includeArchived = query.includeArchived === 'true'
 
@@ -46,6 +47,21 @@ export default defineEventHandler(async (event) => {
 
   if (assetId) {
     conditions.push(eq(schema.workOrders.assetId, assetId))
+  }
+
+  // Filter by maintenance schedule (through junction table)
+  if (scheduleId) {
+    const scheduleWorkOrders = await db.query.maintenanceScheduleWorkOrders.findMany({
+      where: eq(schema.maintenanceScheduleWorkOrders.scheduleId, scheduleId),
+      columns: { workOrderId: true }
+    })
+    const workOrderIds = scheduleWorkOrders.map(swo => swo.workOrderId)
+    if (workOrderIds.length > 0) {
+      conditions.push(inArray(schema.workOrders.id, workOrderIds))
+    } else {
+      // No work orders for this schedule, return empty
+      return []
+    }
   }
 
   if (overdue) {

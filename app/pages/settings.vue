@@ -23,10 +23,17 @@ const links = [[{
   icon: 'i-lucide-shield',
   to: '/settings/security'
 }], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui.nuxt.com/docs/getting-started/installation/nuxt',
-  target: '_blank'
+  label: 'Asset Categories',
+  icon: 'i-lucide-folder-tree',
+  to: '/settings/asset-categories'
+}, {
+  label: 'Task Templates',
+  icon: 'i-lucide-clipboard-list',
+  to: '/settings/task-templates'
+}, {
+  label: 'Maintenance Schedules',
+  icon: 'i-lucide-calendar-clock',
+  to: '/settings/maintenance-schedules'
 }]] satisfies NavigationMenuItem[][]
 </script>
 

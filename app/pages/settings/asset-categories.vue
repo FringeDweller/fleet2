@@ -1,5 +1,5 @@
 <script setup lang="ts">
-interface MaintenanceSchedule {
+interface CategoryMaintenanceTemplate {
   id: string
   name: string
   description?: string
@@ -24,7 +24,7 @@ interface CategoryNode {
   name: string
   description: string | null
   parentId: string | null
-  defaultMaintenanceSchedules: MaintenanceSchedule[]
+  defaultMaintenanceSchedules: CategoryMaintenanceTemplate[]
   defaultParts: DefaultPart[]
   isActive: boolean
   assetCount: number
@@ -57,7 +57,7 @@ const currentCategory = ref({
   name: '',
   description: '',
   parentId: null as string | null,
-  defaultMaintenanceSchedules: [] as MaintenanceSchedule[],
+  defaultMaintenanceSchedules: [] as CategoryMaintenanceTemplate[],
   defaultParts: [] as DefaultPart[],
   isActive: true
 })
