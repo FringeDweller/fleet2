@@ -10,11 +10,55 @@ interface StockWarning {
   deducted: number
 }
 
+interface InsufficientStock {
+  partId: string
+  partName: string
+  requested: number
+  available: number
+}
+
+// Check if any parts have insufficient stock
+async function checkInsufficientStock(workOrderId: string): Promise<InsufficientStock[]> {
+  const insufficient: InsufficientStock[] = []
+
+  const workOrderParts = await db.query.workOrderParts.findMany({
+    where: and(
+      eq(schema.workOrderParts.workOrderId, workOrderId),
+      isNotNull(schema.workOrderParts.partId),
+    ),
+    with: {
+      part: {
+        columns: {
+          id: true,
+          name: true,
+          quantityInStock: true,
+        },
+      },
+    },
+  })
+
+  for (const woPart of workOrderParts) {
+    if (!woPart.part || !woPart.partId) continue
+    const currentStock = parseFloat(woPart.part.quantityInStock)
+    if (currentStock < woPart.quantity) {
+      insufficient.push({
+        partId: woPart.partId,
+        partName: woPart.partName,
+        requested: woPart.quantity,
+        available: currentStock,
+      })
+    }
+  }
+
+  return insufficient
+}
+
 // Deduct parts from inventory when work order is completed
 async function deductPartsFromInventory(
   workOrderId: string,
   userId: string,
-): Promise<{ success: boolean; warnings: StockWarning[] }> {
+  allowNegative: boolean,
+): Promise<{ success: boolean; warnings: StockWarning[]; blocked?: InsufficientStock[] }> {
   const warnings: StockWarning[] = []
 
   // Get all work order parts that are linked to inventory
@@ -39,6 +83,14 @@ async function deductPartsFromInventory(
     return { success: true, warnings: [] }
   }
 
+  // If preventing negative stock, check all parts first
+  if (!allowNegative) {
+    const insufficient = await checkInsufficientStock(workOrderId)
+    if (insufficient.length > 0) {
+      return { success: false, warnings: [], blocked: insufficient }
+    }
+  }
+
   // Process each part in a transaction
   await db.transaction(async (tx) => {
     for (const woPart of workOrderParts) {
@@ -47,9 +99,9 @@ async function deductPartsFromInventory(
       const currentStock = parseFloat(woPart.part.quantityInStock)
       const requested = woPart.quantity
       const deducted = Math.min(requested, Math.max(0, currentStock))
-      const newQuantity = currentStock - requested // Can go negative
+      const newQuantity = currentStock - requested
 
-      // Track warning if insufficient stock
+      // Track warning if insufficient stock (even if we allow negative)
       if (currentStock < requested) {
         warnings.push({
           partId: woPart.partId,
@@ -60,7 +112,7 @@ async function deductPartsFromInventory(
         })
       }
 
-      // Update inventory (allow negative stock as per user preference)
+      // Update inventory
       await tx
         .update(schema.parts)
         .set({
@@ -211,7 +263,26 @@ export default defineEventHandler(async (event) => {
   // Deduct parts from inventory when completing work order
   let stockWarnings: StockWarning[] = []
   if (result.data.status === 'completed') {
-    const deductionResult = await deductPartsFromInventory(id, session.user.id)
+    // Check organisation setting for preventing negative stock
+    const organisation = await db.query.organisations.findFirst({
+      where: eq(schema.organisations.id, session.user.organisationId),
+      columns: { preventNegativeStock: true },
+    })
+    const allowNegative = !organisation?.preventNegativeStock
+
+    const deductionResult = await deductPartsFromInventory(id, session.user.id, allowNegative)
+
+    // If blocked due to insufficient stock, throw error
+    if (!deductionResult.success && deductionResult.blocked) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Cannot complete work order: insufficient stock for some parts',
+        data: {
+          insufficientStock: deductionResult.blocked,
+        },
+      })
+    }
+
     stockWarnings = deductionResult.warnings
   }
 

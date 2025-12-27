@@ -8,6 +8,8 @@ export const organisations = pgTable('organisations', {
   logoUrl: varchar('logo_url', { length: 500 }),
   primaryColor: varchar('primary_color', { length: 7 }).default('#0066cc'),
   isActive: boolean('is_active').default(true).notNull(),
+  // Inventory settings
+  preventNegativeStock: boolean('prevent_negative_stock').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

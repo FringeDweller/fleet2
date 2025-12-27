@@ -64,6 +64,13 @@
       "when": 1766834516709,
       "tag": "0008_sturdy_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1766835164308,
+      "tag": "0009_glossy_hex",
+      "breakpoints": true
     }
   ]
 }

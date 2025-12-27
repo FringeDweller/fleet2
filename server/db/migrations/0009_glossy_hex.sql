@@ -1,0 +1,1 @@
+ALTER TABLE "organisations" ADD COLUMN "prevent_negative_stock" boolean DEFAULT false NOT NULL;
