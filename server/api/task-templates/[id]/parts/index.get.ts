@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm'
-import { db, schema } from '../../utils/db'
+import { db, schema } from '../../../../utils/db'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -11,36 +11,22 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const id = getRouterParam(event, 'id')
+  const templateId = getRouterParam(event, 'id')
 
-  if (!id) {
+  if (!templateId) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Template ID is required',
     })
   }
 
+  // Verify template exists and belongs to organisation
   const template = await db.query.taskTemplates.findFirst({
     where: and(
-      eq(schema.taskTemplates.id, id),
+      eq(schema.taskTemplates.id, templateId),
       eq(schema.taskTemplates.organisationId, session.user.organisationId),
     ),
-    with: {
-      templateParts: {
-        with: {
-          part: {
-            with: {
-              category: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    columns: { id: true },
   })
 
   if (!template) {
@@ -50,26 +36,51 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Calculate parts cost summary
-  let totalPartsCost = 0
-  const partsWithCost = template.templateParts.map((tp) => {
+  // Get template parts with full part details
+  const templateParts = await db.query.taskTemplateParts.findMany({
+    where: eq(schema.taskTemplateParts.templateId, templateId),
+    with: {
+      part: {
+        with: {
+          category: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: (tp) => tp.createdAt,
+  })
+
+  // Calculate totals
+  let totalEstimatedCost = 0
+  const parts = templateParts.map((tp) => {
     const unitCost = tp.part.unitCost ? parseFloat(tp.part.unitCost) : 0
     const quantity = parseFloat(tp.quantity)
     const lineCost = unitCost * quantity
-    totalPartsCost += lineCost
+    totalEstimatedCost += lineCost
 
     return {
       id: tp.id,
+      templateId: tp.templateId,
       partId: tp.partId,
       quantity: tp.quantity,
       notes: tp.notes,
+      createdAt: tp.createdAt,
+      updatedAt: tp.updatedAt,
       part: {
         id: tp.part.id,
         sku: tp.part.sku,
         name: tp.part.name,
+        description: tp.part.description,
         unit: tp.part.unit,
         unitCost: tp.part.unitCost,
         quantityInStock: tp.part.quantityInStock,
+        supplier: tp.part.supplier,
+        location: tp.part.location,
+        isActive: tp.part.isActive,
         category: tp.part.category,
       },
       lineCost: lineCost.toFixed(2),
@@ -78,12 +89,11 @@ export default defineEventHandler(async (event) => {
   })
 
   return {
-    ...template,
-    templateParts: partsWithCost,
-    partsSummary: {
-      totalParts: partsWithCost.length,
-      totalPartsCost: totalPartsCost.toFixed(2),
-      allInStock: partsWithCost.every((p) => p.inStock),
+    data: parts,
+    summary: {
+      totalParts: parts.length,
+      totalEstimatedCost: totalEstimatedCost.toFixed(2),
+      allInStock: parts.every((p) => p.inStock),
     },
   }
 })

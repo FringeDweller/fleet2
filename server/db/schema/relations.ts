@@ -11,6 +11,7 @@ import { parts } from './parts'
 import { roles } from './roles'
 import { savedSearches } from './saved-searches'
 import { sessions } from './sessions'
+import { taskTemplateParts } from './task-template-parts'
 import { taskTemplates } from './task-templates'
 import { users } from './users'
 import { workOrderChecklistItems } from './work-order-checklist-items'
@@ -109,6 +110,19 @@ export const taskTemplatesRelations = relations(taskTemplates, ({ one, many }) =
     references: [organisations.id],
   }),
   workOrders: many(workOrders),
+  templateParts: many(taskTemplateParts),
+}))
+
+// Task Template Parts Relations
+export const taskTemplatePartsRelations = relations(taskTemplateParts, ({ one }) => ({
+  template: one(taskTemplates, {
+    fields: [taskTemplateParts.templateId],
+    references: [taskTemplates.id],
+  }),
+  part: one(parts, {
+    fields: [taskTemplateParts.partId],
+    references: [parts.id],
+  }),
 }))
 
 // Work Orders Relations
@@ -287,6 +301,7 @@ export const partsRelations = relations(parts, ({ one, many }) => ({
     references: [partCategories.id],
   }),
   usageHistory: many(partUsageHistory),
+  templateParts: many(taskTemplateParts),
 }))
 
 // Part Usage History Relations

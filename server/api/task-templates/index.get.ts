@@ -33,7 +33,54 @@ export default defineEventHandler(async (event) => {
   const templates = await db.query.taskTemplates.findMany({
     where: and(...conditions),
     orderBy: (templates, { asc }) => [asc(templates.name)],
+    with: {
+      templateParts: {
+        with: {
+          part: true,
+        },
+      },
+    },
   })
 
-  return templates
+  // Calculate parts summary for each template
+  return templates.map((template) => {
+    let totalPartsCost = 0
+    let allInStock = true
+
+    const partsWithDetails = template.templateParts.map((tp) => {
+      const unitCost = tp.part.unitCost ? parseFloat(tp.part.unitCost) : 0
+      const quantity = parseFloat(tp.quantity)
+      const lineCost = unitCost * quantity
+      totalPartsCost += lineCost
+
+      const inStock = parseFloat(tp.part.quantityInStock) >= quantity
+      if (!inStock) allInStock = false
+
+      return {
+        id: tp.id,
+        partId: tp.partId,
+        quantity: tp.quantity,
+        part: {
+          id: tp.part.id,
+          sku: tp.part.sku,
+          name: tp.part.name,
+          unit: tp.part.unit,
+          unitCost: tp.part.unitCost,
+          quantityInStock: tp.part.quantityInStock,
+        },
+        lineCost: lineCost.toFixed(2),
+        inStock,
+      }
+    })
+
+    return {
+      ...template,
+      templateParts: partsWithDetails,
+      partsSummary: {
+        totalParts: partsWithDetails.length,
+        totalPartsCost: totalPartsCost.toFixed(2),
+        allInStock: partsWithDetails.length === 0 || allInStock,
+      },
+    }
+  })
 })

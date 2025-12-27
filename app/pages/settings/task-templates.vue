@@ -16,6 +16,38 @@ interface TemplateRequiredPart {
   notes?: string
 }
 
+interface PartCategory {
+  id: string
+  name: string
+}
+
+interface Part {
+  id: string
+  sku: string
+  name: string
+  description: string | null
+  unit: string
+  unitCost: string | null
+  quantityInStock: string
+  category: PartCategory | null
+}
+
+interface TemplatePart {
+  id: string
+  partId: string
+  quantity: string
+  notes: string | null
+  part: Part
+  lineCost: string
+  inStock: boolean
+}
+
+interface PartsSummary {
+  totalParts: number
+  totalPartsCost: string
+  allInStock: boolean
+}
+
 type SkillLevel = 'entry' | 'intermediate' | 'advanced' | 'expert'
 
 interface TaskTemplate {
@@ -28,6 +60,8 @@ interface TaskTemplate {
   skillLevel: SkillLevel | null
   checklistItems: TemplateChecklistItem[]
   requiredParts: TemplateRequiredPart[]
+  templateParts?: TemplatePart[]
+  partsSummary?: PartsSummary
   version: number
   isActive: boolean
   isArchived: boolean
@@ -89,6 +123,138 @@ const newRequiredPart = ref({
   notes: '',
 })
 
+// Inventory-linked parts state
+const partsSearch = ref('')
+const partsLoading = ref(false)
+const availableParts = ref<Part[]>([])
+const templateParts = ref<TemplatePart[]>([])
+const templatePartsSummary = ref<PartsSummary | null>(null)
+const addingPart = ref(false)
+
+// Fetch available parts from inventory
+async function searchParts() {
+  if (!partsSearch.value.trim()) {
+    availableParts.value = []
+    return
+  }
+
+  partsLoading.value = true
+  try {
+    const response = await $fetch<{ data: Part[] }>('/api/parts', {
+      query: { search: partsSearch.value, limit: 10 },
+    })
+    availableParts.value = response.data
+  } catch {
+    availableParts.value = []
+  } finally {
+    partsLoading.value = false
+  }
+}
+
+// Debounced search
+const debouncedSearch = useDebounceFn(searchParts, 300)
+
+watch(partsSearch, () => {
+  debouncedSearch()
+})
+
+// Fetch template parts when editing
+async function fetchTemplateParts(templateId: string) {
+  try {
+    const response = await $fetch<{ data: TemplatePart[]; summary: PartsSummary }>(
+      `/api/task-templates/${templateId}/parts`,
+    )
+    templateParts.value = response.data
+    templatePartsSummary.value = response.summary
+  } catch {
+    templateParts.value = []
+    templatePartsSummary.value = null
+  }
+}
+
+// Add part from inventory to template
+async function addInventoryPart(part: Part) {
+  if (!isEditing.value || !currentTemplate.value.id) {
+    toast.add({
+      title: 'Save template first',
+      description: 'Please save the template before adding inventory parts.',
+      color: 'warning',
+    })
+    return
+  }
+
+  addingPart.value = true
+  try {
+    await $fetch(`/api/task-templates/${currentTemplate.value.id}/parts`, {
+      method: 'POST',
+      body: {
+        partId: part.id,
+        quantity: 1,
+      },
+    })
+    await fetchTemplateParts(currentTemplate.value.id)
+    partsSearch.value = ''
+    availableParts.value = []
+    toast.add({
+      title: 'Part added',
+      description: `${part.name} has been added to the template.`,
+    })
+  } catch (error: unknown) {
+    const errorMessage =
+      error && typeof error === 'object' && 'statusMessage' in error
+        ? (error as { statusMessage: string }).statusMessage
+        : 'Failed to add part'
+    toast.add({
+      title: 'Error',
+      description: errorMessage,
+      color: 'error',
+    })
+  } finally {
+    addingPart.value = false
+  }
+}
+
+// Update template part quantity
+async function updateTemplatePartQuantity(templatePart: TemplatePart, quantity: number) {
+  if (!currentTemplate.value.id || quantity < 1) return
+
+  try {
+    await $fetch(`/api/task-templates/${currentTemplate.value.id}/parts/${templatePart.id}`, {
+      method: 'PUT',
+      body: { quantity },
+    })
+    await fetchTemplateParts(currentTemplate.value.id)
+  } catch {
+    toast.add({
+      title: 'Error',
+      description: 'Failed to update part quantity.',
+      color: 'error',
+    })
+  }
+}
+
+// Remove part from template
+async function removeInventoryPart(templatePart: TemplatePart) {
+  if (!currentTemplate.value.id) return
+
+  try {
+    await $fetch(`/api/task-templates/${currentTemplate.value.id}/parts/${templatePart.id}`, {
+      method: 'DELETE',
+    })
+    await fetchTemplateParts(currentTemplate.value.id)
+    toast.add({
+      title: 'Part removed',
+      description: `${templatePart.part.name} has been removed from the template.`,
+    })
+  } catch {
+    toast.add({
+      title: 'Error',
+      description: 'Failed to remove part.',
+      color: 'error',
+    })
+  }
+}
+
 function openCreateModal() {
   isEditing.value = false
   currentTemplate.value = {
@@ -103,10 +269,15 @@ function openCreateModal() {
     requiredParts: [],
     isActive: true,
   }
+  // Clear inventory parts state
+  templateParts.value = []
+  templatePartsSummary.value = null
+  partsSearch.value = ''
+  availableParts.value = []
   modalOpen.value = true
 }
 
-function openEditModal(template: TaskTemplate) {
+async function openEditModal(template: TaskTemplate) {
   isEditing.value = true
   currentTemplate.value = {
     id: template.id,
@@ -120,7 +291,12 @@ function openEditModal(template: TaskTemplate) {
     requiredParts: [...(template.requiredParts || [])],
     isActive: template.isActive,
   }
+  // Reset parts search
+  partsSearch.value = ''
+  availableParts.value = []
   modalOpen.value = true
+  // Fetch inventory-linked parts
+  await fetchTemplateParts(template.id)
 }
 
 function addRequiredPart() {
@@ -419,17 +595,24 @@ function getRowActions(template: TaskTemplate) {
                 <UIcon name="i-lucide-check-square" class="w-3 h-3" />
                 {{ template.checklistItems.length }} items
               </span>
-              <span v-if="template.requiredParts?.length" class="flex items-center gap-1">
+              <span v-if="template.templateParts?.length || template.requiredParts?.length" class="flex items-center gap-1">
                 <UIcon name="i-lucide-package" class="w-3 h-3" />
-                {{ template.requiredParts.length }} parts
+                {{ (template.templateParts?.length || 0) + (template.requiredParts?.length || 0) }} parts
               </span>
               <span v-if="template.estimatedDuration" class="flex items-center gap-1">
                 <UIcon name="i-lucide-clock" class="w-3 h-3" />
                 {{ template.estimatedDuration }} min
               </span>
-              <span v-if="template.estimatedCost" class="flex items-center gap-1">
+              <span v-if="template.partsSummary?.totalPartsCost || template.estimatedCost" class="flex items-center gap-1">
                 <UIcon name="i-lucide-dollar-sign" class="w-3 h-3" />
-                ${{ parseFloat(template.estimatedCost).toFixed(2) }}
+                ${{ template.partsSummary?.totalPartsCost || (template.estimatedCost ? parseFloat(template.estimatedCost).toFixed(2) : '0.00') }}
+              </span>
+              <span
+                v-if="template.partsSummary && !template.partsSummary.allInStock"
+                class="flex items-center gap-1 text-warning"
+              >
+                <UIcon name="i-lucide-alert-triangle" class="w-3 h-3" />
+                Stock alert
               </span>
             </div>
           </div>
@@ -596,10 +779,153 @@ function getRowActions(template: TaskTemplate) {
               </div>
             </div>
 
-            <!-- Required Parts Section -->
+            <!-- Inventory Parts Section -->
+            <div class="border-t border-default pt-6">
+              <div class="flex items-center justify-between mb-4">
+                <h4 class="font-medium">
+                  Required Parts (from Inventory)
+                </h4>
+                <div v-if="templatePartsSummary" class="text-sm text-muted">
+                  <span class="font-medium text-foreground">${{ templatePartsSummary.totalPartsCost }}</span>
+                  estimated
+                  <UBadge
+                    v-if="templatePartsSummary.allInStock"
+                    color="success"
+                    variant="subtle"
+                    size="xs"
+                    class="ml-2"
+                  >
+                    All in stock
+                  </UBadge>
+                  <UBadge
+                    v-else
+                    color="warning"
+                    variant="subtle"
+                    size="xs"
+                    class="ml-2"
+                  >
+                    Some out of stock
+                  </UBadge>
+                </div>
+              </div>
+
+              <!-- Linked Parts List -->
+              <div v-if="templateParts.length > 0" class="space-y-2 mb-4">
+                <div
+                  v-for="tp in templateParts"
+                  :key="tp.id"
+                  class="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                >
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <p class="font-medium">
+                        {{ tp.part.name }}
+                      </p>
+                      <span class="text-xs text-muted">{{ tp.part.sku }}</span>
+                      <UBadge
+                        v-if="tp.inStock"
+                        color="success"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        In stock ({{ tp.part.quantityInStock }})
+                      </UBadge>
+                      <UBadge
+                        v-else
+                        color="error"
+                        variant="subtle"
+                        size="xs"
+                      >
+                        Low stock ({{ tp.part.quantityInStock }})
+                      </UBadge>
+                    </div>
+                    <div class="flex items-center gap-4 text-sm text-muted mt-1">
+                      <span v-if="tp.part.unitCost">
+                        ${{ parseFloat(tp.part.unitCost).toFixed(2) }}/{{ tp.part.unit }}
+                      </span>
+                      <span class="font-medium text-foreground">
+                        Line total: ${{ tp.lineCost }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <UInput
+                      :model-value="parseFloat(tp.quantity)"
+                      type="number"
+                      :min="1"
+                      class="w-20"
+                      size="sm"
+                      @update:model-value="(val: string | number) => updateTemplatePartQuantity(tp, Number(val))"
+                    />
+                    <UButton
+                      icon="i-lucide-trash-2"
+                      size="xs"
+                      color="error"
+                      variant="ghost"
+                      @click="removeInventoryPart(tp)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Add Part Search -->
+              <div v-if="isEditing" class="p-4 border border-dashed border-default rounded-lg">
+                <UFormField label="Search inventory parts">
+                  <UInput
+                    v-model="partsSearch"
+                    icon="i-lucide-search"
+                    placeholder="Search by name, SKU, or supplier..."
+                    :loading="partsLoading"
+                  />
+                </UFormField>
+
+                <!-- Search Results -->
+                <div v-if="availableParts.length > 0" class="mt-3 space-y-1">
+                  <button
+                    v-for="part in availableParts"
+                    :key="part.id"
+                    type="button"
+                    class="w-full flex items-center justify-between p-2 rounded hover:bg-elevated transition-colors text-left"
+                    :disabled="addingPart || templateParts.some(tp => tp.partId === part.id)"
+                    @click="addInventoryPart(part)"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <p class="font-medium truncate">
+                        {{ part.name }}
+                      </p>
+                      <p class="text-xs text-muted">
+                        {{ part.sku }}
+                        <span v-if="part.unitCost"> - ${{ parseFloat(part.unitCost).toFixed(2) }}/{{ part.unit }}</span>
+                        <span> - {{ part.quantityInStock }} in stock</span>
+                      </p>
+                    </div>
+                    <UIcon
+                      v-if="templateParts.some(tp => tp.partId === part.id)"
+                      name="i-lucide-check"
+                      class="w-4 h-4 text-success"
+                    />
+                    <UIcon
+                      v-else
+                      name="i-lucide-plus"
+                      class="w-4 h-4 text-muted"
+                    />
+                  </button>
+                </div>
+
+                <p v-else-if="partsSearch && !partsLoading" class="mt-3 text-sm text-muted text-center py-2">
+                  No parts found. Try a different search term.
+                </p>
+              </div>
+
+              <div v-else class="p-4 bg-muted/30 rounded-lg text-sm text-muted">
+                <p>Save the template first to add parts from inventory.</p>
+              </div>
+            </div>
+
+            <!-- Legacy Required Parts Section (for manual parts) -->
             <div class="border-t border-default pt-6">
               <h4 class="font-medium mb-4">
-                Required Parts
+                Ad-hoc Parts (not in inventory)
               </h4>
 
               <div v-if="currentTemplate.requiredParts.length > 0" class="space-y-2 mb-4">
@@ -633,43 +959,48 @@ function getRowActions(template: TaskTemplate) {
                 </div>
               </div>
 
-              <div class="p-4 border border-dashed border-default rounded-lg space-y-3">
-                <div class="grid grid-cols-2 gap-3">
-                  <UFormField label="Part Name">
-                    <UInput v-model="newRequiredPart.partName" placeholder="e.g., Oil Filter" />
+              <details class="group">
+                <summary class="cursor-pointer text-sm text-muted hover:text-foreground transition-colors">
+                  Add parts not in inventory
+                </summary>
+                <div class="mt-3 p-4 border border-dashed border-default rounded-lg space-y-3">
+                  <div class="grid grid-cols-2 gap-3">
+                    <UFormField label="Part Name">
+                      <UInput v-model="newRequiredPart.partName" placeholder="e.g., Oil Filter" />
+                    </UFormField>
+                    <UFormField label="Part Number (optional)">
+                      <UInput v-model="newRequiredPart.partNumber" placeholder="e.g., OF-123" />
+                    </UFormField>
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <UFormField label="Quantity">
+                      <UInput v-model.number="newRequiredPart.quantity" type="number" :min="1" />
+                    </UFormField>
+                    <UFormField label="Est. Cost ($)">
+                      <UInput
+                        v-model.number="newRequiredPart.estimatedCost"
+                        type="number"
+                        :min="0"
+                        :step="0.01"
+                        placeholder="0.00"
+                      />
+                    </UFormField>
+                  </div>
+                  <UFormField label="Notes (optional)">
+                    <UInput v-model="newRequiredPart.notes" placeholder="Any notes about this part" />
                   </UFormField>
-                  <UFormField label="Part Number (optional)">
-                    <UInput v-model="newRequiredPart.partNumber" placeholder="e.g., OF-123" />
-                  </UFormField>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                  <UFormField label="Quantity">
-                    <UInput v-model.number="newRequiredPart.quantity" type="number" :min="1" />
-                  </UFormField>
-                  <UFormField label="Est. Cost ($)">
-                    <UInput
-                      v-model.number="newRequiredPart.estimatedCost"
-                      type="number"
-                      :min="0"
-                      :step="0.01"
-                      placeholder="0.00"
+                  <div class="flex justify-end">
+                    <UButton
+                      label="Add Part"
+                      icon="i-lucide-plus"
+                      size="sm"
+                      variant="soft"
+                      :disabled="!newRequiredPart.partName.trim()"
+                      @click="addRequiredPart"
                     />
-                  </UFormField>
+                  </div>
                 </div>
-                <UFormField label="Notes (optional)">
-                  <UInput v-model="newRequiredPart.notes" placeholder="Any notes about this part" />
-                </UFormField>
-                <div class="flex justify-end">
-                  <UButton
-                    label="Add Part"
-                    icon="i-lucide-plus"
-                    size="sm"
-                    variant="soft"
-                    :disabled="!newRequiredPart.partName.trim()"
-                    @click="addRequiredPart"
-                  />
-                </div>
-              </div>
+              </details>
             </div>
 
             <div class="flex justify-end gap-2 pt-4 border-t border-default">

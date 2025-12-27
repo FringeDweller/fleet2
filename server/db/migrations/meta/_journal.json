@@ -43,6 +43,13 @@
       "when": 1766796868381,
       "tag": "0005_fresh_agent_zero",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766815248174,
+      "tag": "0006_old_salo",
+      "breakpoints": true
     }
   ]
 }
