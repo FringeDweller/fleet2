@@ -15,6 +15,9 @@ import { workOrderPhotos } from './work-order-photos'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
 import { savedSearches } from './saved-searches'
+import { partCategories } from './part-categories'
+import { parts } from './parts'
+import { partUsageHistory } from './part-usage-history'
 
 export const organisationsRelations = relations(organisations, ({ many }) => ({
   users: many(users),
@@ -25,7 +28,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   workOrders: many(workOrders),
   maintenanceSchedules: many(maintenanceSchedules),
   notifications: many(notifications),
-  savedSearches: many(savedSearches)
+  savedSearches: many(savedSearches),
+  partCategories: many(partCategories),
+  parts: many(parts)
 }))
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -253,3 +258,49 @@ export const maintenanceScheduleWorkOrdersRelations = relations(
     })
   })
 )
+
+// Part Categories Relations
+export const partCategoriesRelations = relations(partCategories, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [partCategories.organisationId],
+    references: [organisations.id]
+  }),
+  parent: one(partCategories, {
+    fields: [partCategories.parentId],
+    references: [partCategories.id],
+    relationName: 'partCategoryParentChild'
+  }),
+  children: many(partCategories, {
+    relationName: 'partCategoryParentChild'
+  }),
+  parts: many(parts)
+}))
+
+// Parts Relations
+export const partsRelations = relations(parts, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [parts.organisationId],
+    references: [organisations.id]
+  }),
+  category: one(partCategories, {
+    fields: [parts.categoryId],
+    references: [partCategories.id]
+  }),
+  usageHistory: many(partUsageHistory)
+}))
+
+// Part Usage History Relations
+export const partUsageHistoryRelations = relations(partUsageHistory, ({ one }) => ({
+  part: one(parts, {
+    fields: [partUsageHistory.partId],
+    references: [parts.id]
+  }),
+  workOrder: one(workOrders, {
+    fields: [partUsageHistory.workOrderId],
+    references: [workOrders.id]
+  }),
+  user: one(users, {
+    fields: [partUsageHistory.userId],
+    references: [users.id]
+  })
+}))

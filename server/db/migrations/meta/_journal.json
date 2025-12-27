@@ -36,6 +36,13 @@
       "when": 1766792700036,
       "tag": "0004_organic_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766796868381,
+      "tag": "0005_fresh_agent_zero",
+      "breakpoints": true
     }
   ]
 }

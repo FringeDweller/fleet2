@@ -25,6 +25,14 @@ const links = [
       }
     },
     {
+      label: 'Parts',
+      icon: 'i-lucide-package',
+      to: '/inventory/parts',
+      onSelect: () => {
+        open.value = false
+      }
+    },
+    {
       label: 'Inbox',
       icon: 'i-lucide-inbox',
       to: '/inbox',

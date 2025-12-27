@@ -1,0 +1,46 @@
+import { db, schema } from '../../utils/db'
+import { eq, and } from 'drizzle-orm'
+
+export default defineEventHandler(async (event) => {
+  const session = await getUserSession(event)
+
+  if (!session?.user) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized'
+    })
+  }
+
+  const id = getRouterParam(event, 'id')
+
+  if (!id) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Category ID is required'
+    })
+  }
+
+  const category = await db.query.partCategories.findFirst({
+    where: and(
+      eq(schema.partCategories.id, id),
+      eq(schema.partCategories.organisationId, session.user.organisationId)
+    ),
+    with: {
+      parent: true,
+      children: true,
+      parts: {
+        where: eq(schema.parts.isActive, true),
+        limit: 10
+      }
+    }
+  })
+
+  if (!category) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Category not found'
+    })
+  }
+
+  return category
+})
