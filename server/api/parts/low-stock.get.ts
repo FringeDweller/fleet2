@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -11,32 +11,71 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get parts at or below reorder threshold
+  const query = getQuery(event)
+  const includeOnOrder = query.includeOnOrder === 'true'
+
+  // Get parts that are below their reorder threshold
+  // A part is low stock if:
+  // 1. It has a reorder threshold set
+  // 2. Current stock is at or below the threshold
+  // 3. (Optional) Not already on order
+  const conditions = [
+    eq(schema.parts.organisationId, session.user.organisationId),
+    eq(schema.parts.isActive, true),
+    isNotNull(schema.parts.reorderThreshold),
+    sql`CAST(${schema.parts.quantityInStock} AS numeric) <= CAST(${schema.parts.reorderThreshold} AS numeric)`,
+  ]
+
+  // If not including on-order parts, filter them out
+  if (!includeOnOrder) {
+    conditions.push(
+      or(
+        sql`CAST(${schema.parts.onOrderQuantity} AS numeric) = 0`,
+        sql`${schema.parts.onOrderQuantity} IS NULL`,
+      )!,
+    )
+  }
+
   const lowStockParts = await db.query.parts.findMany({
-    where: and(
-      eq(schema.parts.organisationId, session.user.organisationId),
-      eq(schema.parts.isActive, true),
-      sql`${schema.parts.reorderThreshold} IS NOT NULL`,
-      sql`CAST(${schema.parts.quantityInStock} AS NUMERIC) <= CAST(${schema.parts.reorderThreshold} AS NUMERIC)`,
-    ),
+    where: and(...conditions),
     with: {
-      category: true,
+      category: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
     },
-    orderBy: (parts, { asc }) => [
-      asc(
-        sql`CAST(${parts.quantityInStock} AS NUMERIC) / NULLIF(CAST(${parts.reorderThreshold} AS NUMERIC), 0)`,
-      ),
-    ],
+    orderBy: (parts, { asc }) => [asc(parts.name)],
   })
 
-  return lowStockParts.map((part) => ({
-    ...part,
-    stockLevel: parseFloat(part.quantityInStock),
-    threshold: parseFloat(part.reorderThreshold || '0'),
-    percentOfThreshold:
-      part.reorderThreshold && parseFloat(part.reorderThreshold) > 0
-        ? Math.round((parseFloat(part.quantityInStock) / parseFloat(part.reorderThreshold)) * 100)
-        : null,
-    suggestedReorderQty: part.reorderQuantity ? parseFloat(part.reorderQuantity) : null,
-  }))
+  // Calculate shortage for each part
+  const partsWithShortage = lowStockParts.map((part) => {
+    const currentStock = Number.parseFloat(part.quantityInStock)
+    const threshold = Number.parseFloat(part.reorderThreshold || '0')
+    const reorderQty = Number.parseFloat(part.reorderQuantity || '0')
+    const onOrder = Number.parseFloat(part.onOrderQuantity || '0')
+
+    return {
+      ...part,
+      shortage: Math.max(0, threshold - currentStock),
+      suggestedOrder: reorderQty > 0 ? reorderQty : Math.max(0, threshold - currentStock + 10),
+      effectiveStock: currentStock + onOrder,
+      isOnOrder: onOrder > 0,
+    }
+  })
+
+  // Summary stats
+  const summary = {
+    totalLowStock: partsWithShortage.length,
+    criticalCount: partsWithShortage.filter((p) => Number.parseFloat(p.quantityInStock) === 0)
+      .length,
+    onOrderCount: partsWithShortage.filter((p) => p.isOnOrder).length,
+    totalShortage: partsWithShortage.reduce((sum, p) => sum + p.shortage, 0),
+  }
+
+  return {
+    parts: partsWithShortage,
+    summary,
+  }
 })

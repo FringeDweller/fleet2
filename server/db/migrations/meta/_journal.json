@@ -71,6 +71,13 @@
       "when": 1766835164308,
       "tag": "0009_glossy_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1766835563340,
+      "tag": "0010_fat_screwball",
+      "breakpoints": true
     }
   ]
 }

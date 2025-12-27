@@ -33,12 +33,34 @@ const links = [
       },
     },
     {
-      label: 'Parts',
+      label: 'Inventory',
       icon: 'i-lucide-package',
       to: '/inventory/parts',
-      onSelect: () => {
-        open.value = false
-      },
+      defaultOpen: false,
+      type: 'trigger',
+      children: [
+        {
+          label: 'Parts',
+          to: '/inventory/parts',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Reorder Alerts',
+          to: '/inventory/reorder-alerts',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Stock Movements',
+          to: '/inventory/movements',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+      ],
     },
     {
       label: 'Inbox',
