@@ -60,7 +60,7 @@ const currentCategory = ref({
   id: '',
   name: '',
   description: '',
-  parentId: null as string | null,
+  parentId: undefined as string | undefined,
   defaultMaintenanceSchedules: [] as CategoryMaintenanceTemplate[],
   defaultParts: [] as DefaultPart[],
   isActive: true
@@ -125,7 +125,7 @@ function openCreateModal(parentId?: string) {
     id: '',
     name: '',
     description: '',
-    parentId: parentId || null,
+    parentId: parentId || undefined,
     defaultMaintenanceSchedules: [],
     defaultParts: [],
     isActive: true
@@ -139,7 +139,7 @@ function openEditModal(category: CategoryNode) {
     id: category.id,
     name: category.name,
     description: category.description || '',
-    parentId: category.parentId,
+    parentId: category.parentId ?? undefined,
     defaultMaintenanceSchedules: [...(category.defaultMaintenanceSchedules || [])],
     defaultParts: [...(category.defaultParts || [])],
     isActive: category.isActive
@@ -213,7 +213,8 @@ async function saveCategory() {
     }
 
     if (isEditing.value) {
-      await $fetch(`/api/asset-categories/${currentCategory.value.id}`, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await ($fetch as any)(`/api/asset-categories/${currentCategory.value.id}`, {
         method: 'PUT',
         body
       })
@@ -250,7 +251,8 @@ async function saveCategory() {
 
 async function toggleActive(category: CategoryNode) {
   try {
-    await $fetch(`/api/asset-categories/${category.id}`, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ($fetch as any)(`/api/asset-categories/${category.id}`, {
       method: 'PUT',
       body: { isActive: !category.isActive }
     })
@@ -269,7 +271,10 @@ async function toggleActive(category: CategoryNode) {
 
 async function deleteCategory(category: CategoryNode) {
   try {
-    await $fetch(`/api/asset-categories/${category.id}`, { method: 'DELETE' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ($fetch as any)(`/api/asset-categories/${category.id}`, {
+      method: 'DELETE'
+    })
     toast.add({
       title: 'Category deleted',
       description: `"${category.name}" has been deleted.`

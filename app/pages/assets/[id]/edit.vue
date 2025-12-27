@@ -85,7 +85,8 @@ const loading = ref(false)
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    await $fetch(`/api/assets/${route.params.id}`, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ($fetch as any)(`/api/assets/${route.params.id}`, {
       method: 'PUT',
       body: event.data
     })

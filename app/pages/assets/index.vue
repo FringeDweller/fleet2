@@ -354,7 +354,10 @@ function getRowItems(row: Row<Asset>) {
 
 async function archiveAsset(id: string) {
   try {
-    await $fetch(`/api/assets/${id}`, { method: 'DELETE' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ($fetch as any)(`/api/assets/${id}`, {
+      method: 'DELETE'
+    })
     toast.add({
       title: 'Asset archived',
       description: 'The asset has been archived successfully.'

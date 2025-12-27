@@ -44,7 +44,10 @@ const statusColors = {
 
 async function archiveAsset() {
   try {
-    await $fetch(`/api/assets/${route.params.id}`, { method: 'DELETE' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await ($fetch as any)(`/api/assets/${route.params.id}`, {
+      method: 'DELETE'
+    })
     toast.add({
       title: 'Asset archived',
       description: 'The asset has been archived successfully.'
