@@ -189,6 +189,11 @@ export const workOrderPartsRelations = relations(workOrderParts, ({ one }) => ({
     fields: [workOrderParts.addedById],
     references: [users.id],
   }),
+  // Optional link to parts inventory for stock tracking
+  part: one(parts, {
+    fields: [workOrderParts.partId],
+    references: [parts.id],
+  }),
 }))
 
 // Work Order Photos Relations
@@ -302,6 +307,7 @@ export const partsRelations = relations(parts, ({ one, many }) => ({
   }),
   usageHistory: many(partUsageHistory),
   templateParts: many(taskTemplateParts),
+  workOrderParts: many(workOrderParts),
 }))
 
 // Part Usage History Relations

@@ -1,6 +1,91 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
+
+interface StockWarning {
+  partId: string
+  partName: string
+  requested: number
+  available: number
+  deducted: number
+}
+
+// Deduct parts from inventory when work order is completed
+async function deductPartsFromInventory(
+  workOrderId: string,
+  userId: string,
+): Promise<{ success: boolean; warnings: StockWarning[] }> {
+  const warnings: StockWarning[] = []
+
+  // Get all work order parts that are linked to inventory
+  const workOrderParts = await db.query.workOrderParts.findMany({
+    where: and(
+      eq(schema.workOrderParts.workOrderId, workOrderId),
+      isNotNull(schema.workOrderParts.partId),
+    ),
+    with: {
+      part: {
+        columns: {
+          id: true,
+          name: true,
+          quantityInStock: true,
+          unitCost: true,
+        },
+      },
+    },
+  })
+
+  if (workOrderParts.length === 0) {
+    return { success: true, warnings: [] }
+  }
+
+  // Process each part in a transaction
+  await db.transaction(async (tx) => {
+    for (const woPart of workOrderParts) {
+      if (!woPart.part || !woPart.partId) continue
+
+      const currentStock = parseFloat(woPart.part.quantityInStock)
+      const requested = woPart.quantity
+      const deducted = Math.min(requested, Math.max(0, currentStock))
+      const newQuantity = currentStock - requested // Can go negative
+
+      // Track warning if insufficient stock
+      if (currentStock < requested) {
+        warnings.push({
+          partId: woPart.partId,
+          partName: woPart.partName,
+          requested,
+          available: currentStock,
+          deducted,
+        })
+      }
+
+      // Update inventory (allow negative stock as per user preference)
+      await tx
+        .update(schema.parts)
+        .set({
+          quantityInStock: newQuantity.toFixed(2),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.parts.id, woPart.partId))
+
+      // Create usage history record
+      await tx.insert(schema.partUsageHistory).values({
+        partId: woPart.partId,
+        workOrderId,
+        usageType: 'work_order',
+        quantityChange: (-requested).toFixed(2),
+        previousQuantity: currentStock.toFixed(2),
+        newQuantity: newQuantity.toFixed(2),
+        unitCostAtTime: woPart.unitCost,
+        notes: `Used in work order completion`,
+        userId,
+      })
+    }
+  })
+
+  return { success: true, warnings }
+}
 
 const statusSchema = z.object({
   status: z.enum(['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed']),
@@ -123,5 +208,15 @@ export default defineEventHandler(async (event) => {
     newValues: { status: result.data.status },
   })
 
-  return workOrder
+  // Deduct parts from inventory when completing work order
+  let stockWarnings: StockWarning[] = []
+  if (result.data.status === 'completed') {
+    const deductionResult = await deductPartsFromInventory(id, session.user.id)
+    stockWarnings = deductionResult.warnings
+  }
+
+  return {
+    ...workOrder,
+    stockWarnings: stockWarnings.length > 0 ? stockWarnings : undefined,
+  }
 })

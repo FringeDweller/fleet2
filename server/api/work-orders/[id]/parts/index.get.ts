@@ -46,9 +46,33 @@ export default defineEventHandler(async (event) => {
           lastName: true,
         },
       },
+      // Include linked inventory part details for stock tracking
+      part: {
+        columns: {
+          id: true,
+          name: true,
+          sku: true,
+          unit: true,
+          quantityInStock: true,
+          unitCost: true,
+          isActive: true,
+        },
+      },
     },
     orderBy: (parts, { desc }) => [desc(parts.createdAt)],
   })
 
-  return parts
+  // Transform to include availability info
+  return parts.map((p) => ({
+    ...p,
+    // Calculate availability if linked to inventory
+    availability: p.part
+      ? {
+          inStock: parseFloat(p.part.quantityInStock) >= p.quantity,
+          available: parseFloat(p.part.quantityInStock),
+          needed: p.quantity,
+          unit: p.part.unit,
+        }
+      : null,
+  }))
 })

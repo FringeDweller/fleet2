@@ -146,10 +146,24 @@ export async function generateWorkOrderFromSchedule(
       return result
     }
 
-    // Copy checklist items from template if available
+    // Copy checklist items and parts from template if available
     if (schedule.templateId) {
       const template = await db.query.taskTemplates.findFirst({
         where: eq(schema.taskTemplates.id, schedule.templateId),
+        with: {
+          templateParts: {
+            with: {
+              part: {
+                columns: {
+                  id: true,
+                  name: true,
+                  sku: true,
+                  unitCost: true,
+                },
+              },
+            },
+          },
+        },
       })
 
       if (template?.checklistItems && template.checklistItems.length > 0) {
@@ -163,6 +177,49 @@ export async function generateWorkOrderFromSchedule(
         }))
 
         await db.insert(schema.workOrderChecklistItems).values(checklistItems)
+      }
+
+      // Copy parts from template - prefer normalized templateParts, fallback to JSONB requiredParts
+      if (template?.templateParts && template.templateParts.length > 0) {
+        const partsToCreate = template.templateParts.map((tp) => {
+          const quantity = parseInt(tp.quantity, 10) || 1
+          const unitCost = tp.part?.unitCost ? parseFloat(tp.part.unitCost) : null
+          const totalCost = unitCost ? (unitCost * quantity).toFixed(2) : null
+
+          return {
+            workOrderId: workOrder.id,
+            partId: tp.part?.id || null,
+            partName: tp.part?.name || 'Unknown Part',
+            partNumber: tp.part?.sku || null,
+            quantity,
+            unitCost: unitCost?.toFixed(2) || null,
+            totalCost,
+            notes: `From schedule: ${schedule.name}`,
+            addedById: schedule.createdById,
+          }
+        })
+
+        await db.insert(schema.workOrderParts).values(partsToCreate)
+      } else if (template?.requiredParts && template.requiredParts.length > 0) {
+        const partsToCreate = template.requiredParts.map((rp) => {
+          const quantity = rp.quantity || 1
+          const unitCost = rp.estimatedCost || null
+          const totalCost = unitCost ? (unitCost * quantity).toFixed(2) : null
+
+          return {
+            workOrderId: workOrder.id,
+            partId: null,
+            partName: rp.partName,
+            partNumber: rp.partNumber || null,
+            quantity,
+            unitCost: unitCost?.toFixed(2) || null,
+            totalCost,
+            notes: `From schedule: ${schedule.name}`,
+            addedById: schedule.createdById,
+          }
+        })
+
+        await db.insert(schema.workOrderParts).values(partsToCreate)
       }
     }
 

@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
 
   const workOrderNumber = await generateWorkOrderNumber(session.user.organisationId)
 
-  // If a template is selected, copy its checklist items
+  // If a template is selected, copy its checklist items and parts
   let checklistItemsToCreate: Array<{
     workOrderId: string
     templateItemId: string
@@ -60,12 +60,39 @@ export default defineEventHandler(async (event) => {
     order: number
   }> = []
 
+  let partsToCreate: Array<{
+    workOrderId: string
+    partId: string | null
+    partName: string
+    partNumber: string | null
+    quantity: number
+    unitCost: string | null
+    totalCost: string | null
+    notes: string | null
+    addedById: string
+  }> = []
+
   if (result.data.templateId) {
     const template = await db.query.taskTemplates.findFirst({
       where: and(
         eq(schema.taskTemplates.id, result.data.templateId),
         eq(schema.taskTemplates.organisationId, session.user.organisationId),
       ),
+      with: {
+        // Get normalized template parts with full part details
+        templateParts: {
+          with: {
+            part: {
+              columns: {
+                id: true,
+                name: true,
+                sku: true,
+                unitCost: true,
+              },
+            },
+          },
+        },
+      },
     })
 
     if (template?.checklistItems) {
@@ -77,6 +104,47 @@ export default defineEventHandler(async (event) => {
         isRequired: item.isRequired,
         order: item.order,
       }))
+    }
+
+    // Copy parts from template - prefer normalized templateParts, fallback to JSONB requiredParts
+    if (template?.templateParts && template.templateParts.length > 0) {
+      // Use normalized template parts (linked to inventory)
+      partsToCreate = template.templateParts.map((tp) => {
+        const quantity = parseInt(tp.quantity, 10) || 1
+        const unitCost = tp.part?.unitCost ? parseFloat(tp.part.unitCost) : null
+        const totalCost = unitCost ? (unitCost * quantity).toFixed(2) : null
+
+        return {
+          workOrderId: '',
+          partId: tp.part?.id || null,
+          partName: tp.part?.name || 'Unknown Part',
+          partNumber: tp.part?.sku || null,
+          quantity,
+          unitCost: unitCost?.toFixed(2) || null,
+          totalCost,
+          notes: tp.notes ? `From template: ${tp.notes}` : `From template: ${template.name}`,
+          addedById: session.user!.id,
+        }
+      })
+    } else if (template?.requiredParts && template.requiredParts.length > 0) {
+      // Fallback to JSONB required parts (not linked to inventory)
+      partsToCreate = template.requiredParts.map((rp) => {
+        const quantity = rp.quantity || 1
+        const unitCost = rp.estimatedCost || null
+        const totalCost = unitCost ? (unitCost * quantity).toFixed(2) : null
+
+        return {
+          workOrderId: '',
+          partId: null, // No inventory link for JSONB parts
+          partName: rp.partName,
+          partNumber: rp.partNumber || null,
+          quantity,
+          unitCost: unitCost?.toFixed(2) || null,
+          totalCost,
+          notes: rp.notes ? `From template: ${rp.notes}` : `From template: ${template.name}`,
+          addedById: session.user!.id,
+        }
+      })
     }
   }
 
@@ -111,6 +179,16 @@ export default defineEventHandler(async (event) => {
     await db.insert(schema.workOrderChecklistItems).values(
       checklistItemsToCreate.map((item) => ({
         ...item,
+        workOrderId: workOrder.id,
+      })),
+    )
+  }
+
+  // Create parts if template was selected
+  if (partsToCreate.length > 0) {
+    await db.insert(schema.workOrderParts).values(
+      partsToCreate.map((part) => ({
+        ...part,
         workOrderId: workOrder.id,
       })),
     )

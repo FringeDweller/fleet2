@@ -50,6 +50,13 @@
       "when": 1766815248174,
       "tag": "0006_old_salo",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766820057488,
+      "tag": "0007_add-part-id-to-work-order-parts",
+      "breakpoints": true
     }
   ]
 }
