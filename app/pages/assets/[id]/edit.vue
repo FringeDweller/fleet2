@@ -30,7 +30,11 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
-const { data: asset, status: fetchStatus, error } = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
+const {
+  data: asset,
+  status: fetchStatus,
+  error
+} = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
   lazy: true
 })
 
@@ -56,21 +60,25 @@ type Schema = z.output<typeof schema>
 
 const state = reactive<Partial<Schema>>({})
 
-watch(asset, (newAsset) => {
-  if (newAsset) {
-    state.assetNumber = newAsset.assetNumber
-    state.vin = newAsset.vin
-    state.make = newAsset.make
-    state.model = newAsset.model
-    state.year = newAsset.year
-    state.licensePlate = newAsset.licensePlate
-    state.operationalHours = newAsset.operationalHours ? Number(newAsset.operationalHours) : 0
-    state.mileage = newAsset.mileage ? Number(newAsset.mileage) : 0
-    state.status = newAsset.status
-    state.description = newAsset.description
-    state.categoryId = newAsset.categoryId ?? undefined
-  }
-}, { immediate: true })
+watch(
+  asset,
+  newAsset => {
+    if (newAsset) {
+      state.assetNumber = newAsset.assetNumber
+      state.vin = newAsset.vin
+      state.make = newAsset.make
+      state.model = newAsset.model
+      state.year = newAsset.year
+      state.licensePlate = newAsset.licensePlate
+      state.operationalHours = newAsset.operationalHours ? Number(newAsset.operationalHours) : 0
+      state.mileage = newAsset.mileage ? Number(newAsset.mileage) : 0
+      state.status = newAsset.status
+      state.description = newAsset.description
+      state.categoryId = newAsset.categoryId ?? undefined
+    }
+  },
+  { immediate: true }
+)
 
 const loading = ref(false)
 
@@ -133,9 +141,7 @@ const categoryOptions = computed(() => {
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">
-          Asset not found
-        </h3>
+        <h3 class="text-lg font-medium mb-2">Asset not found</h3>
         <p class="text-muted mb-4">
           The asset you're looking for doesn't exist or has been removed.
         </p>
@@ -143,17 +149,10 @@ const categoryOptions = computed(() => {
       </div>
 
       <div v-else class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Basic Information
-              </h3>
+              <h3 class="font-medium">Basic Information</h3>
             </template>
 
             <div class="space-y-4">
@@ -199,13 +198,15 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Vehicle Details
-              </h3>
+              <h3 class="font-medium">Vehicle Details</h3>
             </template>
 
             <div class="space-y-4">
-              <UFormField label="VIN" name="vin" hint="Vehicle Identification Number (17 characters)">
+              <UFormField
+                label="VIN"
+                name="vin"
+                hint="Vehicle Identification Number (17 characters)"
+              >
                 <UInput
                   v-model="state.vin"
                   placeholder="1HGBH41JXMN109186"
@@ -222,9 +223,7 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Usage Metrics
-              </h3>
+              <h3 class="font-medium">Usage Metrics</h3>
             </template>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -252,9 +251,7 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Additional Information
-              </h3>
+              <h3 class="font-medium">Additional Information</h3>
             </template>
 
             <UFormField label="Description" name="description">
@@ -274,12 +271,7 @@ const categoryOptions = computed(() => {
               variant="subtle"
               @click="router.push(`/assets/${route.params.id}`)"
             />
-            <UButton
-              label="Save Changes"
-              color="primary"
-              type="submit"
-              :loading="loading"
-            />
+            <UButton label="Save Changes" color="primary" type="submit" :loading="loading" />
           </div>
         </UForm>
       </div>

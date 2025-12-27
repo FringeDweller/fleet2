@@ -5,7 +5,8 @@ export default defineConfig({
   out: './server/db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.NUXT_DATABASE_URL || 'postgresql://fleet:fleet_dev_password@localhost:54837/fleet'
+    url:
+      process.env.NUXT_DATABASE_URL || 'postgresql://fleet:fleet_dev_password@localhost:54837/fleet'
   },
   verbose: true,
   strict: true

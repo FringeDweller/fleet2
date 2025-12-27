@@ -17,7 +17,7 @@ const updateAssetSchema = z.object({
   categoryId: z.string().uuid().optional().nullable()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -72,7 +72,8 @@ export default defineEventHandler(async (event) => {
   if (result.data.model !== undefined) updateData.model = result.data.model
   if (result.data.year !== undefined) updateData.year = result.data.year
   if (result.data.licensePlate !== undefined) updateData.licensePlate = result.data.licensePlate
-  if (result.data.operationalHours !== undefined) updateData.operationalHours = result.data.operationalHours.toString()
+  if (result.data.operationalHours !== undefined)
+    updateData.operationalHours = result.data.operationalHours.toString()
   if (result.data.mileage !== undefined) updateData.mileage = result.data.mileage.toString()
   if (result.data.status !== undefined) updateData.status = result.data.status
   if (result.data.description !== undefined) updateData.description = result.data.description
@@ -83,10 +84,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.assets)
     .set(updateData)
     .where(
-      and(
-        eq(schema.assets.id, id),
-        eq(schema.assets.organisationId, session.user.organisationId)
-      )
+      and(eq(schema.assets.id, id), eq(schema.assets.organisationId, session.user.organisationId))
     )
     .returning()
 

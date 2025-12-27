@@ -12,7 +12,7 @@ interface ChecklistItem {
   isRequired: boolean
   isCompleted: boolean
   completedAt: string | null
-  completedBy: { id: string, firstName: string, lastName: string } | null
+  completedBy: { id: string; firstName: string; lastName: string } | null
   notes: string | null
   order: number
 }
@@ -26,7 +26,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
-  addedBy?: { id: string, firstName: string, lastName: string }
+  addedBy?: { id: string; firstName: string; lastName: string }
 }
 
 interface Photo {
@@ -36,7 +36,7 @@ interface Photo {
   photoType: 'before' | 'during' | 'after' | 'issue' | 'other'
   caption: string | null
   createdAt: string
-  uploadedBy?: { id: string, firstName: string, lastName: string }
+  uploadedBy?: { id: string; firstName: string; lastName: string }
 }
 
 interface StatusHistoryItem {
@@ -45,7 +45,7 @@ interface StatusHistoryItem {
   toStatus: string
   notes: string | null
   createdAt: string
-  changedBy: { id: string, firstName: string, lastName: string, avatarUrl: string | null }
+  changedBy: { id: string; firstName: string; lastName: string; avatarUrl: string | null }
 }
 
 interface WorkOrder {
@@ -94,7 +94,12 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
-const { data: workOrder, status, error, refresh } = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
+const {
+  data: workOrder,
+  status,
+  error,
+  refresh
+} = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
   lazy: true
 })
 
@@ -123,7 +128,7 @@ const statusLabels = {
   closed: 'Closed'
 } as const
 
-const validTransitions: Record<string, { label: string, value: string }[]> = {
+const validTransitions: Record<string, { label: string; value: string }[]> = {
   draft: [{ label: 'Open', value: 'open' }],
   open: [
     { label: 'Start Work', value: 'in_progress' },
@@ -217,8 +222,16 @@ const tabs = computed(() => [
     value: 'checklist',
     icon: 'i-lucide-check-square'
   },
-  { label: `Parts (${workOrder.value?.parts.length || 0})`, value: 'parts', icon: 'i-lucide-wrench' },
-  { label: `Photos (${workOrder.value?.photos.length || 0})`, value: 'photos', icon: 'i-lucide-image' },
+  {
+    label: `Parts (${workOrder.value?.parts.length || 0})`,
+    value: 'parts',
+    icon: 'i-lucide-wrench'
+  },
+  {
+    label: `Photos (${workOrder.value?.photos.length || 0})`,
+    value: 'photos',
+    icon: 'i-lucide-image'
+  },
   { label: 'History', value: 'history', icon: 'i-lucide-history' }
 ])
 </script>
@@ -240,10 +253,12 @@ const tabs = computed(() => [
           <div class="flex gap-2">
             <UDropdownMenu
               v-if="workOrder && validTransitions[workOrder.status]?.length"
-              :items="(validTransitions[workOrder!.status] ?? []).map(t => ({
-                label: t.label,
-                onSelect: () => changeStatus(t.value)
-              }))"
+              :items="
+                (validTransitions[workOrder!.status] ?? []).map(t => ({
+                  label: t.label,
+                  onSelect: () => changeStatus(t.value)
+                }))
+              "
             >
               <UButton
                 label="Change Status"
@@ -279,9 +294,7 @@ const tabs = computed(() => [
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">
-          Work order not found
-        </h3>
+        <h3 class="text-lg font-medium mb-2">Work order not found</h3>
         <p class="text-muted mb-4">
           The work order you're looking for doesn't exist or has been removed.
         </p>
@@ -316,7 +329,8 @@ const tabs = computed(() => [
             :to="`/assets/${workOrder.asset.id}`"
             class="hover:text-primary hover:underline"
           >
-            {{ workOrder.asset.assetNumber }} - {{ workOrder.asset.make }} {{ workOrder.asset.model }}
+            {{ workOrder.asset.assetNumber }} - {{ workOrder.asset.make }}
+            {{ workOrder.asset.model }}
           </NuxtLink>
         </div>
 
@@ -324,34 +338,31 @@ const tabs = computed(() => [
         <UTabs v-model="activeTab" :items="tabs" class="w-full" />
 
         <!-- Tab Content -->
-        <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div
+          v-if="activeTab === 'details'"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment
-              </h3>
+              <h3 class="font-medium">Assignment</h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">
-                  Assigned To
-                </dt>
+                <dt class="text-sm text-muted">Assigned To</dt>
                 <dd v-if="workOrder.assignedTo" class="flex items-center gap-2 mt-1">
                   <UAvatar
                     :src="workOrder.assignedTo.avatarUrl || undefined"
                     :alt="`${workOrder.assignedTo.firstName} ${workOrder.assignedTo.lastName}`"
                     size="xs"
                   />
-                  <span class="font-medium">{{ workOrder.assignedTo.firstName }} {{ workOrder.assignedTo.lastName }}</span>
+                  <span class="font-medium"
+                    >{{ workOrder.assignedTo.firstName }} {{ workOrder.assignedTo.lastName }}</span
+                  >
                 </dd>
-                <dd v-else class="text-muted">
-                  Unassigned
-                </dd>
+                <dd v-else class="text-muted">Unassigned</dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">
-                  Created By
-                </dt>
+                <dt class="text-sm text-muted">Created By</dt>
                 <dd class="font-medium">
                   {{ workOrder.createdBy.firstName }} {{ workOrder.createdBy.lastName }}
                 </dd>
@@ -361,31 +372,29 @@ const tabs = computed(() => [
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Schedule
-              </h3>
+              <h3 class="font-medium">Schedule</h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">
-                  Due Date
-                </dt>
-                <dd :class="isOverdue(workOrder.dueDate, workOrder.status) ? 'text-error font-medium' : 'font-medium'">
+                <dt class="text-sm text-muted">Due Date</dt>
+                <dd
+                  :class="
+                    isOverdue(workOrder.dueDate, workOrder.status)
+                      ? 'text-error font-medium'
+                      : 'font-medium'
+                  "
+                >
                   {{ workOrder.dueDate ? formatShortDate(workOrder.dueDate) : '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">
-                  Estimated Duration
-                </dt>
+                <dt class="text-sm text-muted">Estimated Duration</dt>
                 <dd class="font-medium">
                   {{ workOrder.estimatedDuration ? `${workOrder.estimatedDuration} minutes` : '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">
-                  Actual Duration
-                </dt>
+                <dt class="text-sm text-muted">Actual Duration</dt>
                 <dd class="font-medium">
                   {{ workOrder.actualDuration ? `${workOrder.actualDuration} minutes` : '-' }}
                 </dd>
@@ -395,39 +404,29 @@ const tabs = computed(() => [
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Timeline
-              </h3>
+              <h3 class="font-medium">Timeline</h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">
-                  Created
-                </dt>
+                <dt class="text-sm text-muted">Created</dt>
                 <dd class="font-medium">
                   {{ formatDate(workOrder.createdAt) }}
                 </dd>
               </div>
               <div v-if="workOrder.startedAt">
-                <dt class="text-sm text-muted">
-                  Started
-                </dt>
+                <dt class="text-sm text-muted">Started</dt>
                 <dd class="font-medium">
                   {{ formatDate(workOrder.startedAt) }}
                 </dd>
               </div>
               <div v-if="workOrder.completedAt">
-                <dt class="text-sm text-muted">
-                  Completed
-                </dt>
+                <dt class="text-sm text-muted">Completed</dt>
                 <dd class="font-medium">
                   {{ formatDate(workOrder.completedAt) }}
                 </dd>
               </div>
               <div v-if="workOrder.closedAt">
-                <dt class="text-sm text-muted">
-                  Closed
-                </dt>
+                <dt class="text-sm text-muted">Closed</dt>
                 <dd class="font-medium">
                   {{ formatDate(workOrder.closedAt) }}
                 </dd>
@@ -437,9 +436,7 @@ const tabs = computed(() => [
 
           <UCard v-if="workOrder.description" class="md:col-span-2 lg:col-span-3">
             <template #header>
-              <h3 class="font-medium">
-                Description
-              </h3>
+              <h3 class="font-medium">Description</h3>
             </template>
             <p class="text-muted whitespace-pre-wrap">
               {{ workOrder.description }}
@@ -448,9 +445,7 @@ const tabs = computed(() => [
 
           <UCard v-if="workOrder.notes" class="md:col-span-2 lg:col-span-3">
             <template #header>
-              <h3 class="font-medium">
-                Notes
-              </h3>
+              <h3 class="font-medium">Notes</h3>
             </template>
             <p class="text-muted whitespace-pre-wrap">
               {{ workOrder.notes }}
@@ -459,9 +454,7 @@ const tabs = computed(() => [
 
           <UCard v-if="workOrder.completionNotes" class="md:col-span-2 lg:col-span-3">
             <template #header>
-              <h3 class="font-medium">
-                Completion Notes
-              </h3>
+              <h3 class="font-medium">Completion Notes</h3>
             </template>
             <p class="text-muted whitespace-pre-wrap">
               {{ workOrder.completionNotes }}

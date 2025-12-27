@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, ilike, or, lte, isNull, inArray } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -27,14 +27,21 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(schema.workOrders.isArchived, false))
   }
 
-  const validStatuses = ['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed'] as const
-  if (status && validStatuses.includes(status as typeof validStatuses[number])) {
-    conditions.push(eq(schema.workOrders.status, status as typeof validStatuses[number]))
+  const validStatuses = [
+    'draft',
+    'open',
+    'in_progress',
+    'pending_parts',
+    'completed',
+    'closed'
+  ] as const
+  if (status && validStatuses.includes(status as (typeof validStatuses)[number])) {
+    conditions.push(eq(schema.workOrders.status, status as (typeof validStatuses)[number]))
   }
 
   const validPriorities = ['low', 'medium', 'high', 'critical'] as const
-  if (priority && validPriorities.includes(priority as typeof validPriorities[number])) {
-    conditions.push(eq(schema.workOrders.priority, priority as typeof validPriorities[number]))
+  if (priority && validPriorities.includes(priority as (typeof validPriorities)[number])) {
+    conditions.push(eq(schema.workOrders.priority, priority as (typeof validPriorities)[number]))
   }
 
   if (assignedToId) {

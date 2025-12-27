@@ -78,11 +78,7 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
           <div>
             <div class="flex items-center gap-2">
               <span class="font-medium">{{ alert.name }}</span>
-              <UBadge
-                :color="urgencyConfig[alert.urgency].color"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge :color="urgencyConfig[alert.urgency].color" variant="subtle" size="xs">
                 {{ urgencyConfig[alert.urgency].label }}
               </UBadge>
             </div>
@@ -96,7 +92,9 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
                 <span>
                   {{ alert.mileage.current.toLocaleString() }} /
                   {{ alert.mileage.nextTrigger.toLocaleString() }} km
-                  <span class="text-muted">({{ alert.mileage.remaining.toLocaleString() }} remaining)</span>
+                  <span class="text-muted"
+                    >({{ alert.mileage.remaining.toLocaleString() }} remaining)</span
+                  >
                 </span>
               </div>
               <div v-if="alert.hours" class="flex items-center gap-2">
@@ -104,7 +102,9 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
                 <span>
                   {{ alert.hours.current.toLocaleString() }} /
                   {{ alert.hours.nextTrigger.toLocaleString() }} hrs
-                  <span class="text-muted">({{ alert.hours.remaining.toLocaleString() }} remaining)</span>
+                  <span class="text-muted"
+                    >({{ alert.hours.remaining.toLocaleString() }} remaining)</span
+                  >
                 </span>
               </div>
             </div>
@@ -112,12 +112,7 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
         </div>
 
         <NuxtLink :to="`/settings/maintenance-schedules/${alert.id}`">
-          <UButton
-            icon="i-lucide-arrow-right"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-          />
+          <UButton icon="i-lucide-arrow-right" color="neutral" variant="ghost" size="xs" />
         </NuxtLink>
       </div>
     </div>

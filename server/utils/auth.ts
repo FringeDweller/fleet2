@@ -80,10 +80,7 @@ export async function authenticateUser(email: string, password: string): Promise
       updates.lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MINUTES * 60 * 1000)
     }
 
-    await db
-      .update(schema.users)
-      .set(updates)
-      .where(eq(schema.users.id, user.id))
+    await db.update(schema.users).set(updates).where(eq(schema.users.id, user.id))
 
     const remainingAttempts = MAX_FAILED_ATTEMPTS - newFailedAttempts
 
@@ -135,10 +132,7 @@ export async function authenticateUser(email: string, password: string): Promise
 
 export async function getUserById(userId: string): Promise<SafeUser | null> {
   const user = await db.query.users.findFirst({
-    where: and(
-      eq(schema.users.id, userId),
-      eq(schema.users.isActive, true)
-    )
+    where: and(eq(schema.users.id, userId), eq(schema.users.isActive, true))
   })
 
   if (!user) return null

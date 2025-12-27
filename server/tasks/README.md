@@ -9,18 +9,21 @@ This directory contains Nitro scheduled tasks that can be run manually or via cr
 Automatically generates work orders from active maintenance schedules.
 
 **Purpose:**
+
 - Checks all active maintenance schedules
 - Generates work orders when schedules are due (time-based or usage-based)
 - Notifies assigned users
 - Logs all actions in audit log
 
 **Trigger Conditions:**
+
 - **Time-based**: Triggers when `today >= (nextDueDate - leadTimeDays)`
 - **Usage-based (mileage)**: Triggers when `currentMileage >= lastTriggeredMileage + intervalMileage`
 - **Usage-based (hours)**: Triggers when `currentHours >= lastTriggeredHours + intervalHours`
 - **Combined**: Triggers when any of the above conditions are met
 
 **Duplicate Prevention:**
+
 - Checks `maintenanceScheduleWorkOrders` junction table
 - Skips generation if work order was already created for this cycle
 
@@ -49,12 +52,14 @@ Add to your cron tab to run daily at 6 AM:
 **Output:**
 
 The task logs to console:
+
 - Total schedules checked
 - Work orders created
 - Schedules skipped (not yet due)
 - Errors encountered
 
 Example output:
+
 ```
 [Task] Starting scheduled work order generation...
 [Task] Work order generation complete:

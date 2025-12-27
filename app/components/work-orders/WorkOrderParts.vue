@@ -10,7 +10,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
-  addedBy?: { id: string, firstName: string, lastName: string }
+  addedBy?: { id: string; firstName: string; lastName: string }
 }
 
 const props = defineProps<{
@@ -109,13 +109,9 @@ async function deletePart(part: Part) {
   <UCard>
     <template #header>
       <div class="flex items-center justify-between">
-        <h3 class="font-medium">
-          Parts Used
-        </h3>
+        <h3 class="font-medium">Parts Used</h3>
         <div class="flex items-center gap-3">
-          <span v-if="totalCost" class="text-sm font-medium">
-            Total: ${{ totalCost }}
-          </span>
+          <span v-if="totalCost" class="text-sm font-medium"> Total: ${{ totalCost }} </span>
           <UButton
             v-if="!readonly"
             icon="i-lucide-plus"
@@ -141,23 +137,14 @@ async function deletePart(part: Part) {
     </div>
 
     <div v-else class="divide-y divide-default">
-      <div
-        v-for="part in parts"
-        :key="part.id"
-        class="py-3 first:pt-0 last:pb-0 group"
-      >
+      <div v-for="part in parts" :key="part.id" class="py-3 first:pt-0 last:pb-0 group">
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <p class="font-medium truncate">
                 {{ part.partName }}
               </p>
-              <UBadge
-                v-if="part.partNumber"
-                color="neutral"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge v-if="part.partNumber" color="neutral" variant="subtle" size="xs">
                 {{ part.partNumber }}
               </UBadge>
             </div>
@@ -165,18 +152,14 @@ async function deletePart(part: Part) {
               {{ part.notes }}
             </p>
             <p v-if="part.addedBy" class="text-xs text-muted mt-2">
-              Added by {{ part.addedBy.firstName }} {{ part.addedBy.lastName }}
-              on {{ format(parseISO(part.createdAt), 'PP') }}
+              Added by {{ part.addedBy.firstName }} {{ part.addedBy.lastName }} on
+              {{ format(parseISO(part.createdAt), 'PP') }}
             </p>
           </div>
           <div class="flex items-start gap-3">
             <div class="text-right">
-              <p class="font-medium">
-                x{{ part.quantity }}
-              </p>
-              <p v-if="part.unitCost" class="text-xs text-muted">
-                @ ${{ part.unitCost }}/ea
-              </p>
+              <p class="font-medium">x{{ part.quantity }}</p>
+              <p v-if="part.unitCost" class="text-xs text-muted">@ ${{ part.unitCost }}/ea</p>
               <p v-if="part.totalCost" class="text-sm font-medium text-success">
                 ${{ part.totalCost }}
               </p>
@@ -201,41 +184,23 @@ async function deletePart(part: Part) {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">
-                Add Part
-              </h3>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="xs"
-                @click="addModalOpen = false"
-              />
+              <h3 class="font-medium">Add Part</h3>
+              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="addModalOpen = false" />
             </div>
           </template>
 
           <form class="space-y-4" @submit.prevent="addPart">
             <UFormField label="Part Name" required>
-              <UInput
-                v-model="newPart.partName"
-                placeholder="e.g., Oil Filter"
-                autofocus
-              />
+              <UInput v-model="newPart.partName" placeholder="e.g., Oil Filter" autofocus />
             </UFormField>
 
             <UFormField label="Part Number">
-              <UInput
-                v-model="newPart.partNumber"
-                placeholder="e.g., OIL-1234"
-              />
+              <UInput v-model="newPart.partNumber" placeholder="e.g., OIL-1234" />
             </UFormField>
 
             <div class="grid grid-cols-2 gap-4">
               <UFormField label="Quantity" required>
-                <UInput
-                  v-model.number="newPart.quantity"
-                  type="number"
-                  :min="1"
-                />
+                <UInput v-model.number="newPart.quantity" type="number" :min="1" />
               </UFormField>
 
               <UFormField label="Unit Cost">
@@ -258,16 +223,8 @@ async function deletePart(part: Part) {
             </UFormField>
 
             <div class="flex justify-end gap-2">
-              <UButton
-                label="Cancel"
-                variant="ghost"
-                @click="addModalOpen = false"
-              />
-              <UButton
-                type="submit"
-                label="Add Part"
-                :disabled="!newPart.partName.trim()"
-              />
+              <UButton label="Cancel" variant="ghost" @click="addModalOpen = false" />
+              <UButton type="submit" label="Add Part" :disabled="!newPart.partName.trim()" />
             </div>
           </form>
         </UCard>

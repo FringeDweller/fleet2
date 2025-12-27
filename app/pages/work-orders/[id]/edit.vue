@@ -37,7 +37,11 @@ const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 
-const { data: workOrder, status: fetchStatus, error } = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
+const {
+  data: workOrder,
+  status: fetchStatus,
+  error
+} = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
   lazy: true
 })
 
@@ -70,19 +74,23 @@ const state = reactive<Partial<Schema>>({
 })
 
 // Watch for work order data and populate form
-watch(workOrder, (wo) => {
-  if (wo) {
-    state.title = wo.title
-    state.description = wo.description
-    state.assignedToId = wo.assignedToId || undefined
-    state.priority = wo.priority
-    state.dueDate = wo.dueDate ? format(parseISO(wo.dueDate), 'yyyy-MM-dd') : undefined
-    state.estimatedDuration = wo.estimatedDuration || undefined
-    state.actualDuration = wo.actualDuration || undefined
-    state.notes = wo.notes ?? undefined
-    state.completionNotes = wo.completionNotes ?? undefined
-  }
-}, { immediate: true })
+watch(
+  workOrder,
+  wo => {
+    if (wo) {
+      state.title = wo.title
+      state.description = wo.description
+      state.assignedToId = wo.assignedToId || undefined
+      state.priority = wo.priority
+      state.dueDate = wo.dueDate ? format(parseISO(wo.dueDate), 'yyyy-MM-dd') : undefined
+      state.estimatedDuration = wo.estimatedDuration || undefined
+      state.actualDuration = wo.actualDuration || undefined
+      state.notes = wo.notes ?? undefined
+      state.completionNotes = wo.completionNotes ?? undefined
+    }
+  },
+  { immediate: true }
+)
 
 const loading = ref(false)
 
@@ -123,10 +131,12 @@ const priorityOptions = [
 ]
 
 const technicianOptions = computed(() => {
-  return technicians.value?.map(t => ({
-    label: `${t.firstName} ${t.lastName}`,
-    value: t.id
-  })) || []
+  return (
+    technicians.value?.map(t => ({
+      label: `${t.firstName} ${t.lastName}`,
+      value: t.id
+    })) || []
+  )
 })
 </script>
 
@@ -152,9 +162,7 @@ const technicianOptions = computed(() => {
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">
-          Work order not found
-        </h3>
+        <h3 class="text-lg font-medium mb-2">Work order not found</h3>
         <p class="text-muted mb-4">
           The work order you're looking for doesn't exist or has been removed.
         </p>
@@ -162,17 +170,10 @@ const technicianOptions = computed(() => {
       </div>
 
       <div v-else-if="workOrder" class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Work Order Details
-              </h3>
+              <h3 class="font-medium">Work Order Details</h3>
             </template>
 
             <div class="space-y-4">
@@ -197,9 +198,7 @@ const technicianOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment & Schedule
-              </h3>
+              <h3 class="font-medium">Assignment & Schedule</h3>
             </template>
 
             <div class="space-y-4">
@@ -219,11 +218,7 @@ const technicianOptions = computed(() => {
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Due Date" name="dueDate">
-                  <UInput
-                    v-model="state.dueDate"
-                    type="date"
-                    class="w-full"
-                  />
+                  <UInput v-model="state.dueDate" type="date" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Estimated Duration (minutes)" name="estimatedDuration">
@@ -251,9 +246,7 @@ const technicianOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Notes
-              </h3>
+              <h3 class="font-medium">Notes</h3>
             </template>
 
             <div class="space-y-4">
@@ -284,12 +277,7 @@ const technicianOptions = computed(() => {
               variant="subtle"
               @click="router.push(`/work-orders/${route.params.id}`)"
             />
-            <UButton
-              label="Save Changes"
-              color="primary"
-              type="submit"
-              :loading="loading"
-            />
+            <UButton label="Save Changes" color="primary" type="submit" :loading="loading" />
           </div>
         </UForm>
       </div>

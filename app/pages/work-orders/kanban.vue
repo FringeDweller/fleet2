@@ -184,18 +184,14 @@ function onDragEnd() {
       </div>
 
       <div v-else-if="data" class="flex gap-4 overflow-x-auto pb-4 h-full">
-        <div
-          v-for="column in data.columns"
-          :key="column.id"
-          class="flex-shrink-0 w-80"
-        >
+        <div v-for="column in data.columns" :key="column.id" class="flex-shrink-0 w-80">
           <div
             :class="[
               'rounded-lg p-3 h-full flex flex-col',
               columnBgColors[column.id as keyof typeof columnBgColors]
             ]"
-            @dragover="(e) => onDragOver(e, column.id)"
-            @drop="(e) => onDrop(e, column.id)"
+            @dragover="e => onDragOver(e, column.id)"
+            @drop="e => onDrop(e, column.id)"
           >
             <!-- Column Header -->
             <div class="flex items-center justify-between mb-3">
@@ -224,7 +220,7 @@ function onDragEnd() {
                   'ring-2 ring-primary': draggedItem?.id === wo.id,
                   'ring-2 ring-error': isOverdue(wo.dueDate, wo.status)
                 }"
-                @dragstart="(e) => onDragStart(e, wo, column.id)"
+                @dragstart="e => onDragStart(e, wo, column.id)"
                 @dragend="onDragEnd"
                 @click="router.push(`/work-orders/${wo.id}`)"
               >
@@ -266,12 +262,16 @@ function onDragEnd() {
                       {{ wo.assignedTo.firstName }}
                     </span>
                   </div>
-                  <div v-else class="text-xs text-muted">
-                    Unassigned
-                  </div>
+                  <div v-else class="text-xs text-muted">Unassigned</div>
 
                   <!-- Due date -->
-                  <div v-if="wo.dueDate" class="text-xs" :class="isOverdue(wo.dueDate, wo.status) ? 'text-error font-medium' : 'text-muted'">
+                  <div
+                    v-if="wo.dueDate"
+                    class="text-xs"
+                    :class="
+                      isOverdue(wo.dueDate, wo.status) ? 'text-error font-medium' : 'text-muted'
+                    "
+                  >
                     {{ formatDistanceToNow(parseISO(wo.dueDate), { addSuffix: true }) }}
                   </div>
                 </div>

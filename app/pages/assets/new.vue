@@ -104,21 +104,18 @@ const categoryOptions = computed(() => {
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Basic Information
-              </h3>
+              <h3 class="font-medium">Basic Information</h3>
             </template>
 
             <div class="space-y-4">
-              <UFormField label="Asset Number" name="assetNumber" hint="Leave blank to auto-generate">
+              <UFormField
+                label="Asset Number"
+                name="assetNumber"
+                hint="Leave blank to auto-generate"
+              >
                 <UInput v-model="state.assetNumber" placeholder="FLT-0001" class="w-full" />
               </UFormField>
 
@@ -160,13 +157,15 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Vehicle Details
-              </h3>
+              <h3 class="font-medium">Vehicle Details</h3>
             </template>
 
             <div class="space-y-4">
-              <UFormField label="VIN" name="vin" hint="Vehicle Identification Number (17 characters)">
+              <UFormField
+                label="VIN"
+                name="vin"
+                hint="Vehicle Identification Number (17 characters)"
+              >
                 <UInput
                   v-model="state.vin"
                   placeholder="1HGBH41JXMN109186"
@@ -183,9 +182,7 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Usage Metrics
-              </h3>
+              <h3 class="font-medium">Usage Metrics</h3>
             </template>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -213,9 +210,7 @@ const categoryOptions = computed(() => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Additional Information
-              </h3>
+              <h3 class="font-medium">Additional Information</h3>
             </template>
 
             <UFormField label="Description" name="description">
@@ -235,12 +230,7 @@ const categoryOptions = computed(() => {
               variant="subtle"
               @click="router.push('/assets')"
             />
-            <UButton
-              label="Create Asset"
-              color="primary"
-              type="submit"
-              :loading="loading"
-            />
+            <UButton label="Create Asset" color="primary" type="submit" :loading="loading" />
           </div>
         </UForm>
       </div>

@@ -48,14 +48,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'reports:read',
     'users:read'
   ],
-  [ROLES.TECHNICIAN]: [
-    'assets:read',
-    'work_orders:read',
-    'work_orders:write',
-    'reports:read'
-  ],
-  [ROLES.OPERATOR]: [
-    'assets:read',
-    'work_orders:read'
-  ]
+  [ROLES.TECHNICIAN]: ['assets:read', 'work_orders:read', 'work_orders:write', 'reports:read'],
+  [ROLES.OPERATOR]: ['assets:read', 'work_orders:read']
 }

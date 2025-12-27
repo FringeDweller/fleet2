@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const colorMode = useColorMode()
 
-const color = computed(() => colorMode.value === 'dark' ? '#1b1718' : 'white')
+const color = computed(() => (colorMode.value === 'dark' ? '#1b1718' : 'white'))
 
 useHead({
   meta: [
@@ -9,16 +9,15 @@ useHead({
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { key: 'theme-color', name: 'theme-color', content: color }
   ],
-  link: [
-    { rel: 'icon', href: '/favicon.ico' }
-  ],
+  link: [{ rel: 'icon', href: '/favicon.ico' }],
   htmlAttrs: {
     lang: 'en'
   }
 })
 
 const title = 'Fleet - Asset Management System'
-const description = 'A comprehensive enterprise platform for asset lifecycle management, maintenance operations, and fleet efficiency optimization.'
+const description =
+  'A comprehensive enterprise platform for asset lifecycle management, maintenance operations, and fleet efficiency optimization.'
 
 useSeoMeta({
   title,

@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, ilike, or } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -43,15 +43,38 @@ export default defineEventHandler(async (event) => {
   }
 
   // Filter by interval type
-  const validIntervalTypes = ['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom'] as const
-  if (intervalType && validIntervalTypes.includes(intervalType as typeof validIntervalTypes[number])) {
-    conditions.push(eq(schema.maintenanceSchedules.intervalType, intervalType as typeof validIntervalTypes[number]))
+  const validIntervalTypes = [
+    'daily',
+    'weekly',
+    'monthly',
+    'quarterly',
+    'annually',
+    'custom'
+  ] as const
+  if (
+    intervalType &&
+    validIntervalTypes.includes(intervalType as (typeof validIntervalTypes)[number])
+  ) {
+    conditions.push(
+      eq(
+        schema.maintenanceSchedules.intervalType,
+        intervalType as (typeof validIntervalTypes)[number]
+      )
+    )
   }
 
   // Filter by schedule type
   const validScheduleTypes = ['time_based', 'usage_based', 'combined'] as const
-  if (scheduleType && validScheduleTypes.includes(scheduleType as typeof validScheduleTypes[number])) {
-    conditions.push(eq(schema.maintenanceSchedules.scheduleType, scheduleType as typeof validScheduleTypes[number]))
+  if (
+    scheduleType &&
+    validScheduleTypes.includes(scheduleType as (typeof validScheduleTypes)[number])
+  ) {
+    conditions.push(
+      eq(
+        schema.maintenanceSchedules.scheduleType,
+        scheduleType as (typeof validScheduleTypes)[number]
+      )
+    )
   }
 
   // Search by name or description

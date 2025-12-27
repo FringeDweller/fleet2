@@ -1,7 +1,10 @@
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
-import { createWorkOrderAssignedNotification, createWorkOrderUnassignedNotification } from '../../utils/notifications'
+import {
+  createWorkOrderAssignedNotification,
+  createWorkOrderUnassignedNotification
+} from '../../utils/notifications'
 
 const updateWorkOrderSchema = z.object({
   title: z.string().min(1).max(200).optional(),
@@ -15,7 +18,7 @@ const updateWorkOrderSchema = z.object({
   completionNotes: z.string().optional().nullable()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -68,11 +71,15 @@ export default defineEventHandler(async (event) => {
   if (result.data.description !== undefined) updateData.description = result.data.description
   if (result.data.assignedToId !== undefined) updateData.assignedToId = result.data.assignedToId
   if (result.data.priority !== undefined) updateData.priority = result.data.priority
-  if (result.data.dueDate !== undefined) updateData.dueDate = result.data.dueDate ? new Date(result.data.dueDate) : null
-  if (result.data.estimatedDuration !== undefined) updateData.estimatedDuration = result.data.estimatedDuration
-  if (result.data.actualDuration !== undefined) updateData.actualDuration = result.data.actualDuration
+  if (result.data.dueDate !== undefined)
+    updateData.dueDate = result.data.dueDate ? new Date(result.data.dueDate) : null
+  if (result.data.estimatedDuration !== undefined)
+    updateData.estimatedDuration = result.data.estimatedDuration
+  if (result.data.actualDuration !== undefined)
+    updateData.actualDuration = result.data.actualDuration
   if (result.data.notes !== undefined) updateData.notes = result.data.notes
-  if (result.data.completionNotes !== undefined) updateData.completionNotes = result.data.completionNotes
+  if (result.data.completionNotes !== undefined)
+    updateData.completionNotes = result.data.completionNotes
 
   const [workOrder] = await db
     .update(schema.workOrders)

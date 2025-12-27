@@ -49,9 +49,7 @@ function getStatusLabel(status: string) {
 <template>
   <UCard>
     <template #header>
-      <h3 class="font-medium">
-        Status History
-      </h3>
+      <h3 class="font-medium">Status History</h3>
     </template>
 
     <div v-if="history.length === 0" class="text-center py-8 text-muted">
@@ -60,21 +58,14 @@ function getStatusLabel(status: string) {
     </div>
 
     <div v-else class="space-y-0">
-      <div
-        v-for="(entry, index) in history"
-        :key="entry.id"
-        class="flex gap-4"
-      >
+      <div v-for="(entry, index) in history" :key="entry.id" class="flex gap-4">
         <div class="flex flex-col items-center">
           <UAvatar
             :src="entry.changedBy.avatarUrl || undefined"
             :alt="`${entry.changedBy.firstName} ${entry.changedBy.lastName}`"
             size="sm"
           />
-          <div
-            v-if="index < history.length - 1"
-            class="w-0.5 flex-1 bg-default mt-2"
-          />
+          <div v-if="index < history.length - 1" class="w-0.5 flex-1 bg-default mt-2" />
         </div>
         <div class="flex-1 pb-6 last:pb-0">
           <div class="flex items-center gap-2 flex-wrap">

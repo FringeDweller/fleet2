@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, ilike, or, gte, lte, sql, asc, desc } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -34,9 +34,19 @@ export default defineEventHandler(async (event) => {
   const offset = Math.max(parseInt(query.offset as string) || 0, 0)
 
   // Sorting
-  const sortBy = query.sortBy as string || 'createdAt'
-  const sortOrder = query.sortOrder as string || 'desc'
-  const validSortFields = ['assetNumber', 'make', 'model', 'year', 'status', 'mileage', 'operationalHours', 'createdAt', 'updatedAt']
+  const sortBy = (query.sortBy as string) || 'createdAt'
+  const sortOrder = (query.sortOrder as string) || 'desc'
+  const validSortFields = [
+    'assetNumber',
+    'make',
+    'model',
+    'year',
+    'status',
+    'mileage',
+    'operationalHours',
+    'createdAt',
+    'updatedAt'
+  ]
 
   const conditions = [eq(schema.assets.organisationId, session.user.organisationId)]
 
@@ -45,7 +55,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (status && ['active', 'inactive', 'maintenance', 'disposed'].includes(status)) {
-    conditions.push(eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed'))
+    conditions.push(
+      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed')
+    )
   }
 
   if (categoryId) {

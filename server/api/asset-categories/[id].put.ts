@@ -31,7 +31,7 @@ const updateCategorySchema = z.object({
   isActive: z.boolean().optional()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -86,7 +86,11 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if new parent is a descendant of this category
-    const isDescendant = await checkIsDescendant(id, result.data.parentId, session.user.organisationId)
+    const isDescendant = await checkIsDescendant(
+      id,
+      result.data.parentId,
+      session.user.organisationId
+    )
     if (isDescendant) {
       throw createError({
         statusCode: 400,
@@ -99,7 +103,8 @@ export default defineEventHandler(async (event) => {
   if (result.data.name !== undefined) updateData.name = result.data.name
   if (result.data.description !== undefined) updateData.description = result.data.description
   if (result.data.parentId !== undefined) updateData.parentId = result.data.parentId
-  if (result.data.defaultMaintenanceSchedules !== undefined) updateData.defaultMaintenanceSchedules = result.data.defaultMaintenanceSchedules
+  if (result.data.defaultMaintenanceSchedules !== undefined)
+    updateData.defaultMaintenanceSchedules = result.data.defaultMaintenanceSchedules
   if (result.data.defaultParts !== undefined) updateData.defaultParts = result.data.defaultParts
   if (result.data.isActive !== undefined) updateData.isActive = result.data.isActive
 

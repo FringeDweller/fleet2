@@ -1,4 +1,13 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, index } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  index
+} from 'drizzle-orm/pg-core'
 import { workOrders } from './work-orders'
 import { users } from './users'
 
@@ -15,8 +24,7 @@ export const workOrderChecklistItems = pgTable(
     isRequired: boolean('is_required').default(false).notNull(),
     isCompleted: boolean('is_completed').default(false).notNull(),
     completedAt: timestamp('completed_at', { withTimezone: true }),
-    completedById: uuid('completed_by_id')
-      .references(() => users.id, { onDelete: 'set null' }),
+    completedById: uuid('completed_by_id').references(() => users.id, { onDelete: 'set null' }),
     notes: text('notes'),
     order: integer('order').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

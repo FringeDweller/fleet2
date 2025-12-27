@@ -25,7 +25,7 @@ export function calculateNextDueDate(
       break
 
     case 'weekly':
-      next.setDate(next.getDate() + (7 * intervalValue))
+      next.setDate(next.getDate() + 7 * intervalValue)
       if (dayOfWeek !== null && dayOfWeek !== undefined) {
         const currentDay = next.getDay()
         const daysUntilTarget = (dayOfWeek - currentDay + 7) % 7
@@ -37,14 +37,18 @@ export function calculateNextDueDate(
       next.setMonth(next.getMonth() + intervalValue)
       if (dayOfMonth) {
         // Handle month overflow (e.g., February 31 -> last day of February)
-        next.setDate(Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()))
+        next.setDate(
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+        )
       }
       break
 
     case 'quarterly':
-      next.setMonth(next.getMonth() + (3 * intervalValue))
+      next.setMonth(next.getMonth() + 3 * intervalValue)
       if (dayOfMonth) {
-        next.setDate(Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()))
+        next.setDate(
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+        )
       }
       break
 
@@ -52,7 +56,9 @@ export function calculateNextDueDate(
       next.setFullYear(next.getFullYear() + intervalValue)
       if (monthOfYear) next.setMonth(monthOfYear - 1)
       if (dayOfMonth) {
-        next.setDate(Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()))
+        next.setDate(
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+        )
       }
       break
 
@@ -84,8 +90,8 @@ export function previewScheduleOccurrences(
     leadTimeDays: number
   },
   count: number = 10
-): Array<{ dueDate: Date, leadDate: Date }> {
-  const occurrences: Array<{ dueDate: Date, leadDate: Date }> = []
+): Array<{ dueDate: Date; leadDate: Date }> {
+  const occurrences: Array<{ dueDate: Date; leadDate: Date }> = []
   let currentDate = new Date(config.startDate)
 
   for (let i = 0; i < count; i++) {

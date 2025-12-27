@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -36,9 +36,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db
-    .delete(schema.savedSearches)
-    .where(eq(schema.savedSearches.id, id))
+  await db.delete(schema.savedSearches).where(eq(schema.savedSearches.id, id))
 
   // Audit log
   await db.insert(schema.auditLog).values({

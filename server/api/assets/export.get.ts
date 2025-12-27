@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, ilike, or, gte, lte, sql } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -36,7 +36,9 @@ export default defineEventHandler(async (event) => {
   }
 
   if (status && ['active', 'inactive', 'maintenance', 'disposed'].includes(status)) {
-    conditions.push(eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed'))
+    conditions.push(
+      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed')
+    )
   }
 
   if (categoryId) {
@@ -121,20 +123,22 @@ export default defineEventHandler(async (event) => {
     return str
   }
 
-  const rows = assets.map(asset => [
-    escapeCSV(asset.assetNumber),
-    escapeCSV(asset.vin),
-    escapeCSV(asset.make),
-    escapeCSV(asset.model),
-    escapeCSV(asset.year),
-    escapeCSV(asset.licensePlate),
-    escapeCSV(asset.status),
-    escapeCSV(asset.category?.name),
-    escapeCSV(asset.mileage),
-    escapeCSV(asset.operationalHours),
-    escapeCSV(asset.description),
-    escapeCSV(asset.createdAt?.toISOString())
-  ].join(','))
+  const rows = assets.map(asset =>
+    [
+      escapeCSV(asset.assetNumber),
+      escapeCSV(asset.vin),
+      escapeCSV(asset.make),
+      escapeCSV(asset.model),
+      escapeCSV(asset.year),
+      escapeCSV(asset.licensePlate),
+      escapeCSV(asset.status),
+      escapeCSV(asset.category?.name),
+      escapeCSV(asset.mileage),
+      escapeCSV(asset.operationalHours),
+      escapeCSV(asset.description),
+      escapeCSV(asset.createdAt?.toISOString())
+    ].join(',')
+  )
 
   const csv = [headers.join(','), ...rows].join('\n')
 
@@ -149,7 +153,11 @@ export default defineEventHandler(async (event) => {
 
   // Set response headers for CSV download
   setHeader(event, 'Content-Type', 'text/csv')
-  setHeader(event, 'Content-Disposition', `attachment; filename="assets-export-${new Date().toISOString().split('T')[0]}.csv"`)
+  setHeader(
+    event,
+    'Content-Disposition',
+    `attachment; filename="assets-export-${new Date().toISOString().split('T')[0]}.csv"`
+  )
 
   return csv
 })

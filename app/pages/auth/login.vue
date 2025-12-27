@@ -48,15 +48,18 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       router.push('/')
     }
   } catch (error: unknown) {
-    const err = error as { data?: { statusMessage?: string, data?: { remainingAttempts?: number } } }
+    const err = error as {
+      data?: { statusMessage?: string; data?: { remainingAttempts?: number } }
+    }
     const message = err.data?.statusMessage || 'Login failed'
     const remainingAttempts = err.data?.data?.remainingAttempts
 
     toast.add({
       title: 'Login failed',
-      description: remainingAttempts !== undefined
-        ? `${message}. ${remainingAttempts} attempts remaining.`
-        : message,
+      description:
+        remainingAttempts !== undefined
+          ? `${message}. ${remainingAttempts} attempts remaining.`
+          : message,
       color: 'error'
     })
   } finally {
@@ -80,12 +83,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     </div>
 
     <UCard class="mt-8">
-      <UForm
-        :schema="schema"
-        :state="state"
-        class="space-y-6"
-        @submit="onSubmit"
-      >
+      <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
         <UFormField label="Email address" name="email" required>
           <UInput
             v-model="state.email"
@@ -130,14 +128,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           </NuxtLink>
         </div>
 
-        <UButton
-          type="submit"
-          block
-          size="lg"
-          :loading="isLoading"
-        >
-          Sign in
-        </UButton>
+        <UButton type="submit" block size="lg" :loading="isLoading"> Sign in </UButton>
       </UForm>
     </UCard>
   </div>

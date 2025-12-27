@@ -308,10 +308,7 @@ The system prevents duplicate work orders using the `maintenanceScheduleWorkOrde
 ```typescript
 // Check before generating
 const existing = await db.query.maintenanceScheduleWorkOrders.findFirst({
-  where: and(
-    eq(scheduleId, schedule.id),
-    eq(scheduledDate, schedule.nextDueDate)
-  )
+  where: and(eq(scheduleId, schedule.id), eq(scheduledDate, schedule.nextDueDate))
 })
 
 if (existing) {
@@ -357,17 +354,20 @@ node .output/server/index.mjs --task=maintenance:generate-work-orders
 ### Testing Triggers
 
 **Time-Based:**
+
 1. Create schedule with `nextDueDate` = tomorrow
 2. Set `leadTimeDays` = 1
 3. Run generator today - should create work order
 
 **Usage-Based (Mileage):**
+
 1. Create schedule with `intervalMileage` = 1000
 2. Set asset `mileage` = 5500
 3. Set schedule `lastTriggeredMileage` = 4000
 4. Run generator - should create work order (5500 >= 5000)
 
 **Usage-Based (Hours):**
+
 1. Create schedule with `intervalHours` = 100
 2. Set asset `operationalHours` = 650
 3. Set schedule `lastTriggeredHours` = 500

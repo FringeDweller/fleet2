@@ -2,7 +2,7 @@ import { db, schema } from '../../../utils/db'
 import { eq, and } from 'drizzle-orm'
 import { previewScheduleOccurrences } from '../../../utils/schedule-calculator'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -60,7 +60,9 @@ export default defineEventHandler(async (event) => {
     }
 
     const currentMileage = schedule.asset.mileage ? parseFloat(schedule.asset.mileage) : null
-    const currentHours = schedule.asset.operationalHours ? parseFloat(schedule.asset.operationalHours) : null
+    const currentHours = schedule.asset.operationalHours
+      ? parseFloat(schedule.asset.operationalHours)
+      : null
 
     return {
       scheduleId: schedule.id,
@@ -74,18 +76,25 @@ export default defineEventHandler(async (event) => {
             lastTriggered: schedule.lastTriggeredMileage
               ? parseFloat(schedule.lastTriggeredMileage)
               : 0,
-            nextTrigger: (schedule.lastTriggeredMileage
-              ? parseFloat(schedule.lastTriggeredMileage)
-              : 0) + schedule.intervalMileage,
+            nextTrigger:
+              (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0) +
+              schedule.intervalMileage,
             progress: currentMileage
-              ? Math.round(((currentMileage - (schedule.lastTriggeredMileage
-                  ? parseFloat(schedule.lastTriggeredMileage)
-                  : 0)) / schedule.intervalMileage) * 100)
+              ? Math.round(
+                  ((currentMileage -
+                    (schedule.lastTriggeredMileage
+                      ? parseFloat(schedule.lastTriggeredMileage)
+                      : 0)) /
+                    schedule.intervalMileage) *
+                    100
+                )
               : 0,
             alertReached: currentMileage
-              ? ((currentMileage - (schedule.lastTriggeredMileage
-                  ? parseFloat(schedule.lastTriggeredMileage)
-                  : 0)) / schedule.intervalMileage) * 100 >= (schedule.thresholdAlertPercent || 90)
+              ? ((currentMileage -
+                  (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0)) /
+                  schedule.intervalMileage) *
+                  100 >=
+                (schedule.thresholdAlertPercent || 90)
               : false
           }
         : null,
@@ -95,18 +104,23 @@ export default defineEventHandler(async (event) => {
             lastTriggered: schedule.lastTriggeredHours
               ? parseFloat(schedule.lastTriggeredHours)
               : 0,
-            nextTrigger: (schedule.lastTriggeredHours
-              ? parseFloat(schedule.lastTriggeredHours)
-              : 0) + schedule.intervalHours,
+            nextTrigger:
+              (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0) +
+              schedule.intervalHours,
             progress: currentHours
-              ? Math.round(((currentHours - (schedule.lastTriggeredHours
-                  ? parseFloat(schedule.lastTriggeredHours)
-                  : 0)) / schedule.intervalHours) * 100)
+              ? Math.round(
+                  ((currentHours -
+                    (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0)) /
+                    schedule.intervalHours) *
+                    100
+                )
               : 0,
             alertReached: currentHours
-              ? ((currentHours - (schedule.lastTriggeredHours
-                  ? parseFloat(schedule.lastTriggeredHours)
-                  : 0)) / schedule.intervalHours) * 100 >= (schedule.thresholdAlertPercent || 90)
+              ? ((currentHours -
+                  (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0)) /
+                  schedule.intervalHours) *
+                  100 >=
+                (schedule.thresholdAlertPercent || 90)
               : false
           }
         : null

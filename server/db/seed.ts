@@ -14,7 +14,10 @@ async function seed() {
         .split('_')
         .map(word => word.charAt(0) + word.slice(1).toLowerCase())
         .join(' '),
-      description: `${key.split('_').map(word => word.charAt(0) + word.slice(1).toLowerCase()).join(' ')} role`,
+      description: `${key
+        .split('_')
+        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .join(' ')} role`,
       permissions: DEFAULT_ROLE_PERMISSIONS[name as RoleName]
     }))
 

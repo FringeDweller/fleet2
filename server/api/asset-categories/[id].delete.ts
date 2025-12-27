@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -37,26 +37,21 @@ export default defineEventHandler(async (event) => {
 
   // Check if category has children
   const children = await db.query.assetCategories.findMany({
-    where: and(
-      eq(schema.assetCategories.parentId, id),
-      eq(schema.assetCategories.isActive, true)
-    ),
+    where: and(eq(schema.assetCategories.parentId, id), eq(schema.assetCategories.isActive, true)),
     columns: { id: true }
   })
 
   if (children.length > 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot delete category with active subcategories. Please delete or reassign subcategories first.'
+      statusMessage:
+        'Cannot delete category with active subcategories. Please delete or reassign subcategories first.'
     })
   }
 
   // Check if category has assets
   const assets = await db.query.assets.findMany({
-    where: and(
-      eq(schema.assets.categoryId, id),
-      eq(schema.assets.isArchived, false)
-    ),
+    where: and(eq(schema.assets.categoryId, id), eq(schema.assets.isArchived, false)),
     columns: { id: true },
     limit: 1
   })

@@ -1,4 +1,15 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, decimal, index, pgEnum } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  decimal,
+  index,
+  pgEnum
+} from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { assets } from './assets'
 import { assetCategories } from './asset-categories'
@@ -6,11 +17,7 @@ import { taskTemplates } from './task-templates'
 import { users } from './users'
 import { workOrders } from './work-orders'
 
-export const scheduleTypeEnum = pgEnum('schedule_type', [
-  'time_based',
-  'usage_based',
-  'combined'
-])
+export const scheduleTypeEnum = pgEnum('schedule_type', ['time_based', 'usage_based', 'combined'])
 
 export const scheduleIntervalTypeEnum = pgEnum('schedule_interval_type', [
   'daily',
@@ -37,14 +44,11 @@ export const maintenanceSchedules = pgTable(
     scheduleType: scheduleTypeEnum('schedule_type').default('time_based').notNull(),
 
     // Assignment - either to specific asset OR to category (not both)
-    assetId: uuid('asset_id')
-      .references(() => assets.id, { onDelete: 'cascade' }),
-    categoryId: uuid('category_id')
-      .references(() => assetCategories.id, { onDelete: 'cascade' }),
+    assetId: uuid('asset_id').references(() => assets.id, { onDelete: 'cascade' }),
+    categoryId: uuid('category_id').references(() => assetCategories.id, { onDelete: 'cascade' }),
 
     // Task template to use when generating work orders
-    templateId: uuid('template_id')
-      .references(() => taskTemplates.id, { onDelete: 'set null' }),
+    templateId: uuid('template_id').references(() => taskTemplates.id, { onDelete: 'set null' }),
 
     // Time-based scheduling (used when scheduleType is 'time_based' or 'combined')
     intervalType: scheduleIntervalTypeEnum('interval_type'),
@@ -75,8 +79,9 @@ export const maintenanceSchedules = pgTable(
     // Work order settings
     leadTimeDays: integer('lead_time_days').default(7).notNull(), // Create WO this many days before due
     defaultPriority: varchar('default_priority', { length: 20 }).default('medium'),
-    defaultAssigneeId: uuid('default_assignee_id')
-      .references(() => users.id, { onDelete: 'set null' }),
+    defaultAssigneeId: uuid('default_assignee_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
 
     // Status
     isActive: boolean('is_active').default(true).notNull(),

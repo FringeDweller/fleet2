@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -82,13 +82,16 @@ export default defineEventHandler(async (event) => {
     .groupBy(schema.workOrders.assignedToId)
 
   // Build workload map
-  const workloadMap = new Map<string, {
-    open: number
-    in_progress: number
-    pending_parts: number
-    overdue: number
-    total: number
-  }>()
+  const workloadMap = new Map<
+    string,
+    {
+      open: number
+      in_progress: number
+      pending_parts: number
+      overdue: number
+      total: number
+    }
+  >()
 
   for (const row of workloadCounts) {
     if (!row.assignedToId) continue

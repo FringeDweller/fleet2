@@ -26,10 +26,17 @@ interface MaintenanceSchedule {
   leadTimeDays: number
   defaultPriority: 'low' | 'medium' | 'high' | 'critical'
   isActive: boolean
-  asset: { id: string, assetNumber: string, make: string | null, model: string | null, mileage: string | null, operationalHours: string | null } | null
-  category: { id: string, name: string } | null
-  template: { id: string, name: string, description: string | null } | null
-  defaultAssignee: { id: string, firstName: string, lastName: string } | null
+  asset: {
+    id: string
+    assetNumber: string
+    make: string | null
+    model: string | null
+    mileage: string | null
+    operationalHours: string | null
+  } | null
+  category: { id: string; name: string } | null
+  template: { id: string; name: string; description: string | null } | null
+  defaultAssignee: { id: string; firstName: string; lastName: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -57,10 +64,11 @@ const toast = useToast()
 const scheduleId = route.params.id as string
 const activeTab = ref((route.query.tab as string) || 'details')
 
-const { data: schedule, status, refresh } = await useFetch<MaintenanceSchedule>(
-  `/api/maintenance-schedules/${scheduleId}`,
-  { lazy: true }
-)
+const {
+  data: schedule,
+  status,
+  refresh
+} = await useFetch<MaintenanceSchedule>(`/api/maintenance-schedules/${scheduleId}`, { lazy: true })
 
 // For time-based schedules, fetch preview of next occurrences
 const { data: preview } = await useFetch<SchedulePreview[]>(
@@ -77,21 +85,23 @@ const usageProgress = computed(() => {
   const currentMileage = asset.mileage ? parseFloat(asset.mileage.toString()) : null
   const currentHours = asset.operationalHours ? parseFloat(asset.operationalHours.toString()) : null
 
-  const mileageProgress = schedule.value.intervalMileage && currentMileage !== null
-    ? calculateProgress(
-        currentMileage,
-        schedule.value.lastTriggeredMileage ? parseFloat(schedule.value.lastTriggeredMileage) : 0,
-        schedule.value.intervalMileage
-      )
-    : null
+  const mileageProgress =
+    schedule.value.intervalMileage && currentMileage !== null
+      ? calculateProgress(
+          currentMileage,
+          schedule.value.lastTriggeredMileage ? parseFloat(schedule.value.lastTriggeredMileage) : 0,
+          schedule.value.intervalMileage
+        )
+      : null
 
-  const hoursProgress = schedule.value.intervalHours && currentHours !== null
-    ? calculateProgress(
-        currentHours,
-        schedule.value.lastTriggeredHours ? parseFloat(schedule.value.lastTriggeredHours) : 0,
-        schedule.value.intervalHours
-      )
-    : null
+  const hoursProgress =
+    schedule.value.intervalHours && currentHours !== null
+      ? calculateProgress(
+          currentHours,
+          schedule.value.lastTriggeredHours ? parseFloat(schedule.value.lastTriggeredHours) : 0,
+          schedule.value.intervalHours
+        )
+      : null
 
   return { mileage: mileageProgress, hours: hoursProgress }
 })
@@ -119,10 +129,10 @@ function getProgressColor(progress: number, threshold: number): 'success' | 'war
   return 'success'
 }
 
-const { data: workOrders } = await useFetch<WorkOrder[]>(
-  `/api/work-orders`,
-  { lazy: true, query: { scheduleId } }
-)
+const { data: workOrders } = await useFetch<WorkOrder[]>(`/api/work-orders`, {
+  lazy: true,
+  query: { scheduleId }
+})
 
 const intervalTypeLabels = {
   daily: 'Daily',
@@ -133,11 +143,29 @@ const intervalTypeLabels = {
   custom: 'Custom'
 } as const
 
-const dayOfWeekLabels = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+const dayOfWeekLabels = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday'
+]
 
 const monthLabels = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December'
 ]
 
 const priorityColors = {
@@ -181,7 +209,11 @@ function getIntervalDescription(sched: MaintenanceSchedule): string {
   if (sched.intervalType === 'quarterly' && sched.dayOfMonth !== null) {
     return `Day ${sched.dayOfMonth} of every quarter`
   }
-  if (sched.intervalType === 'annually' && sched.dayOfMonth !== null && sched.monthOfYear !== null) {
+  if (
+    sched.intervalType === 'annually' &&
+    sched.dayOfMonth !== null &&
+    sched.monthOfYear !== null
+  ) {
     return `${monthLabels[sched.monthOfYear - 1]} ${sched.dayOfMonth}`
   }
   return intervalTypeLabels[sched.intervalType]
@@ -231,7 +263,7 @@ const tabs = [
   { label: 'Work Order History', value: 'history' }
 ]
 
-watch(activeTab, (newTab) => {
+watch(activeTab, newTab => {
   router.replace({ query: { tab: newTab } })
 })
 </script>
@@ -269,7 +301,7 @@ watch(activeTab, (newTab) => {
                 {
                   label: 'View preview',
                   icon: 'i-lucide-calendar',
-                  onSelect: () => activeTab = 'preview'
+                  onSelect: () => (activeTab = 'preview')
                 }
               ],
               [
@@ -282,11 +314,7 @@ watch(activeTab, (newTab) => {
               ]
             ]"
           >
-            <UButton
-              icon="i-lucide-more-horizontal"
-              color="neutral"
-              variant="ghost"
-            />
+            <UButton icon="i-lucide-more-horizontal" color="neutral" variant="ghost" />
           </UDropdownMenu>
         </template>
       </UDashboardNavbar>
@@ -309,7 +337,9 @@ watch(activeTab, (newTab) => {
           class="flex items-center gap-2 p-4 bg-warning/10 border border-warning rounded-lg"
         >
           <UIcon name="i-lucide-alert-triangle" class="w-5 h-5 text-warning" />
-          <span class="text-sm">This schedule is currently paused and will not generate work orders.</span>
+          <span class="text-sm"
+            >This schedule is currently paused and will not generate work orders.</span
+          >
         </div>
 
         <!-- Tabs -->
@@ -320,9 +350,10 @@ watch(activeTab, (newTab) => {
               :key="tab.value"
               type="button"
               class="px-4 py-2 text-sm font-medium border-b-2 transition-colors"
-              :class="activeTab === tab.value
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted hover:text-highlighted hover:border-default'
+              :class="
+                activeTab === tab.value
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted hover:text-highlighted hover:border-default'
               "
               @click="activeTab = tab.value"
             >
@@ -335,9 +366,7 @@ watch(activeTab, (newTab) => {
         <div v-if="activeTab === 'details'" class="space-y-6">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Schedule Information
-              </h3>
+              <h3 class="font-medium">Schedule Information</h3>
             </template>
 
             <div class="space-y-4">
@@ -358,32 +387,55 @@ watch(activeTab, (newTab) => {
                 <div class="mt-1">
                   <UBadge
                     variant="subtle"
-                    :color="schedule.scheduleType === 'time_based' ? 'info' : schedule.scheduleType === 'usage_based' ? 'warning' : 'primary'"
+                    :color="
+                      schedule.scheduleType === 'time_based'
+                        ? 'info'
+                        : schedule.scheduleType === 'usage_based'
+                          ? 'warning'
+                          : 'primary'
+                    "
                   >
-                    {{ schedule.scheduleType === 'time_based' ? 'Time-Based' : schedule.scheduleType === 'usage_based' ? 'Usage-Based' : 'Combined' }}
+                    {{
+                      schedule.scheduleType === 'time_based'
+                        ? 'Time-Based'
+                        : schedule.scheduleType === 'usage_based'
+                          ? 'Usage-Based'
+                          : 'Combined'
+                    }}
                   </UBadge>
                 </div>
               </div>
 
               <!-- Time-based interval info -->
-              <div v-if="schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined'">
+              <div
+                v-if="
+                  schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined'
+                "
+              >
                 <label class="text-sm text-muted">Time Interval</label>
                 <p>{{ getIntervalDescription(schedule) }}</p>
               </div>
 
               <!-- Usage-based interval info -->
-              <div v-if="schedule.scheduleType === 'usage_based' || schedule.scheduleType === 'combined'" class="space-y-2">
+              <div
+                v-if="
+                  schedule.scheduleType === 'usage_based' || schedule.scheduleType === 'combined'
+                "
+                class="space-y-2"
+              >
                 <label class="text-sm text-muted">Usage Intervals</label>
                 <div v-if="schedule.intervalMileage">
                   <p>Every {{ schedule.intervalMileage.toLocaleString() }} km</p>
                   <p v-if="schedule.lastTriggeredMileage" class="text-sm text-muted">
-                    Last triggered at: {{ parseFloat(schedule.lastTriggeredMileage).toLocaleString() }} km
+                    Last triggered at:
+                    {{ parseFloat(schedule.lastTriggeredMileage).toLocaleString() }} km
                   </p>
                 </div>
                 <div v-if="schedule.intervalHours">
                   <p>Every {{ schedule.intervalHours.toLocaleString() }} hours</p>
                   <p v-if="schedule.lastTriggeredHours" class="text-sm text-muted">
-                    Last triggered at: {{ parseFloat(schedule.lastTriggeredHours).toLocaleString() }} hours
+                    Last triggered at:
+                    {{ parseFloat(schedule.lastTriggeredHours).toLocaleString() }} hours
                   </p>
                 </div>
                 <p class="text-sm text-muted">
@@ -392,7 +444,12 @@ watch(activeTab, (newTab) => {
               </div>
 
               <!-- Dates (only for time-based) -->
-              <div v-if="schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                v-if="
+                  schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined'
+                "
+                class="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
                 <div v-if="schedule.startDate">
                   <label class="text-sm text-muted">Start Date</label>
                   <p>{{ format(parseISO(schedule.startDate), 'MMM d, yyyy') }}</p>
@@ -404,7 +461,12 @@ watch(activeTab, (newTab) => {
                 </div>
               </div>
 
-              <div v-if="schedule.nextDueDate && (schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined')">
+              <div
+                v-if="
+                  schedule.nextDueDate &&
+                  (schedule.scheduleType === 'time_based' || schedule.scheduleType === 'combined')
+                "
+              >
                 <label class="text-sm text-muted">Next Due Date</label>
                 <p class="font-medium text-primary">
                   {{ format(parseISO(schedule.nextDueDate), 'MMM d, yyyy') }}
@@ -414,10 +476,7 @@ watch(activeTab, (newTab) => {
               <div>
                 <label class="text-sm text-muted">Status</label>
                 <div class="mt-1">
-                  <UBadge
-                    :variant="'subtle'"
-                    :color="schedule.isActive ? 'success' : 'neutral'"
-                  >
+                  <UBadge :variant="'subtle'" :color="schedule.isActive ? 'success' : 'neutral'">
                     {{ schedule.isActive ? 'Active' : 'Paused' }}
                   </UBadge>
                 </div>
@@ -427,9 +486,7 @@ watch(activeTab, (newTab) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment
-              </h3>
+              <h3 class="font-medium">Assignment</h3>
             </template>
 
             <div class="space-y-4">
@@ -464,9 +521,7 @@ watch(activeTab, (newTab) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Work Order Settings
-              </h3>
+              <h3 class="font-medium">Work Order Settings</h3>
             </template>
 
             <div class="space-y-4">
@@ -490,7 +545,9 @@ watch(activeTab, (newTab) => {
 
               <div v-if="schedule.defaultAssignee">
                 <label class="text-sm text-muted">Default Assignee</label>
-                <p>{{ schedule.defaultAssignee.firstName }} {{ schedule.defaultAssignee.lastName }}</p>
+                <p>
+                  {{ schedule.defaultAssignee.firstName }} {{ schedule.defaultAssignee.lastName }}
+                </p>
               </div>
             </div>
           </UCard>
@@ -501,9 +558,7 @@ watch(activeTab, (newTab) => {
           <!-- Time-based preview -->
           <UCard v-if="schedule.scheduleType === 'time_based'">
             <template #header>
-              <h3 class="font-medium">
-                Next 10 Scheduled Occurrences
-              </h3>
+              <h3 class="font-medium">Next 10 Scheduled Occurrences</h3>
             </template>
 
             <div v-if="!preview || preview.length === 0" class="text-center py-8 text-muted">
@@ -511,18 +566,15 @@ watch(activeTab, (newTab) => {
             </div>
 
             <div v-else class="divide-y divide-default">
-              <div
-                v-for="(occurrence, index) in preview"
-                :key="index"
-                class="py-4"
-              >
+              <div v-for="(occurrence, index) in preview" :key="index" class="py-4">
                 <div class="flex items-start justify-between">
                   <div>
                     <p class="font-medium">
                       {{ format(parseISO(occurrence.occurrenceDate), 'EEEE, MMMM d, yyyy') }}
                     </p>
                     <p class="text-sm text-muted mt-1">
-                      Work order will be created on {{ format(parseISO(occurrence.workOrderCreateDate), 'MMM d, yyyy') }}
+                      Work order will be created on
+                      {{ format(parseISO(occurrence.workOrderCreateDate), 'MMM d, yyyy') }}
                     </p>
                   </div>
                   <UBadge variant="subtle" color="info" size="sm">
@@ -534,13 +586,16 @@ watch(activeTab, (newTab) => {
           </UCard>
 
           <!-- Usage-based preview -->
-          <div v-else-if="schedule.scheduleType === 'usage_based' || schedule.scheduleType === 'combined'" class="space-y-6">
+          <div
+            v-else-if="
+              schedule.scheduleType === 'usage_based' || schedule.scheduleType === 'combined'
+            "
+            class="space-y-6"
+          >
             <!-- Combined: show time-based occurrences first -->
             <UCard v-if="schedule.scheduleType === 'combined'">
               <template #header>
-                <h3 class="font-medium">
-                  Next 10 Time-Based Occurrences
-                </h3>
+                <h3 class="font-medium">Next 10 Time-Based Occurrences</h3>
               </template>
 
               <div v-if="!preview || preview.length === 0" class="text-center py-8 text-muted">
@@ -548,18 +603,15 @@ watch(activeTab, (newTab) => {
               </div>
 
               <div v-else class="divide-y divide-default">
-                <div
-                  v-for="(occurrence, index) in preview"
-                  :key="index"
-                  class="py-4"
-                >
+                <div v-for="(occurrence, index) in preview" :key="index" class="py-4">
                   <div class="flex items-start justify-between">
                     <div>
                       <p class="font-medium">
                         {{ format(parseISO(occurrence.occurrenceDate), 'EEEE, MMMM d, yyyy') }}
                       </p>
                       <p class="text-sm text-muted mt-1">
-                        Work order will be created on {{ format(parseISO(occurrence.workOrderCreateDate), 'MMM d, yyyy') }}
+                        Work order will be created on
+                        {{ format(parseISO(occurrence.workOrderCreateDate), 'MMM d, yyyy') }}
                       </p>
                     </div>
                     <UBadge variant="subtle" color="info" size="sm">
@@ -573,16 +625,17 @@ watch(activeTab, (newTab) => {
             <!-- Usage progress -->
             <UCard>
               <template #header>
-                <h3 class="font-medium">
-                  Usage-Based Tracking
-                </h3>
+                <h3 class="font-medium">Usage-Based Tracking</h3>
               </template>
 
               <div v-if="!schedule.asset" class="text-center py-8 text-muted">
                 <p>Usage tracking requires assignment to a specific asset</p>
               </div>
 
-              <div v-else-if="!usageProgress || (!usageProgress.mileage && !usageProgress.hours)" class="text-center py-8 text-muted">
+              <div
+                v-else-if="!usageProgress || (!usageProgress.mileage && !usageProgress.hours)"
+                class="text-center py-8 text-muted"
+              >
                 <p>No usage data available for this asset</p>
               </div>
 
@@ -593,7 +646,12 @@ watch(activeTab, (newTab) => {
                     <label class="text-sm font-medium">Mileage Progress</label>
                     <UBadge
                       variant="subtle"
-                      :color="getProgressColor(usageProgress.mileage.progress, schedule.thresholdAlertPercent)"
+                      :color="
+                        getProgressColor(
+                          usageProgress.mileage.progress,
+                          schedule.thresholdAlertPercent
+                        )
+                      "
                       size="sm"
                     >
                       {{ usageProgress.mileage.progress }}%
@@ -605,8 +663,11 @@ watch(activeTab, (newTab) => {
                     <div
                       class="h-3 rounded-full transition-all"
                       :class="{
-                        'bg-success': usageProgress.mileage.progress < schedule.thresholdAlertPercent,
-                        'bg-warning': usageProgress.mileage.progress >= schedule.thresholdAlertPercent && usageProgress.mileage.progress < 95,
+                        'bg-success':
+                          usageProgress.mileage.progress < schedule.thresholdAlertPercent,
+                        'bg-warning':
+                          usageProgress.mileage.progress >= schedule.thresholdAlertPercent &&
+                          usageProgress.mileage.progress < 95,
                         'bg-error': usageProgress.mileage.progress >= 95
                       }"
                       :style="{ width: `${Math.min(100, usageProgress.mileage.progress)}%` }"
@@ -616,23 +677,37 @@ watch(activeTab, (newTab) => {
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span class="text-muted">Current:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.mileage.current.toLocaleString() }} km</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.mileage.current.toLocaleString() }} km</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Last Triggered:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.mileage.lastTriggered.toLocaleString() }} km</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.mileage.lastTriggered.toLocaleString() }} km</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Next Trigger:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.mileage.nextTrigger.toLocaleString() }} km</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.mileage.nextTrigger.toLocaleString() }} km</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Remaining:</span>
-                      <span class="font-medium ml-1">{{ Math.max(0, usageProgress.mileage.remaining).toLocaleString() }} km</span>
+                      <span class="font-medium ml-1"
+                        >{{
+                          Math.max(0, usageProgress.mileage.remaining).toLocaleString()
+                        }}
+                        km</span
+                      >
                     </div>
                   </div>
 
-                  <p v-if="usageProgress.mileage.progress >= schedule.thresholdAlertPercent" class="text-sm text-warning mt-2">
+                  <p
+                    v-if="usageProgress.mileage.progress >= schedule.thresholdAlertPercent"
+                    class="text-sm text-warning mt-2"
+                  >
                     Alert threshold ({{ schedule.thresholdAlertPercent }}%) reached
                   </p>
                 </div>
@@ -643,7 +718,12 @@ watch(activeTab, (newTab) => {
                     <label class="text-sm font-medium">Operational Hours Progress</label>
                     <UBadge
                       variant="subtle"
-                      :color="getProgressColor(usageProgress.hours.progress, schedule.thresholdAlertPercent)"
+                      :color="
+                        getProgressColor(
+                          usageProgress.hours.progress,
+                          schedule.thresholdAlertPercent
+                        )
+                      "
                       size="sm"
                     >
                       {{ usageProgress.hours.progress }}%
@@ -656,7 +736,9 @@ watch(activeTab, (newTab) => {
                       class="h-3 rounded-full transition-all"
                       :class="{
                         'bg-success': usageProgress.hours.progress < schedule.thresholdAlertPercent,
-                        'bg-warning': usageProgress.hours.progress >= schedule.thresholdAlertPercent && usageProgress.hours.progress < 95,
+                        'bg-warning':
+                          usageProgress.hours.progress >= schedule.thresholdAlertPercent &&
+                          usageProgress.hours.progress < 95,
                         'bg-error': usageProgress.hours.progress >= 95
                       }"
                       :style="{ width: `${Math.min(100, usageProgress.hours.progress)}%` }"
@@ -666,23 +748,34 @@ watch(activeTab, (newTab) => {
                   <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
                       <span class="text-muted">Current:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.hours.current.toLocaleString() }} hrs</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.hours.current.toLocaleString() }} hrs</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Last Triggered:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.hours.lastTriggered.toLocaleString() }} hrs</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.hours.lastTriggered.toLocaleString() }} hrs</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Next Trigger:</span>
-                      <span class="font-medium ml-1">{{ usageProgress.hours.nextTrigger.toLocaleString() }} hrs</span>
+                      <span class="font-medium ml-1"
+                        >{{ usageProgress.hours.nextTrigger.toLocaleString() }} hrs</span
+                      >
                     </div>
                     <div>
                       <span class="text-muted">Remaining:</span>
-                      <span class="font-medium ml-1">{{ Math.max(0, usageProgress.hours.remaining).toLocaleString() }} hrs</span>
+                      <span class="font-medium ml-1"
+                        >{{ Math.max(0, usageProgress.hours.remaining).toLocaleString() }} hrs</span
+                      >
                     </div>
                   </div>
 
-                  <p v-if="usageProgress.hours.progress >= schedule.thresholdAlertPercent" class="text-sm text-warning mt-2">
+                  <p
+                    v-if="usageProgress.hours.progress >= schedule.thresholdAlertPercent"
+                    class="text-sm text-warning mt-2"
+                  >
                     Alert threshold ({{ schedule.thresholdAlertPercent }}%) reached
                   </p>
                 </div>
@@ -695,9 +788,7 @@ watch(activeTab, (newTab) => {
         <div v-if="activeTab === 'history'">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Generated Work Orders
-              </h3>
+              <h3 class="font-medium">Generated Work Orders</h3>
             </template>
 
             <div v-if="!workOrders || workOrders.length === 0" class="text-center py-8 text-muted">
@@ -716,11 +807,7 @@ watch(activeTab, (newTab) => {
                   <div class="flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="font-medium text-highlighted">{{ wo.workOrderNumber }}</span>
-                      <UBadge
-                        variant="subtle"
-                        :color="statusColors[wo.status]"
-                        size="xs"
-                      >
+                      <UBadge variant="subtle" :color="statusColors[wo.status]" size="xs">
                         {{ statusLabels[wo.status] }}
                       </UBadge>
                       <UBadge

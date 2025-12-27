@@ -49,10 +49,12 @@ const table = useTemplateRef('table')
 const router = useRouter()
 const route = useRoute()
 
-const columnFilters = ref([{
-  id: 'workOrderNumber',
-  value: ''
-}])
+const columnFilters = ref([
+  {
+    id: 'workOrderNumber',
+    value: ''
+  }
+])
 const columnVisibility = ref()
 const rowSelection = ref({})
 
@@ -60,9 +62,7 @@ const rowSelection = ref({})
 const statusFilter = ref((route.query.status as string) || 'all')
 const priorityFilter = ref((route.query.priority as string) || 'all')
 const assigneeFilter = ref(
-  route.query.assignedToId === 'null'
-    ? 'unassigned'
-    : (route.query.assignedToId as string) || 'all'
+  route.query.assignedToId === 'null' ? 'unassigned' : (route.query.assignedToId as string) || 'all'
 )
 
 // Computed query params for API
@@ -203,18 +203,18 @@ const columns: TableColumn<WorkOrder>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all'
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
+        ariaLabel: 'Select row'
       })
   },
   {
@@ -234,15 +234,21 @@ const columns: TableColumn<WorkOrder>[] = [
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
       })
     },
-    cell: ({ row }) => h('span', { class: 'font-medium text-highlighted' }, row.original.workOrderNumber)
+    cell: ({ row }) =>
+      h('span', { class: 'font-medium text-highlighted' }, row.original.workOrderNumber)
   },
   {
     accessorKey: 'title',
     header: 'Title',
-    cell: ({ row }) => h('div', { class: 'max-w-[200px]' }, [
-      h('p', { class: 'font-medium text-highlighted truncate' }, row.original.title),
-      h('p', { class: 'text-sm text-muted truncate' }, `${row.original.asset.assetNumber} - ${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim())
-    ])
+    cell: ({ row }) =>
+      h('div', { class: 'max-w-[200px]' }, [
+        h('p', { class: 'font-medium text-highlighted truncate' }, row.original.title),
+        h(
+          'p',
+          { class: 'text-sm text-muted truncate' },
+          `${row.original.asset.assetNumber} - ${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim()
+        )
+      ])
   },
   {
     accessorKey: 'priority',
@@ -250,7 +256,11 @@ const columns: TableColumn<WorkOrder>[] = [
     filterFn: 'equals',
     cell: ({ row }) => {
       const color = priorityColors[row.original.priority]
-      return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () => row.original.priority)
+      return h(
+        UBadge,
+        { class: 'capitalize', variant: 'subtle', color },
+        () => row.original.priority
+      )
     }
   },
   {
@@ -285,12 +295,16 @@ const columns: TableColumn<WorkOrder>[] = [
       const dueDate = row.original.dueDate
       if (!dueDate) return h('span', { class: 'text-muted' }, '-')
       const overdue = isOverdue(dueDate, row.original.status)
-      return h('span', {
-        class: overdue ? 'text-error font-medium' : undefined
-      }, [
-        formatDistanceToNow(parseISO(dueDate), { addSuffix: true }),
-        overdue ? h('span', { class: 'ml-1' }, '(Overdue)') : null
-      ])
+      return h(
+        'span',
+        {
+          class: overdue ? 'text-error font-medium' : undefined
+        },
+        [
+          formatDistanceToNow(parseISO(dueDate), { addSuffix: true }),
+          overdue ? h('span', { class: 'ml-1' }, '(Overdue)') : null
+        ]
+      )
     }
   },
   {

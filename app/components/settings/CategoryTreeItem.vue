@@ -35,7 +35,9 @@ const props = defineProps<{
   category: CategoryNode
   level: number
   expandedCategories: Set<string>
-  getRowActions: (category: CategoryNode) => Array<Array<{ label: string, icon: string, color?: string, onSelect: () => void }>>
+  getRowActions: (
+    category: CategoryNode
+  ) => Array<Array<{ label: string; icon: string; color?: string; onSelect: () => void }>>
 }>()
 
 const emit = defineEmits<{
@@ -71,63 +73,43 @@ const isExpanded = computed(() => props.expandedCategories.has(props.category.id
 
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2 flex-wrap">
-          <h3
-            class="font-medium truncate"
-            :class="{ 'text-muted': !category.isActive }"
-          >
+          <h3 class="font-medium truncate" :class="{ 'text-muted': !category.isActive }">
             {{ category.name }}
           </h3>
-          <UBadge
-            v-if="category.assetCount > 0"
-            color="info"
-            variant="subtle"
-            size="xs"
-          >
+          <UBadge v-if="category.assetCount > 0" color="info" variant="subtle" size="xs">
             {{ category.assetCount }} asset{{ category.assetCount === 1 ? '' : 's' }}
           </UBadge>
-          <UBadge
-            v-if="!category.isActive"
-            color="warning"
-            variant="subtle"
-            size="xs"
-          >
+          <UBadge v-if="!category.isActive" color="warning" variant="subtle" size="xs">
             Inactive
           </UBadge>
         </div>
-        <p
-          v-if="category.description"
-          class="text-sm text-muted truncate mt-1"
-        >
+        <p v-if="category.description" class="text-sm text-muted truncate mt-1">
           {{ category.description }}
         </p>
         <div class="flex items-center gap-4 mt-1 text-xs text-muted flex-wrap">
-          <span
-            v-if="category.defaultMaintenanceSchedules?.length"
-            class="flex items-center gap-1"
-          >
+          <span v-if="category.defaultMaintenanceSchedules?.length" class="flex items-center gap-1">
             <UIcon name="i-lucide-calendar" class="w-3 h-3" />
-            {{ category.defaultMaintenanceSchedules.length }} schedule{{ category.defaultMaintenanceSchedules.length === 1 ? '' : 's' }}
+            {{ category.defaultMaintenanceSchedules.length }} schedule{{
+              category.defaultMaintenanceSchedules.length === 1 ? '' : 's'
+            }}
           </span>
-          <span
-            v-if="category.defaultParts?.length"
-            class="flex items-center gap-1"
-          >
+          <span v-if="category.defaultParts?.length" class="flex items-center gap-1">
             <UIcon name="i-lucide-package" class="w-3 h-3" />
-            {{ category.defaultParts.length }} part{{ category.defaultParts.length === 1 ? '' : 's' }}
+            {{ category.defaultParts.length }} part{{
+              category.defaultParts.length === 1 ? '' : 's'
+            }}
           </span>
           <span v-if="hasChildren" class="flex items-center gap-1">
             <UIcon name="i-lucide-folder-tree" class="w-3 h-3" />
-            {{ category.children.length }} subcategor{{ category.children.length === 1 ? 'y' : 'ies' }}
+            {{ category.children.length }} subcategor{{
+              category.children.length === 1 ? 'y' : 'ies'
+            }}
           </span>
         </div>
       </div>
 
       <UDropdownMenu :items="getRowActions(category)">
-        <UButton
-          icon="i-lucide-more-horizontal"
-          color="neutral"
-          variant="ghost"
-        />
+        <UButton icon="i-lucide-more-horizontal" color="neutral" variant="ghost" />
       </UDropdownMenu>
     </div>
 

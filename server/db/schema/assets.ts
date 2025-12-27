@@ -1,8 +1,24 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, decimal, index, pgEnum } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  decimal,
+  index,
+  pgEnum
+} from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { assetCategories } from './asset-categories'
 
-export const assetStatusEnum = pgEnum('asset_status', ['active', 'inactive', 'maintenance', 'disposed'])
+export const assetStatusEnum = pgEnum('asset_status', [
+  'active',
+  'inactive',
+  'maintenance',
+  'disposed'
+])
 
 export const assets = pgTable(
   'assets',
@@ -11,8 +27,7 @@ export const assets = pgTable(
     organisationId: uuid('organisation_id')
       .notNull()
       .references(() => organisations.id, { onDelete: 'cascade' }),
-    categoryId: uuid('category_id')
-      .references(() => assetCategories.id, { onDelete: 'set null' }),
+    categoryId: uuid('category_id').references(() => assetCategories.id, { onDelete: 'set null' }),
     assetNumber: varchar('asset_number', { length: 50 }).notNull(),
     vin: varchar('vin', { length: 17 }),
     make: varchar('make', { length: 100 }),

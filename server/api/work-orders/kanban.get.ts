@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm'
 
 const STATUSES = ['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed'] as const
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -27,8 +27,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const validPriorities = ['low', 'medium', 'high', 'critical'] as const
-  if (priority && validPriorities.includes(priority as typeof validPriorities[number])) {
-    conditions.push(eq(schema.workOrders.priority, priority as typeof validPriorities[number]))
+  if (priority && validPriorities.includes(priority as (typeof validPriorities)[number])) {
+    conditions.push(eq(schema.workOrders.priority, priority as (typeof validPriorities)[number]))
   }
 
   const workOrders = await db.query.workOrders.findMany({
@@ -59,10 +59,13 @@ export default defineEventHandler(async (event) => {
   })
 
   // Group by status
-  const grouped = STATUSES.reduce((acc, status) => {
-    acc[status] = workOrders.filter(wo => wo.status === status)
-    return acc
-  }, {} as Record<typeof STATUSES[number], typeof workOrders>)
+  const grouped = STATUSES.reduce(
+    (acc, status) => {
+      acc[status] = workOrders.filter(wo => wo.status === status)
+      return acc
+    },
+    {} as Record<(typeof STATUSES)[number], typeof workOrders>
+  )
 
   return {
     columns: STATUSES.map(status => ({

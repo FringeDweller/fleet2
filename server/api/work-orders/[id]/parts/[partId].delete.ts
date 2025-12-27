@@ -1,7 +1,7 @@
 import { db, schema } from '../../../../utils/db'
 import { eq, and } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -40,12 +40,7 @@ export default defineEventHandler(async (event) => {
   // Delete the part
   const [deleted] = await db
     .delete(schema.workOrderParts)
-    .where(
-      and(
-        eq(schema.workOrderParts.id, partId),
-        eq(schema.workOrderParts.workOrderId, id)
-      )
-    )
+    .where(and(eq(schema.workOrderParts.id, partId), eq(schema.workOrderParts.workOrderId, id)))
     .returning({ id: schema.workOrderParts.id })
 
   if (!deleted) {

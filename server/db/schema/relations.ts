@@ -240,13 +240,16 @@ export const maintenanceSchedulesRelations = relations(maintenanceSchedules, ({ 
 }))
 
 // Maintenance Schedule Work Orders Relations
-export const maintenanceScheduleWorkOrdersRelations = relations(maintenanceScheduleWorkOrders, ({ one }) => ({
-  schedule: one(maintenanceSchedules, {
-    fields: [maintenanceScheduleWorkOrders.scheduleId],
-    references: [maintenanceSchedules.id]
-  }),
-  workOrder: one(workOrders, {
-    fields: [maintenanceScheduleWorkOrders.workOrderId],
-    references: [workOrders.id]
+export const maintenanceScheduleWorkOrdersRelations = relations(
+  maintenanceScheduleWorkOrders,
+  ({ one }) => ({
+    schedule: one(maintenanceSchedules, {
+      fields: [maintenanceScheduleWorkOrders.scheduleId],
+      references: [maintenanceSchedules.id]
+    }),
+    workOrder: one(workOrders, {
+      fields: [maintenanceScheduleWorkOrders.workOrderId],
+      references: [workOrders.id]
+    })
   })
-}))
+)

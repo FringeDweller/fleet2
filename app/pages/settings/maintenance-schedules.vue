@@ -20,9 +20,9 @@ interface MaintenanceScheduleRow {
   intervalHours: number | null
   nextDueDate: string | null
   isActive: boolean
-  asset: { id: string, assetNumber: string, make: string | null, model: string | null } | null
-  category: { id: string, name: string } | null
-  template: { id: string, name: string } | null
+  asset: { id: string; assetNumber: string; make: string | null; model: string | null } | null
+  category: { id: string; name: string } | null
+  template: { id: string; name: string } | null
   createdAt: string
 }
 
@@ -36,10 +36,12 @@ const table = useTemplateRef('table')
 const router = useRouter()
 const route = useRoute()
 
-const columnFilters = ref([{
-  id: 'name',
-  value: ''
-}])
+const columnFilters = ref([
+  {
+    id: 'name',
+    value: ''
+  }
+])
 const columnVisibility = ref()
 const rowSelection = ref({})
 
@@ -55,10 +57,13 @@ const queryParams = computed(() => {
   return params
 })
 
-const { data, status, refresh } = await useFetch<MaintenanceScheduleRow[]>('/api/maintenance-schedules', {
-  lazy: true,
-  query: queryParams
-})
+const { data, status, refresh } = await useFetch<MaintenanceScheduleRow[]>(
+  '/api/maintenance-schedules',
+  {
+    lazy: true,
+    query: queryParams
+  }
+)
 
 function getRowItems(row: Row<MaintenanceScheduleRow>) {
   return [
@@ -171,18 +176,18 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all'
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
+        ariaLabel: 'Select row'
       })
   },
   {
@@ -202,10 +207,11 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
         onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
       })
     },
-    cell: ({ row }) => h('div', { class: 'max-w-[200px]' }, [
-      h('p', { class: 'font-medium text-highlighted truncate' }, row.original.name),
-      h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-')
-    ])
+    cell: ({ row }) =>
+      h('div', { class: 'max-w-[200px]' }, [
+        h('p', { class: 'font-medium text-highlighted truncate' }, row.original.name),
+        h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-')
+      ])
   },
   {
     accessorKey: 'scheduleType',
@@ -219,9 +225,10 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       let displayLabel: string
       if (scheduleType === 'time_based') {
         const intervalLabel = intervalTypeLabels[row.original.intervalType]
-        displayLabel = row.original.intervalType === 'custom'
-          ? `Every ${row.original.intervalValue} days`
-          : intervalLabel
+        displayLabel =
+          row.original.intervalType === 'custom'
+            ? `Every ${row.original.intervalValue} days`
+            : intervalLabel
       } else {
         displayLabel = scheduleTypeLabels[scheduleType]
       }
@@ -236,7 +243,9 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       if (row.original.asset) {
         return h('div', { class: 'max-w-[150px]' }, [
           h('p', { class: 'font-medium text-sm truncate' }, row.original.asset.assetNumber),
-          h('p', { class: 'text-xs text-muted truncate' },
+          h(
+            'p',
+            { class: 'text-xs text-muted truncate' },
             `${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim() || '-'
           )
         ])
@@ -271,7 +280,9 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
 
       const nextDue = row.original.nextDueDate
       if (!nextDue) return h('span', { class: 'text-muted' }, '-')
-      return h('span', { class: 'text-sm' },
+      return h(
+        'span',
+        { class: 'text-sm' },
         formatDistanceToNow(parseISO(nextDue), { addSuffix: true })
       )
     }
@@ -282,10 +293,14 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     filterFn: 'equals',
     cell: ({ row }) => {
       const isActive = row.original.isActive
-      return h(UBadge, {
-        variant: 'subtle',
-        color: isActive ? 'success' : 'neutral'
-      }, () => isActive ? 'Active' : 'Paused')
+      return h(
+        UBadge,
+        {
+          variant: 'subtle',
+          color: isActive ? 'success' : 'neutral'
+        },
+        () => (isActive ? 'Active' : 'Paused')
+      )
     }
   },
   {

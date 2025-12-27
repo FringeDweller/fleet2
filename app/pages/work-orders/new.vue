@@ -32,7 +32,9 @@ const toast = useToast()
 
 const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
-const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', { lazy: true })
+const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', {
+  lazy: true
+})
 
 const schema = z.object({
   assetId: z.string().uuid('Please select an asset'),
@@ -105,35 +107,44 @@ const statusOptions = [
 ]
 
 const assetOptions = computed(() => {
-  return assets.value?.map(a => ({
-    label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
-    value: a.id
-  })) || []
+  return (
+    assets.value?.map(a => ({
+      label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
+      value: a.id
+    })) || []
+  )
 })
 
 const technicianOptions = computed(() => {
-  return technicians.value?.map(t => ({
-    label: `${t.firstName} ${t.lastName}`,
-    value: t.id
-  })) || []
+  return (
+    technicians.value?.map(t => ({
+      label: `${t.firstName} ${t.lastName}`,
+      value: t.id
+    })) || []
+  )
 })
 
 const templateOptions = computed(() => {
-  return templates.value?.map(t => ({
-    label: t.name,
-    value: t.id
-  })) || []
+  return (
+    templates.value?.map(t => ({
+      label: t.name,
+      value: t.id
+    })) || []
+  )
 })
 
 // When template is selected, update estimated duration
-watch(() => state.templateId, (templateId) => {
-  if (templateId) {
-    const template = templates.value?.find(t => t.id === templateId)
-    if (template?.estimatedDuration) {
-      state.estimatedDuration = template.estimatedDuration
+watch(
+  () => state.templateId,
+  templateId => {
+    if (templateId) {
+      const template = templates.value?.find(t => t.id === templateId)
+      if (template?.estimatedDuration) {
+        state.estimatedDuration = template.estimatedDuration
+      }
     }
   }
-})
+)
 </script>
 
 <template>
@@ -153,17 +164,10 @@ watch(() => state.templateId, (templateId) => {
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Work Order Details
-              </h3>
+              <h3 class="font-medium">Work Order Details</h3>
             </template>
 
             <div class="space-y-4">
@@ -194,7 +198,11 @@ watch(() => state.templateId, (templateId) => {
                 />
               </UFormField>
 
-              <UFormField label="Task Template" name="templateId" hint="Optional - pre-fills checklist items">
+              <UFormField
+                label="Task Template"
+                name="templateId"
+                hint="Optional - pre-fills checklist items"
+              >
                 <USelect
                   v-model="state.templateId"
                   :items="templateOptions"
@@ -207,9 +215,7 @@ watch(() => state.templateId, (templateId) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment & Schedule
-              </h3>
+              <h3 class="font-medium">Assignment & Schedule</h3>
             </template>
 
             <div class="space-y-4">
@@ -234,11 +240,7 @@ watch(() => state.templateId, (templateId) => {
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Due Date" name="dueDate">
-                  <UInput
-                    v-model="state.dueDate"
-                    type="date"
-                    class="w-full"
-                  />
+                  <UInput v-model="state.dueDate" type="date" class="w-full" />
                 </UFormField>
 
                 <UFormField label="Estimated Duration (minutes)" name="estimatedDuration">
@@ -256,9 +258,7 @@ watch(() => state.templateId, (templateId) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Additional Notes
-              </h3>
+              <h3 class="font-medium">Additional Notes</h3>
             </template>
 
             <UFormField label="Notes" name="notes">

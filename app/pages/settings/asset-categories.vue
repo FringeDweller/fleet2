@@ -38,7 +38,11 @@ const isEditing = ref(false)
 const loading = ref(false)
 const expandedCategories = ref<Set<string>>(new Set())
 
-const { data: categoryTree, status, refresh } = await useFetch<CategoryNode[]>('/api/asset-categories/tree', {
+const {
+  data: categoryTree,
+  status,
+  refresh
+} = await useFetch<CategoryNode[]>('/api/asset-categories/tree', {
   query: computed(() => ({
     includeInactive: showInactive.value ? 'true' : undefined
   })),
@@ -80,8 +84,11 @@ const newPart = ref({
   notes: ''
 })
 
-function flattenCategories(nodes: CategoryNode[], level = 0): Array<{ id: string, name: string, level: number }> {
-  const result: Array<{ id: string, name: string, level: number }> = []
+function flattenCategories(
+  nodes: CategoryNode[],
+  level = 0
+): Array<{ id: string; name: string; level: number }> {
+  const result: Array<{ id: string; name: string; level: number }> = []
   for (const node of nodes) {
     result.push({ id: node.id, name: node.name, level })
     if (node.children.length > 0) {
@@ -168,7 +175,8 @@ function addSchedule() {
 }
 
 function removeSchedule(id: string) {
-  currentCategory.value.defaultMaintenanceSchedules = currentCategory.value.defaultMaintenanceSchedules.filter(s => s.id !== id)
+  currentCategory.value.defaultMaintenanceSchedules =
+    currentCategory.value.defaultMaintenanceSchedules.filter(s => s.id !== id)
 }
 
 function addPart() {
@@ -230,7 +238,9 @@ async function saveCategory() {
     const err = error as { data?: { statusMessage?: string } }
     toast.add({
       title: 'Error',
-      description: err.data?.statusMessage || (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
+      description:
+        err.data?.statusMessage ||
+        (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
       color: 'error'
     })
   } finally {
@@ -326,7 +336,11 @@ function getRowActions(category: CategoryNode) {
 
     <UPageCard
       variant="subtle"
-      :ui="{ container: 'p-0 sm:p-0 gap-y-0', wrapper: 'items-stretch', header: 'p-4 mb-0 border-b border-default' }"
+      :ui="{
+        container: 'p-0 sm:p-0 gap-y-0',
+        wrapper: 'items-stretch',
+        header: 'p-4 mb-0 border-b border-default'
+      }"
     >
       <template #header>
         <div class="flex items-center gap-4">
@@ -340,14 +354,8 @@ function getRowActions(category: CategoryNode) {
 
       <div v-else-if="categoryTree.length === 0" class="text-center py-12 text-muted">
         <UIcon name="i-lucide-folder-tree" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p class="mb-2">
-          No asset categories found
-        </p>
-        <UButton
-          label="Create your first category"
-          variant="link"
-          @click="openCreateModal()"
-        />
+        <p class="mb-2">No asset categories found</p>
+        <UButton label="Create your first category" variant="link" @click="openCreateModal()" />
       </div>
 
       <div v-else class="divide-y divide-default">
@@ -372,12 +380,7 @@ function getRowActions(category: CategoryNode) {
               <h3 class="font-medium">
                 {{ isEditing ? 'Edit Category' : 'Create Category' }}
               </h3>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="xs"
-                @click="modalOpen = false"
-              />
+              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="modalOpen = false" />
             </div>
           </template>
 
@@ -414,14 +417,15 @@ function getRowActions(category: CategoryNode) {
 
             <!-- Default Maintenance Schedules -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Default Maintenance Schedules
-              </h4>
+              <h4 class="font-medium mb-4">Default Maintenance Schedules</h4>
               <p class="text-sm text-muted mb-4">
                 Define maintenance schedules that will be suggested for assets in this category.
               </p>
 
-              <div v-if="currentCategory.defaultMaintenanceSchedules.length > 0" class="space-y-2 mb-4">
+              <div
+                v-if="currentCategory.defaultMaintenanceSchedules.length > 0"
+                class="space-y-2 mb-4"
+              >
                 <div
                   v-for="schedule in currentCategory.defaultMaintenanceSchedules"
                   :key="schedule.id"
@@ -435,11 +439,21 @@ function getRowActions(category: CategoryNode) {
                       {{ schedule.description }}
                     </p>
                     <div class="flex items-center gap-4 text-xs text-muted mt-1 flex-wrap">
-                      <span v-if="schedule.intervalDays">Every {{ schedule.intervalDays }} days</span>
-                      <span v-if="schedule.intervalHours">Every {{ schedule.intervalHours }} hours</span>
-                      <span v-if="schedule.intervalMileage">Every {{ schedule.intervalMileage }} km</span>
-                      <span v-if="schedule.estimatedDuration">~{{ schedule.estimatedDuration }} min</span>
-                      <span v-if="schedule.checklistItems?.length">{{ schedule.checklistItems.length }} checklist items</span>
+                      <span v-if="schedule.intervalDays"
+                        >Every {{ schedule.intervalDays }} days</span
+                      >
+                      <span v-if="schedule.intervalHours"
+                        >Every {{ schedule.intervalHours }} hours</span
+                      >
+                      <span v-if="schedule.intervalMileage"
+                        >Every {{ schedule.intervalMileage }} km</span
+                      >
+                      <span v-if="schedule.estimatedDuration"
+                        >~{{ schedule.estimatedDuration }} min</span
+                      >
+                      <span v-if="schedule.checklistItems?.length"
+                        >{{ schedule.checklistItems.length }} checklist items</span
+                      >
                     </div>
                   </div>
                   <UButton
@@ -455,10 +469,7 @@ function getRowActions(category: CategoryNode) {
               <div class="p-4 border border-dashed border-default rounded-lg space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                   <UFormField label="Schedule Name">
-                    <UInput
-                      v-model="newSchedule.name"
-                      placeholder="e.g., Oil Change"
-                    />
+                    <UInput v-model="newSchedule.name" placeholder="e.g., Oil Change" />
                   </UFormField>
                   <UFormField label="Est. Duration (min)">
                     <UInput
@@ -520,12 +531,8 @@ function getRowActions(category: CategoryNode) {
 
             <!-- Default Parts -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Default Parts
-              </h4>
-              <p class="text-sm text-muted mb-4">
-                Common parts used for assets in this category.
-              </p>
+              <h4 class="font-medium mb-4">Default Parts</h4>
+              <p class="text-sm text-muted mb-4">Common parts used for assets in this category.</p>
 
               <div v-if="currentCategory.defaultParts.length > 0" class="space-y-2 mb-4">
                 <div
@@ -561,25 +568,15 @@ function getRowActions(category: CategoryNode) {
               <div class="p-4 border border-dashed border-default rounded-lg space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                   <UFormField label="Part Name">
-                    <UInput
-                      v-model="newPart.partName"
-                      placeholder="e.g., Oil Filter"
-                    />
+                    <UInput v-model="newPart.partName" placeholder="e.g., Oil Filter" />
                   </UFormField>
                   <UFormField label="Part Number">
-                    <UInput
-                      v-model="newPart.partNumber"
-                      placeholder="e.g., OF-123"
-                    />
+                    <UInput v-model="newPart.partNumber" placeholder="e.g., OF-123" />
                   </UFormField>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <UFormField label="Quantity">
-                    <UInput
-                      v-model.number="newPart.quantity"
-                      type="number"
-                      :min="1"
-                    />
+                    <UInput v-model.number="newPart.quantity" type="number" :min="1" />
                   </UFormField>
                   <UFormField label="Est. Cost ($)">
                     <UInput
@@ -608,11 +605,7 @@ function getRowActions(category: CategoryNode) {
             </div>
 
             <div class="flex justify-end gap-2 pt-4 border-t border-default">
-              <UButton
-                label="Cancel"
-                variant="ghost"
-                @click="modalOpen = false"
-              />
+              <UButton label="Cancel" variant="ghost" @click="modalOpen = false" />
               <UButton
                 type="submit"
                 :label="isEditing ? 'Save Changes' : 'Create Category'"

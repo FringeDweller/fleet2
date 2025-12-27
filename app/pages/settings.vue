@@ -5,36 +5,48 @@ definePageMeta({
   middleware: 'auth'
 })
 
-const links = [[{
-  label: 'General',
-  icon: 'i-lucide-user',
-  to: '/settings',
-  exact: true
-}, {
-  label: 'Members',
-  icon: 'i-lucide-users',
-  to: '/settings/members'
-}, {
-  label: 'Notifications',
-  icon: 'i-lucide-bell',
-  to: '/settings/notifications'
-}, {
-  label: 'Security',
-  icon: 'i-lucide-shield',
-  to: '/settings/security'
-}], [{
-  label: 'Asset Categories',
-  icon: 'i-lucide-folder-tree',
-  to: '/settings/asset-categories'
-}, {
-  label: 'Task Templates',
-  icon: 'i-lucide-clipboard-list',
-  to: '/settings/task-templates'
-}, {
-  label: 'Maintenance Schedules',
-  icon: 'i-lucide-calendar-clock',
-  to: '/settings/maintenance-schedules'
-}]] satisfies NavigationMenuItem[][]
+const links = [
+  [
+    {
+      label: 'General',
+      icon: 'i-lucide-user',
+      to: '/settings',
+      exact: true
+    },
+    {
+      label: 'Members',
+      icon: 'i-lucide-users',
+      to: '/settings/members'
+    },
+    {
+      label: 'Notifications',
+      icon: 'i-lucide-bell',
+      to: '/settings/notifications'
+    },
+    {
+      label: 'Security',
+      icon: 'i-lucide-shield',
+      to: '/settings/security'
+    }
+  ],
+  [
+    {
+      label: 'Asset Categories',
+      icon: 'i-lucide-folder-tree',
+      to: '/settings/asset-categories'
+    },
+    {
+      label: 'Task Templates',
+      icon: 'i-lucide-clipboard-list',
+      to: '/settings/task-templates'
+    },
+    {
+      label: 'Maintenance Schedules',
+      icon: 'i-lucide-calendar-clock',
+      to: '/settings/maintenance-schedules'
+    }
+  ]
+] satisfies NavigationMenuItem[][]
 </script>
 
 <template>

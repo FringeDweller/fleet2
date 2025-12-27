@@ -1,7 +1,7 @@
 import { db, schema } from '../../../../utils/db'
 import { eq, and } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -41,12 +41,7 @@ export default defineEventHandler(async (event) => {
   // Note: actual file deletion from storage should be handled separately
   const [deleted] = await db
     .delete(schema.workOrderPhotos)
-    .where(
-      and(
-        eq(schema.workOrderPhotos.id, photoId),
-        eq(schema.workOrderPhotos.workOrderId, id)
-      )
-    )
+    .where(and(eq(schema.workOrderPhotos.id, photoId), eq(schema.workOrderPhotos.workOrderId, id)))
     .returning({ id: schema.workOrderPhotos.id })
 
   if (!deleted) {

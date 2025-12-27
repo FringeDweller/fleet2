@@ -1,4 +1,16 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, jsonb, index, pgEnum, numeric } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  jsonb,
+  index,
+  pgEnum,
+  numeric
+} from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 
 export interface TemplateChecklistItem {

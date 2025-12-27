@@ -8,11 +8,11 @@ services:
       POSTGRES_PASSWORD: fleet_dev_password
       POSTGRES_DB: fleet
     ports:
-      - "54837:5432"
+      - '54837:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fleet -d fleet"]
+      test: ['CMD-SHELL', 'pg_isready -U fleet -d fleet']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -23,11 +23,11 @@ services:
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "63791:6379"
+      - '63791:6379'
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5

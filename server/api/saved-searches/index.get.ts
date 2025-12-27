@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, or } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -16,10 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(schema.savedSearches.organisationId, session.user.organisationId),
-    or(
-      eq(schema.savedSearches.userId, session.user.id),
-      eq(schema.savedSearches.isShared, true)
-    )!
+    or(eq(schema.savedSearches.userId, session.user.id), eq(schema.savedSearches.isShared, true))!
   ]
 
   if (entity && ['asset', 'work_order'].includes(entity)) {

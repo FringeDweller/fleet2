@@ -31,7 +31,9 @@ export const assetCategories = pgTable(
     parentId: uuid('parent_id'),
     name: varchar('name', { length: 100 }).notNull(),
     description: text('description'),
-    defaultMaintenanceSchedules: jsonb('default_maintenance_schedules').$type<CategoryMaintenanceTemplate[]>().default([]),
+    defaultMaintenanceSchedules: jsonb('default_maintenance_schedules')
+      .$type<CategoryMaintenanceTemplate[]>()
+      .default([]),
     defaultParts: jsonb('default_parts').$type<DefaultPart[]>().default([]),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

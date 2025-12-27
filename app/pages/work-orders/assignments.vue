@@ -20,9 +20,12 @@ interface TechnicianWorkload {
 
 const router = useRouter()
 
-const { data: technicians, status } = await useFetch<TechnicianWorkload[]>('/api/technicians/workload', {
-  lazy: true
-})
+const { data: technicians, status } = await useFetch<TechnicianWorkload[]>(
+  '/api/technicians/workload',
+  {
+    lazy: true
+  }
+)
 
 function getWorkloadColor(total: number): 'success' | 'warning' | 'error' | 'info' {
   if (total === 0) return 'info'
@@ -63,12 +66,8 @@ function viewAssignedWorkOrders(technicianId: string) {
 
       <div v-else-if="!technicians?.length" class="text-center py-12">
         <UIcon name="i-lucide-users" class="w-12 h-12 text-muted mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">
-          No Technicians Found
-        </h3>
-        <p class="text-muted">
-          There are no technicians in your organisation.
-        </p>
+        <h3 class="text-lg font-medium mb-2">No Technicians Found</h3>
+        <p class="text-muted">There are no technicians in your organisation.</p>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -93,18 +92,10 @@ function viewAssignedWorkOrders(technicianId: string) {
               </p>
 
               <div class="mt-3 flex items-center gap-2">
-                <UBadge
-                  :color="getWorkloadColor(tech.workload.total)"
-                  variant="subtle"
-                  size="lg"
-                >
+                <UBadge :color="getWorkloadColor(tech.workload.total)" variant="subtle" size="lg">
                   {{ tech.workload.total }} active
                 </UBadge>
-                <UBadge
-                  v-if="tech.workload.overdue > 0"
-                  color="error"
-                  variant="subtle"
-                >
+                <UBadge v-if="tech.workload.overdue > 0" color="error" variant="subtle">
                   {{ tech.workload.overdue }} overdue
                 </UBadge>
               </div>
@@ -114,25 +105,19 @@ function viewAssignedWorkOrders(technicianId: string) {
                   <div class="font-medium text-info">
                     {{ tech.workload.open }}
                   </div>
-                  <div class="text-muted text-xs">
-                    Open
-                  </div>
+                  <div class="text-muted text-xs">Open</div>
                 </div>
                 <div class="text-center p-2 bg-warning/10 rounded">
                   <div class="font-medium text-warning">
                     {{ tech.workload.in_progress }}
                   </div>
-                  <div class="text-muted text-xs">
-                    In Progress
-                  </div>
+                  <div class="text-muted text-xs">In Progress</div>
                 </div>
                 <div class="text-center p-2 bg-warning/10 rounded">
                   <div class="font-medium text-warning">
                     {{ tech.workload.pending_parts }}
                   </div>
-                  <div class="text-muted text-xs">
-                    Pending
-                  </div>
+                  <div class="text-muted text-xs">Pending</div>
                 </div>
               </div>
             </div>
@@ -144,9 +129,7 @@ function viewAssignedWorkOrders(technicianId: string) {
       <div class="mt-8 p-4 bg-muted/30 rounded-lg">
         <div class="flex items-center justify-between">
           <div>
-            <h3 class="font-medium">
-              Unassigned Work Orders
-            </h3>
+            <h3 class="font-medium">Unassigned Work Orders</h3>
             <p class="text-sm text-muted">
               View work orders that need to be assigned to a technician
             </p>

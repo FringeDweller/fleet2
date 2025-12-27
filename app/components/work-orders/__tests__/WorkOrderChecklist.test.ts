@@ -85,13 +85,10 @@ describe('WorkOrderChecklist Logic', () => {
         body: newItem
       })
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `/api/work-orders/${workOrderId}/checklist`,
-        {
-          method: 'POST',
-          body: newItem
-        }
-      )
+      expect(mockFetch).toHaveBeenCalledWith(`/api/work-orders/${workOrderId}/checklist`, {
+        method: 'POST',
+        body: newItem
+      })
     })
 
     it('should not add item with empty title', () => {
@@ -228,13 +225,10 @@ describe('WorkOrderPhotos Logic', () => {
         body: photo
       })
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `/api/work-orders/${workOrderId}/photos`,
-        {
-          method: 'POST',
-          body: photo
-        }
-      )
+      expect(mockFetch).toHaveBeenCalledWith(`/api/work-orders/${workOrderId}/photos`, {
+        method: 'POST',
+        body: photo
+      })
     })
   })
 })

@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -18,10 +18,7 @@ export default defineEventHandler(async (event) => {
       readAt: new Date()
     })
     .where(
-      and(
-        eq(schema.notifications.userId, session.user.id),
-        eq(schema.notifications.isRead, false)
-      )
+      and(eq(schema.notifications.userId, session.user.id), eq(schema.notifications.isRead, false))
     )
 
   return { success: true }

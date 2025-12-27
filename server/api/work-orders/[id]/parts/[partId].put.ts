@@ -10,7 +10,7 @@ const updatePartSchema = z.object({
   notes: z.string().optional().nullable()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -59,10 +59,7 @@ export default defineEventHandler(async (event) => {
 
   // Get existing part
   const existing = await db.query.workOrderParts.findFirst({
-    where: and(
-      eq(schema.workOrderParts.id, partId),
-      eq(schema.workOrderParts.workOrderId, id)
-    )
+    where: and(eq(schema.workOrderParts.id, partId), eq(schema.workOrderParts.workOrderId, id))
   })
 
   if (!existing) {
@@ -82,9 +79,12 @@ export default defineEventHandler(async (event) => {
 
   // Handle quantity/cost updates - recalculate total
   const quantity = result.data.quantity ?? existing.quantity
-  const unitCost = result.data.unitCost !== undefined
-    ? result.data.unitCost
-    : existing.unitCost ? parseFloat(existing.unitCost) : null
+  const unitCost =
+    result.data.unitCost !== undefined
+      ? result.data.unitCost
+      : existing.unitCost
+        ? parseFloat(existing.unitCost)
+        : null
 
   if (result.data.quantity !== undefined) updateData.quantity = quantity
   if (result.data.unitCost !== undefined) {
@@ -99,12 +99,7 @@ export default defineEventHandler(async (event) => {
   const [part] = await db
     .update(schema.workOrderParts)
     .set(updateData)
-    .where(
-      and(
-        eq(schema.workOrderParts.id, partId),
-        eq(schema.workOrderParts.workOrderId, id)
-      )
-    )
+    .where(and(eq(schema.workOrderParts.id, partId), eq(schema.workOrderParts.workOrderId, id)))
     .returning()
 
   if (!part) {

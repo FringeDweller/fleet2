@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, sql } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -15,10 +15,7 @@ export default defineEventHandler(async (event) => {
     .select({ count: sql<number>`count(*)::int` })
     .from(schema.notifications)
     .where(
-      and(
-        eq(schema.notifications.userId, session.user.id),
-        eq(schema.notifications.isRead, false)
-      )
+      and(eq(schema.notifications.userId, session.user.id), eq(schema.notifications.isRead, false))
     )
 
   return { count: result[0]?.count ?? 0 }

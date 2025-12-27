@@ -41,5 +41,9 @@ export type NewUser = typeof users.$inferInsert
 // User without sensitive fields for client-side use
 export type SafeUser = Omit<
   User,
-  'passwordHash' | 'passwordResetToken' | 'passwordResetExpires' | 'failedLoginAttempts' | 'lockedUntil'
+  | 'passwordHash'
+  | 'passwordResetToken'
+  | 'passwordResetExpires'
+  | 'failedLoginAttempts'
+  | 'lockedUntil'
 >

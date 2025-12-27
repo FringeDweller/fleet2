@@ -34,68 +34,79 @@ const router = useRouter()
 const toast = useToast()
 
 const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
-const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', { lazy: true })
-const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', { lazy: true })
+const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
+  lazy: true
+})
+const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', {
+  lazy: true
+})
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
 
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(200),
-  description: z.string().optional(),
-  templateId: z.string().uuid().optional(),
-  assignmentType: z.enum(['asset', 'category']),
-  assetId: z.string().uuid().optional(),
-  categoryId: z.string().uuid().optional(),
-  scheduleType: z.enum(['time_based', 'usage_based', 'combined']).default('time_based'),
-  // Time-based fields
-  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']).optional(),
-  intervalValue: z.number().int().positive().optional(),
-  dayOfWeek: z.number().int().min(0).max(6).optional(),
-  dayOfMonth: z.number().int().min(1).max(31).optional(),
-  monthOfYear: z.number().int().min(1).max(12).optional(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  // Usage-based fields
-  intervalMileage: z.number().int().positive().optional(),
-  intervalHours: z.number().int().positive().optional(),
-  thresholdAlertPercent: z.number().int().min(1).max(100).default(90),
-  // Work order settings
-  leadTimeDays: z.number().int().min(0).default(7),
-  defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
-  defaultAssigneeId: z.string().uuid().optional(),
-  isActive: z.boolean().default(true)
-}).refine(
-  (data) => {
-    if (data.assignmentType === 'asset') return !!data.assetId
-    if (data.assignmentType === 'category') return !!data.categoryId
-    return false
-  },
-  {
-    message: 'Please select either an asset or a category',
-    path: ['assetId']
-  }
-).refine(
-  (data) => {
-    if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
-      return !!data.intervalType && !!data.startDate
+const schema = z
+  .object({
+    name: z.string().min(1, 'Name is required').max(200),
+    description: z.string().optional(),
+    templateId: z.string().uuid().optional(),
+    assignmentType: z.enum(['asset', 'category']),
+    assetId: z.string().uuid().optional(),
+    categoryId: z.string().uuid().optional(),
+    scheduleType: z.enum(['time_based', 'usage_based', 'combined']).default('time_based'),
+    // Time-based fields
+    intervalType: z
+      .enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom'])
+      .optional(),
+    intervalValue: z.number().int().positive().optional(),
+    dayOfWeek: z.number().int().min(0).max(6).optional(),
+    dayOfMonth: z.number().int().min(1).max(31).optional(),
+    monthOfYear: z.number().int().min(1).max(12).optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    // Usage-based fields
+    intervalMileage: z.number().int().positive().optional(),
+    intervalHours: z.number().int().positive().optional(),
+    thresholdAlertPercent: z.number().int().min(1).max(100).default(90),
+    // Work order settings
+    leadTimeDays: z.number().int().min(0).default(7),
+    defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
+    defaultAssigneeId: z.string().uuid().optional(),
+    isActive: z.boolean().default(true)
+  })
+  .refine(
+    data => {
+      if (data.assignmentType === 'asset') return !!data.assetId
+      if (data.assignmentType === 'category') return !!data.categoryId
+      return false
+    },
+    {
+      message: 'Please select either an asset or a category',
+      path: ['assetId']
     }
-    return true
-  },
-  {
-    message: 'Interval type and start date are required for time-based schedules',
-    path: ['intervalType']
-  }
-).refine(
-  (data) => {
-    if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
-      return !!data.intervalMileage || !!data.intervalHours
+  )
+  .refine(
+    data => {
+      if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
+        return !!data.intervalType && !!data.startDate
+      }
+      return true
+    },
+    {
+      message: 'Interval type and start date are required for time-based schedules',
+      path: ['intervalType']
     }
-    return true
-  },
-  {
-    message: 'At least one of interval mileage or interval hours is required for usage-based schedules',
-    path: ['intervalMileage']
-  }
-)
+  )
+  .refine(
+    data => {
+      if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
+        return !!data.intervalMileage || !!data.intervalHours
+      }
+      return true
+    },
+    {
+      message:
+        'At least one of interval mileage or interval hours is required for usage-based schedules',
+      path: ['intervalMileage']
+    }
+  )
 
 type Schema = z.output<typeof schema>
 
@@ -199,84 +210,107 @@ const monthOptions = [
 ]
 
 const assetOptions = computed(() => {
-  return assets.value?.map(a => ({
-    label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
-    value: a.id
-  })) || []
+  return (
+    assets.value?.map(a => ({
+      label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
+      value: a.id
+    })) || []
+  )
 })
 
 const categoryOptions = computed(() => {
-  return categories.value?.map(c => ({
-    label: c.name,
-    value: c.id
-  })) || []
+  return (
+    categories.value?.map(c => ({
+      label: c.name,
+      value: c.id
+    })) || []
+  )
 })
 
 const templateOptions = computed(() => {
-  return templates.value?.map(t => ({
-    label: t.name,
-    value: t.id
-  })) || []
+  return (
+    templates.value?.map(t => ({
+      label: t.name,
+      value: t.id
+    })) || []
+  )
 })
 
 const technicianOptions = computed(() => {
-  return technicians.value?.map(t => ({
-    label: `${t.firstName} ${t.lastName}`,
-    value: t.id
-  })) || []
+  return (
+    technicians.value?.map(t => ({
+      label: `${t.firstName} ${t.lastName}`,
+      value: t.id
+    })) || []
+  )
 })
 
 // Show/hide fields based on schedule type
-const showTimeBasedFields = computed(() =>
-  state.scheduleType === 'time_based' || state.scheduleType === 'combined'
+const showTimeBasedFields = computed(
+  () => state.scheduleType === 'time_based' || state.scheduleType === 'combined'
 )
-const showUsageBasedFields = computed(() =>
-  state.scheduleType === 'usage_based' || state.scheduleType === 'combined'
+const showUsageBasedFields = computed(
+  () => state.scheduleType === 'usage_based' || state.scheduleType === 'combined'
 )
 
 // Show/hide conditional fields based on interval type (for time-based)
 const showDayOfWeek = computed(() => state.intervalType === 'weekly' && showTimeBasedFields.value)
-const showDayOfMonth = computed(() =>
-  showTimeBasedFields.value && ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
+const showDayOfMonth = computed(
+  () =>
+    showTimeBasedFields.value &&
+    ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
 )
-const showMonthOfYear = computed(() => state.intervalType === 'annually' && showTimeBasedFields.value)
-const showCustomInterval = computed(() => state.intervalType === 'custom' && showTimeBasedFields.value)
+const showMonthOfYear = computed(
+  () => state.intervalType === 'annually' && showTimeBasedFields.value
+)
+const showCustomInterval = computed(
+  () => state.intervalType === 'custom' && showTimeBasedFields.value
+)
 
 // Reset conditional fields when interval type changes
-watch(() => state.intervalType, () => {
-  if (!showDayOfWeek.value) state.dayOfWeek = undefined
-  if (!showDayOfMonth.value) state.dayOfMonth = undefined
-  if (!showMonthOfYear.value) state.monthOfYear = undefined
-  if (!showCustomInterval.value) state.intervalValue = 1
-})
+watch(
+  () => state.intervalType,
+  () => {
+    if (!showDayOfWeek.value) state.dayOfWeek = undefined
+    if (!showDayOfMonth.value) state.dayOfMonth = undefined
+    if (!showMonthOfYear.value) state.monthOfYear = undefined
+    if (!showCustomInterval.value) state.intervalValue = 1
+  }
+)
 
 // Reset fields when schedule type changes
-watch(() => state.scheduleType, (newType) => {
-  if (newType === 'usage_based') {
-    // Clear time-based fields
-    state.intervalType = undefined
-    state.dayOfWeek = undefined
-    state.dayOfMonth = undefined
-    state.monthOfYear = undefined
-    state.intervalValue = undefined
-    state.startDate = undefined
-    state.endDate = undefined
-  } else if (newType === 'time_based') {
-    // Clear usage-based fields
-    state.intervalMileage = undefined
-    state.intervalHours = undefined
+watch(
+  () => state.scheduleType,
+  newType => {
+    if (newType === 'usage_based') {
+      // Clear time-based fields
+      state.intervalType = undefined
+      state.dayOfWeek = undefined
+      state.dayOfMonth = undefined
+      state.monthOfYear = undefined
+      state.intervalValue = undefined
+      state.startDate = undefined
+      state.endDate = undefined
+    } else if (newType === 'time_based') {
+      // Clear usage-based fields
+      state.intervalMileage = undefined
+      state.intervalHours = undefined
+    }
+    // For 'combined', don't clear anything
   }
-  // For 'combined', don't clear anything
-})
+)
 
 // Clear asset/category when switching assignment type
-watch(() => state.assignmentType, (newType) => {
-  if (newType === 'asset') {
-    state.categoryId = undefined
-  } else {
-    state.assetId = undefined
+watch(
+  () => state.assignmentType,
+  newType => {
+    if (newType === 'asset') {
+      state.categoryId = undefined
+    } else {
+      state.assetId = undefined
+    }
   }
-})
+)
 </script>
 
 <template>
@@ -296,17 +330,10 @@ watch(() => state.assignmentType, (newType) => {
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Schedule Details
-              </h3>
+              <h3 class="font-medium">Schedule Details</h3>
             </template>
 
             <div class="space-y-4">
@@ -327,7 +354,11 @@ watch(() => state.assignmentType, (newType) => {
                 />
               </UFormField>
 
-              <UFormField label="Task Template" name="templateId" hint="Optional - defines checklist and parts">
+              <UFormField
+                label="Task Template"
+                name="templateId"
+                hint="Optional - defines checklist and parts"
+              >
                 <USelect
                   v-model="state.templateId"
                   :items="templateOptions"
@@ -340,9 +371,7 @@ watch(() => state.assignmentType, (newType) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment
-              </h3>
+              <h3 class="font-medium">Assignment</h3>
             </template>
 
             <div class="space-y-4">
@@ -354,7 +383,7 @@ watch(() => state.assignmentType, (newType) => {
                       type="radio"
                       value="asset"
                       class="form-radio"
-                    >
+                    />
                     <span>Specific Asset</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -363,7 +392,7 @@ watch(() => state.assignmentType, (newType) => {
                       type="radio"
                       value="category"
                       class="form-radio"
-                    >
+                    />
                     <span>Asset Category</span>
                   </label>
                 </div>
@@ -402,9 +431,7 @@ watch(() => state.assignmentType, (newType) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Schedule Configuration
-              </h3>
+              <h3 class="font-medium">Schedule Configuration</h3>
             </template>
 
             <div class="space-y-4">
@@ -416,7 +443,7 @@ watch(() => state.assignmentType, (newType) => {
                       type="radio"
                       value="time_based"
                       class="form-radio"
-                    >
+                    />
                     <span>Time-Based</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -425,7 +452,7 @@ watch(() => state.assignmentType, (newType) => {
                       type="radio"
                       value="usage_based"
                       class="form-radio"
-                    >
+                    />
                     <span>Usage-Based</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -434,7 +461,7 @@ watch(() => state.assignmentType, (newType) => {
                       type="radio"
                       value="combined"
                       class="form-radio"
-                    >
+                    />
                     <span>Combined</span>
                   </label>
                 </div>
@@ -466,12 +493,7 @@ watch(() => state.assignmentType, (newType) => {
                 </UFormField>
               </div>
 
-              <UFormField
-                v-if="showDayOfWeek"
-                label="Day of Week"
-                name="dayOfWeek"
-                required
-              >
+              <UFormField v-if="showDayOfWeek" label="Day of Week" name="dayOfWeek" required>
                 <USelect
                   v-model.number="state.dayOfWeek"
                   :items="dayOfWeekOptions"
@@ -480,12 +502,7 @@ watch(() => state.assignmentType, (newType) => {
                 />
               </UFormField>
 
-              <UFormField
-                v-if="showDayOfMonth"
-                label="Day of Month"
-                name="dayOfMonth"
-                required
-              >
+              <UFormField v-if="showDayOfMonth" label="Day of Month" name="dayOfMonth" required>
                 <UInput
                   v-model.number="state.dayOfMonth"
                   type="number"
@@ -496,12 +513,7 @@ watch(() => state.assignmentType, (newType) => {
                 />
               </UFormField>
 
-              <UFormField
-                v-if="showMonthOfYear"
-                label="Month"
-                name="monthOfYear"
-                required
-              >
+              <UFormField v-if="showMonthOfYear" label="Month" name="monthOfYear" required>
                 <USelect
                   v-model.number="state.monthOfYear"
                   :items="monthOptions"
@@ -512,19 +524,11 @@ watch(() => state.assignmentType, (newType) => {
 
               <div v-if="showTimeBasedFields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Start Date" name="startDate" required>
-                  <UInput
-                    v-model="state.startDate"
-                    type="date"
-                    class="w-full"
-                  />
+                  <UInput v-model="state.startDate" type="date" class="w-full" />
                 </UFormField>
 
                 <UFormField label="End Date" name="endDate" hint="Optional">
-                  <UInput
-                    v-model="state.endDate"
-                    type="date"
-                    class="w-full"
-                  />
+                  <UInput v-model="state.endDate" type="date" class="w-full" />
                 </UFormField>
               </div>
 
@@ -584,9 +588,7 @@ watch(() => state.assignmentType, (newType) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Work Order Settings
-              </h3>
+              <h3 class="font-medium">Work Order Settings</h3>
             </template>
 
             <div class="space-y-4">

@@ -1,11 +1,16 @@
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { eq, and } from 'drizzle-orm'
-import { generateScheduledWorkOrders, generateWorkOrderFromSchedule } from '../../utils/work-order-generator'
+import {
+  generateScheduledWorkOrders,
+  generateWorkOrderFromSchedule
+} from '../../utils/work-order-generator'
 
-const generateSchema = z.object({
-  scheduleId: z.string().uuid().optional()
-}).optional()
+const generateSchema = z
+  .object({
+    scheduleId: z.string().uuid().optional()
+  })
+  .optional()
 
 /**
  * POST /api/maintenance-schedules/generate
@@ -19,7 +24,7 @@ const generateSchema = z.object({
  * Returns:
  *   { results: GenerationResult[] }
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

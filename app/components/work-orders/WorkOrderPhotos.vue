@@ -8,7 +8,7 @@ interface Photo {
   photoType: 'before' | 'during' | 'after' | 'issue' | 'other'
   caption: string | null
   createdAt: string
-  uploadedBy?: { id: string, firstName: string, lastName: string }
+  uploadedBy?: { id: string; firstName: string; lastName: string }
 }
 
 const props = defineProps<{
@@ -138,9 +138,7 @@ const groupedPhotos = computed(() => {
   <UCard>
     <template #header>
       <div class="flex items-center justify-between">
-        <h3 class="font-medium">
-          Photos ({{ photos.length }})
-        </h3>
+        <h3 class="font-medium">Photos ({{ photos.length }})</h3>
         <UButton
           v-if="!readonly"
           icon="i-lucide-upload"
@@ -181,7 +179,7 @@ const groupedPhotos = computed(() => {
                 :src="photo.thumbnailUrl || photo.photoUrl"
                 :alt="photo.caption || 'Work order photo'"
                 class="w-full h-32 object-cover rounded-lg"
-              >
+              />
               <div class="absolute top-2 left-2">
                 <UBadge
                   :color="typeColors[photo.photoType] || 'neutral'"
@@ -218,9 +216,7 @@ const groupedPhotos = computed(() => {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">
-                Add Photo
-              </h3>
+              <h3 class="font-medium">Add Photo</h3>
               <UButton
                 icon="i-lucide-x"
                 variant="ghost"
@@ -248,23 +244,12 @@ const groupedPhotos = computed(() => {
             </UFormField>
 
             <UFormField label="Caption">
-              <UInput
-                v-model="newPhoto.caption"
-                placeholder="Optional caption"
-              />
+              <UInput v-model="newPhoto.caption" placeholder="Optional caption" />
             </UFormField>
 
             <div class="flex justify-end gap-2">
-              <UButton
-                label="Cancel"
-                variant="ghost"
-                @click="uploadModalOpen = false"
-              />
-              <UButton
-                type="submit"
-                label="Add Photo"
-                :disabled="!newPhoto.photoUrl.trim()"
-              />
+              <UButton label="Cancel" variant="ghost" @click="uploadModalOpen = false" />
+              <UButton type="submit" label="Add Photo" :disabled="!newPhoto.photoUrl.trim()" />
             </div>
           </form>
         </UCard>
@@ -286,12 +271,7 @@ const groupedPhotos = computed(() => {
                   {{ previewPhoto.photoType }}
                 </UBadge>
               </div>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="xs"
-                @click="closePreview"
-              />
+              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="closePreview" />
             </div>
           </template>
 
@@ -299,7 +279,7 @@ const groupedPhotos = computed(() => {
             :src="previewPhoto.photoUrl"
             :alt="previewPhoto.caption || 'Work order photo'"
             class="w-full rounded-lg"
-          >
+          />
 
           <template v-if="previewPhoto.caption || previewPhoto.uploadedBy" #footer>
             <div class="space-y-1">
@@ -307,8 +287,9 @@ const groupedPhotos = computed(() => {
                 {{ previewPhoto.caption }}
               </p>
               <p v-if="previewPhoto.uploadedBy" class="text-sm text-muted">
-                Uploaded by {{ previewPhoto.uploadedBy.firstName }} {{ previewPhoto.uploadedBy.lastName }}
-                on {{ format(parseISO(previewPhoto.createdAt), 'PPpp') }}
+                Uploaded by {{ previewPhoto.uploadedBy.firstName }}
+                {{ previewPhoto.uploadedBy.lastName }} on
+                {{ format(parseISO(previewPhoto.createdAt), 'PPpp') }}
               </p>
             </div>
           </template>

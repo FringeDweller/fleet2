@@ -31,7 +31,7 @@ const updateTemplateSchema = z.object({
   isActive: z.boolean().optional()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -77,10 +77,12 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check if checklist items changed to increment version
-  const checklistChanged = result.data.checklistItems !== undefined
-    && JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
-  const partsChanged = result.data.requiredParts !== undefined
-    && JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
+  const checklistChanged =
+    result.data.checklistItems !== undefined &&
+    JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
+  const partsChanged =
+    result.data.requiredParts !== undefined &&
+    JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
 
   const updateData: Record<string, unknown> = {
     updatedAt: new Date()
@@ -89,10 +91,13 @@ export default defineEventHandler(async (event) => {
   if (result.data.name !== undefined) updateData.name = result.data.name
   if (result.data.description !== undefined) updateData.description = result.data.description
   if (result.data.category !== undefined) updateData.category = result.data.category
-  if (result.data.estimatedDuration !== undefined) updateData.estimatedDuration = result.data.estimatedDuration
-  if (result.data.estimatedCost !== undefined) updateData.estimatedCost = result.data.estimatedCost?.toString()
+  if (result.data.estimatedDuration !== undefined)
+    updateData.estimatedDuration = result.data.estimatedDuration
+  if (result.data.estimatedCost !== undefined)
+    updateData.estimatedCost = result.data.estimatedCost?.toString()
   if (result.data.skillLevel !== undefined) updateData.skillLevel = result.data.skillLevel
-  if (result.data.checklistItems !== undefined) updateData.checklistItems = result.data.checklistItems
+  if (result.data.checklistItems !== undefined)
+    updateData.checklistItems = result.data.checklistItems
   if (result.data.requiredParts !== undefined) updateData.requiredParts = result.data.requiredParts
   if (result.data.isActive !== undefined) updateData.isActive = result.data.isActive
 

@@ -32,10 +32,7 @@ async function generateWorkOrderNumber(organisationId: string): Promise<string> 
 /**
  * Check if a work order was already generated for this schedule cycle
  */
-async function wasWorkOrderGenerated(
-  scheduleId: string,
-  scheduledDate: Date
-): Promise<boolean> {
+async function wasWorkOrderGenerated(scheduleId: string, scheduledDate: Date): Promise<boolean> {
   const existing = await db.query.maintenanceScheduleWorkOrders.findFirst({
     where: and(
       eq(schema.maintenanceScheduleWorkOrders.scheduleId, scheduleId),
@@ -141,10 +138,7 @@ export async function generateWorkOrderFromSchedule(
     }
 
     // Create work order
-    const [workOrder] = await db
-      .insert(schema.workOrders)
-      .values(workOrderData)
-      .returning()
+    const [workOrder] = await db.insert(schema.workOrders).values(workOrderData).returning()
 
     if (!workOrder) {
       result.status = 'error'
@@ -297,10 +291,7 @@ export async function generateScheduledWorkOrders(): Promise<GenerationResult[]>
     if (schedule.assetId) {
       // Schedule is for specific asset
       const asset = await db.query.assets.findFirst({
-        where: and(
-          eq(schema.assets.id, schedule.assetId),
-          eq(schema.assets.isArchived, false)
-        )
+        where: and(eq(schema.assets.id, schedule.assetId), eq(schema.assets.isArchived, false))
       })
       if (asset) assets = [asset]
     } else if (schedule.categoryId) {

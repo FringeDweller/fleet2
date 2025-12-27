@@ -1,11 +1,34 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, index, pgEnum, unique } from 'drizzle-orm/pg-core'
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  integer,
+  index,
+  pgEnum,
+  unique
+} from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { assets } from './assets'
 import { users } from './users'
 import { taskTemplates } from './task-templates'
 
-export const workOrderPriorityEnum = pgEnum('work_order_priority', ['low', 'medium', 'high', 'critical'])
-export const workOrderStatusEnum = pgEnum('work_order_status', ['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed'])
+export const workOrderPriorityEnum = pgEnum('work_order_priority', [
+  'low',
+  'medium',
+  'high',
+  'critical'
+])
+export const workOrderStatusEnum = pgEnum('work_order_status', [
+  'draft',
+  'open',
+  'in_progress',
+  'pending_parts',
+  'completed',
+  'closed'
+])
 
 export const workOrders = pgTable(
   'work_orders',
@@ -18,10 +41,8 @@ export const workOrders = pgTable(
     assetId: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'restrict' }),
-    templateId: uuid('template_id')
-      .references(() => taskTemplates.id, { onDelete: 'set null' }),
-    assignedToId: uuid('assigned_to_id')
-      .references(() => users.id, { onDelete: 'set null' }),
+    templateId: uuid('template_id').references(() => taskTemplates.id, { onDelete: 'set null' }),
+    assignedToId: uuid('assigned_to_id').references(() => users.id, { onDelete: 'set null' }),
     createdById: uuid('created_by_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
@@ -51,7 +72,10 @@ export const workOrders = pgTable(
     index('work_orders_priority_idx').on(table.priority),
     index('work_orders_due_date_idx').on(table.dueDate),
     index('work_orders_is_archived_idx').on(table.isArchived),
-    unique('work_orders_org_work_order_number_unique').on(table.organisationId, table.workOrderNumber)
+    unique('work_orders_org_work_order_number_unique').on(
+      table.organisationId,
+      table.workOrderNumber
+    )
   ]
 )
 

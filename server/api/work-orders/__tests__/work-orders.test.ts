@@ -373,7 +373,13 @@ describe('Task Template Validation', () => {
       description: 'Standard oil change procedure',
       estimatedDuration: 30,
       checklistItems: [
-        { id: '1', title: 'Drain oil', description: 'Remove drain plug', isRequired: true, order: 0 },
+        {
+          id: '1',
+          title: 'Drain oil',
+          description: 'Remove drain plug',
+          isRequired: true,
+          order: 0
+        },
         { id: '2', title: 'Replace filter', isRequired: true, order: 1 },
         { id: '3', title: 'Add new oil', isRequired: true, order: 2 }
       ],

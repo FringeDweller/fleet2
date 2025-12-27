@@ -6,7 +6,7 @@ const updateSchema = z.object({
   isRead: z.boolean()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -40,12 +40,7 @@ export default defineEventHandler(async (event) => {
       isRead: parsed.data.isRead,
       readAt: parsed.data.isRead ? new Date() : null
     })
-    .where(
-      and(
-        eq(schema.notifications.id, id),
-        eq(schema.notifications.userId, session.user.id)
-      )
-    )
+    .where(and(eq(schema.notifications.id, id), eq(schema.notifications.userId, session.user.id)))
     .returning()
 
   if (!updated) {

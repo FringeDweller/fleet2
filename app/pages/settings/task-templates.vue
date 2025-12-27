@@ -49,7 +49,11 @@ const modalOpen = ref(false)
 const isEditing = ref(false)
 const loading = ref(false)
 
-const { data: templates, status, refresh } = await useFetch<TaskTemplate[]>('/api/task-templates', {
+const {
+  data: templates,
+  status,
+  refresh
+} = await useFetch<TaskTemplate[]>('/api/task-templates', {
   query: computed(() => ({
     search: search.value || undefined,
     includeArchived: showArchived.value ? 'true' : undefined
@@ -131,7 +135,13 @@ function addRequiredPart() {
     notes: newRequiredPart.value.notes.trim() || undefined
   })
 
-  newRequiredPart.value = { partName: '', partNumber: '', quantity: 1, estimatedCost: null, notes: '' }
+  newRequiredPart.value = {
+    partName: '',
+    partNumber: '',
+    quantity: 1,
+    estimatedCost: null,
+    notes: ''
+  }
 }
 
 function removeRequiredPart(id: string) {
@@ -153,7 +163,9 @@ function addChecklistItem() {
 }
 
 function removeChecklistItem(id: string) {
-  currentTemplate.value.checklistItems = currentTemplate.value.checklistItems.filter(i => i.id !== id)
+  currentTemplate.value.checklistItems = currentTemplate.value.checklistItems.filter(
+    i => i.id !== id
+  )
   // Reorder
   currentTemplate.value.checklistItems.forEach((item, idx) => {
     item.order = idx
@@ -314,7 +326,14 @@ function getRowActions(template: TaskTemplate) {
       />
     </UPageCard>
 
-    <UPageCard variant="subtle" :ui="{ container: 'p-0 sm:p-0 gap-y-0', wrapper: 'items-stretch', header: 'p-4 mb-0 border-b border-default' }">
+    <UPageCard
+      variant="subtle"
+      :ui="{
+        container: 'p-0 sm:p-0 gap-y-0',
+        wrapper: 'items-stretch',
+        header: 'p-4 mb-0 border-b border-default'
+      }"
+    >
       <template #header>
         <div class="flex items-center gap-4">
           <UInput
@@ -333,14 +352,8 @@ function getRowActions(template: TaskTemplate) {
 
       <div v-else-if="templates.length === 0" class="text-center py-12 text-muted">
         <UIcon name="i-lucide-clipboard-list" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p class="mb-2">
-          No task templates found
-        </p>
-        <UButton
-          label="Create your first template"
-          variant="link"
-          @click="openCreateModal"
-        />
+        <p class="mb-2">No task templates found</p>
+        <UButton label="Create your first template" variant="link" @click="openCreateModal" />
       </div>
 
       <div v-else class="divide-y divide-default">
@@ -351,15 +364,13 @@ function getRowActions(template: TaskTemplate) {
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <h3 class="font-medium truncate" :class="{ 'text-muted line-through': template.isArchived }">
+              <h3
+                class="font-medium truncate"
+                :class="{ 'text-muted line-through': template.isArchived }"
+              >
                 {{ template.name }}
               </h3>
-              <UBadge
-                v-if="template.category"
-                color="info"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge v-if="template.category" color="info" variant="subtle" size="xs">
                 {{ template.category }}
               </UBadge>
               <UBadge
@@ -379,12 +390,7 @@ function getRowActions(template: TaskTemplate) {
               >
                 Inactive
               </UBadge>
-              <UBadge
-                v-if="template.isArchived"
-                color="neutral"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge v-if="template.isArchived" color="neutral" variant="subtle" size="xs">
                 Archived
               </UBadge>
               <span v-if="template.version > 1" class="text-xs text-muted">
@@ -430,12 +436,7 @@ function getRowActions(template: TaskTemplate) {
               <h3 class="font-medium">
                 {{ isEditing ? 'Edit Template' : 'Create Template' }}
               </h3>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="xs"
-                @click="modalOpen = false"
-              />
+              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="modalOpen = false" />
             </div>
           </template>
 
@@ -501,9 +502,7 @@ function getRowActions(template: TaskTemplate) {
             </div>
 
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Checklist Items
-              </h4>
+              <h4 class="font-medium mb-4">Checklist Items</h4>
 
               <div v-if="currentTemplate.checklistItems.length > 0" class="space-y-2 mb-4">
                 <div
@@ -578,9 +577,7 @@ function getRowActions(template: TaskTemplate) {
 
             <!-- Required Parts Section -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Required Parts
-              </h4>
+              <h4 class="font-medium mb-4">Required Parts</h4>
 
               <div v-if="currentTemplate.requiredParts.length > 0" class="space-y-2 mb-4">
                 <div
@@ -616,25 +613,15 @@ function getRowActions(template: TaskTemplate) {
               <div class="p-4 border border-dashed border-default rounded-lg space-y-3">
                 <div class="grid grid-cols-2 gap-3">
                   <UFormField label="Part Name">
-                    <UInput
-                      v-model="newRequiredPart.partName"
-                      placeholder="e.g., Oil Filter"
-                    />
+                    <UInput v-model="newRequiredPart.partName" placeholder="e.g., Oil Filter" />
                   </UFormField>
                   <UFormField label="Part Number (optional)">
-                    <UInput
-                      v-model="newRequiredPart.partNumber"
-                      placeholder="e.g., OF-123"
-                    />
+                    <UInput v-model="newRequiredPart.partNumber" placeholder="e.g., OF-123" />
                   </UFormField>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                   <UFormField label="Quantity">
-                    <UInput
-                      v-model.number="newRequiredPart.quantity"
-                      type="number"
-                      :min="1"
-                    />
+                    <UInput v-model.number="newRequiredPart.quantity" type="number" :min="1" />
                   </UFormField>
                   <UFormField label="Est. Cost ($)">
                     <UInput
@@ -647,10 +634,7 @@ function getRowActions(template: TaskTemplate) {
                   </UFormField>
                 </div>
                 <UFormField label="Notes (optional)">
-                  <UInput
-                    v-model="newRequiredPart.notes"
-                    placeholder="Any notes about this part"
-                  />
+                  <UInput v-model="newRequiredPart.notes" placeholder="Any notes about this part" />
                 </UFormField>
                 <div class="flex justify-end">
                   <UButton
@@ -666,11 +650,7 @@ function getRowActions(template: TaskTemplate) {
             </div>
 
             <div class="flex justify-end gap-2 pt-4 border-t border-default">
-              <UButton
-                label="Cancel"
-                variant="ghost"
-                @click="modalOpen = false"
-              />
+              <UButton label="Cancel" variant="ghost" @click="modalOpen = false" />
               <UButton
                 type="submit"
                 :label="isEditing ? 'Save Changes' : 'Create Template'"

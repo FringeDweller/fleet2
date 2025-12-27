@@ -21,7 +21,7 @@ function isValidTransition(fromStatus: string, toStatus: string): boolean {
   return VALID_TRANSITIONS[fromStatus]?.includes(toStatus) ?? false
 }
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

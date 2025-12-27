@@ -5,27 +5,29 @@ import { eq, and } from 'drizzle-orm'
 const updateSavedSearchSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
-  filters: z.object({
-    search: z.string().optional(),
-    status: z.string().optional(),
-    categoryId: z.string().uuid().optional(),
-    make: z.string().optional(),
-    model: z.string().optional(),
-    yearMin: z.number().int().optional(),
-    yearMax: z.number().int().optional(),
-    mileageMin: z.number().optional(),
-    mileageMax: z.number().optional(),
-    hoursMin: z.number().optional(),
-    hoursMax: z.number().optional(),
-    includeArchived: z.boolean().optional(),
-    sortBy: z.string().optional(),
-    sortOrder: z.enum(['asc', 'desc']).optional()
-  }).optional(),
+  filters: z
+    .object({
+      search: z.string().optional(),
+      status: z.string().optional(),
+      categoryId: z.string().uuid().optional(),
+      make: z.string().optional(),
+      model: z.string().optional(),
+      yearMin: z.number().int().optional(),
+      yearMax: z.number().int().optional(),
+      mileageMin: z.number().optional(),
+      mileageMax: z.number().optional(),
+      hoursMin: z.number().optional(),
+      hoursMax: z.number().optional(),
+      includeArchived: z.boolean().optional(),
+      sortBy: z.string().optional(),
+      sortOrder: z.enum(['asc', 'desc']).optional()
+    })
+    .optional(),
   isDefault: z.boolean().optional(),
   isShared: z.boolean().optional()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
