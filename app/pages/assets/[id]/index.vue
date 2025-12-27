@@ -45,6 +45,33 @@ interface CompatiblePartsResponse {
   asset: { id: string; assetNumber: string }
 }
 
+interface CostSummary {
+  totalLaborCost: number
+  totalPartsCost: number
+  totalCost: number
+  workOrderCount: number
+}
+
+interface CostWorkOrder {
+  id: string
+  workOrderNumber: string
+  description: string | null
+  completedAt: string
+  laborCost: string | null
+  partsCost: string | null
+  totalCost: string | null
+  assignedTo: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+}
+
+interface CostsResponse {
+  summary: CostSummary
+  recentWorkOrders: CostWorkOrder[]
+}
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -74,6 +101,15 @@ const {
 const { data: allPartsData } = await useFetch<{
   data: { id: string; sku: string; name: string }[]
 }>('/api/parts', { lazy: true })
+
+// Fetch cost summary for this asset
+const { data: costsData, status: costsStatus } = await useFetch<CostsResponse>(
+  `/api/reports/costs`,
+  {
+    query: { assetId: route.params.id },
+    lazy: true,
+  },
+)
 
 // Add part modal state
 const showAddPartModal = ref(false)
@@ -197,6 +233,15 @@ const formatDate = (date: string) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const formatCurrency = (value: number | string | null | undefined) => {
+  if (value === null || value === undefined) return '$0.00'
+  const num = typeof value === 'string' ? Number.parseFloat(value) : value
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+  }).format(num)
 }
 </script>
 
@@ -380,7 +425,8 @@ const formatDate = (date: string) => {
           v-model="activeTab"
           :items="[
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
-            { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' }
+            { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
+            { label: 'Costs', value: 'costs', icon: 'i-lucide-dollar-sign' }
           ]"
         />
 
@@ -599,6 +645,116 @@ const formatDate = (date: string) => {
               </div>
             </UCard>
           </div>
+        </div>
+
+        <!-- Costs Tab -->
+        <div v-if="activeTab === 'costs'" class="space-y-6">
+          <div v-if="costsStatus === 'pending'" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
+          </div>
+
+          <template v-else-if="costsData">
+            <!-- Cost Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Work Orders
+                  </p>
+                  <p class="text-2xl font-bold">
+                    {{ costsData.summary.workOrderCount }}
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Labor Cost
+                  </p>
+                  <p class="text-2xl font-bold text-blue-600">
+                    {{ formatCurrency(costsData.summary.totalLaborCost) }}
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Parts Cost
+                  </p>
+                  <p class="text-2xl font-bold text-orange-600">
+                    {{ formatCurrency(costsData.summary.totalPartsCost) }}
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Total Cost
+                  </p>
+                  <p class="text-2xl font-bold text-green-600">
+                    {{ formatCurrency(costsData.summary.totalCost) }}
+                  </p>
+                </div>
+              </UCard>
+            </div>
+
+            <!-- Work Order Cost History -->
+            <UCard>
+              <template #header>
+                <h3 class="font-medium">
+                  Completed Work Orders
+                </h3>
+              </template>
+              <div v-if="!costsData.recentWorkOrders?.length" class="text-center py-8">
+                <UIcon name="i-lucide-clipboard-check" class="w-12 h-12 text-muted mx-auto mb-4" />
+                <p class="text-muted">
+                  No completed work orders yet.
+                </p>
+                <p class="text-sm text-muted mt-1">
+                  Costs will appear here after work orders are completed.
+                </p>
+              </div>
+              <div v-else class="divide-y">
+                <div
+                  v-for="wo in costsData.recentWorkOrders"
+                  :key="wo.id"
+                  class="py-3 first:pt-0 last:pb-0"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <NuxtLink
+                        :to="`/work-orders/${wo.id}`"
+                        class="font-medium text-primary hover:underline"
+                      >
+                        {{ wo.workOrderNumber }}
+                      </NuxtLink>
+                      <p v-if="wo.description" class="text-sm text-muted line-clamp-1 mt-0.5">
+                        {{ wo.description }}
+                      </p>
+                      <div class="flex items-center gap-3 mt-1 text-xs text-muted">
+                        <span v-if="wo.completedAt">
+                          {{ formatDate(wo.completedAt) }}
+                        </span>
+                        <span v-if="wo.assignedTo">
+                          {{ wo.assignedTo.firstName }} {{ wo.assignedTo.lastName }}
+                        </span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p class="font-medium">
+                        {{ formatCurrency(wo.totalCost) }}
+                      </p>
+                      <div class="text-xs text-muted mt-0.5">
+                        <span class="text-blue-600">{{ formatCurrency(wo.laborCost) }}</span>
+                        +
+                        <span class="text-orange-600">{{ formatCurrency(wo.partsCost) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+          </template>
         </div>
       </div>
 
