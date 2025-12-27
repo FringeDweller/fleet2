@@ -102,8 +102,8 @@ const queryParams = computed(() => {
   if (filters.value.categoryId) params.categoryId = filters.value.categoryId
   if (filters.value.make) params.make = filters.value.make
   if (filters.value.model) params.model = filters.value.model
-  if (filters.value.yearMin) params.yearMin = parseInt(filters.value.yearMin)
-  if (filters.value.yearMax) params.yearMax = parseInt(filters.value.yearMax)
+  if (filters.value.yearMin) params.yearMin = parseInt(filters.value.yearMin, 10)
+  if (filters.value.yearMax) params.yearMax = parseInt(filters.value.yearMax, 10)
   if (filters.value.mileageMin) params.mileageMin = parseFloat(filters.value.mileageMin)
   if (filters.value.mileageMax) params.mileageMax = parseFloat(filters.value.mileageMax)
   if (filters.value.hoursMin) params.hoursMin = parseFloat(filters.value.hoursMin)
@@ -204,8 +204,8 @@ async function saveCurrentSearch() {
           categoryId: filters.value.categoryId || undefined,
           make: filters.value.make || undefined,
           model: filters.value.model || undefined,
-          yearMin: filters.value.yearMin ? parseInt(filters.value.yearMin) : undefined,
-          yearMax: filters.value.yearMax ? parseInt(filters.value.yearMax) : undefined,
+          yearMin: filters.value.yearMin ? parseInt(filters.value.yearMin, 10) : undefined,
+          yearMax: filters.value.yearMax ? parseInt(filters.value.yearMax, 10) : undefined,
           mileageMin: filters.value.mileageMin ? parseFloat(filters.value.mileageMin) : undefined,
           mileageMax: filters.value.mileageMax ? parseFloat(filters.value.mileageMax) : undefined,
           hoursMin: filters.value.hoursMin ? parseFloat(filters.value.hoursMin) : undefined,
@@ -252,7 +252,7 @@ const savedSearchItems = computed(() => {
       onSelect: () => applySavedSearch(s),
     })
     items.push({
-      label: 'Delete ' + s.name,
+      label: `Delete ${s.name}`,
       icon: 'i-lucide-trash-2',
       color: 'error',
       onSelect: () => deleteSavedSearch(s.id),

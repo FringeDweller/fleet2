@@ -26,8 +26,8 @@ export default defineEventHandler(async (event) => {
   const maxCost = query.maxCost ? parseFloat(query.maxCost as string) : undefined
 
   // Pagination
-  const limit = Math.min(Math.max(parseInt(query.limit as string) || 50, 1), 100)
-  const offset = Math.max(parseInt(query.offset as string) || 0, 0)
+  const limit = Math.min(Math.max(parseInt(query.limit as string, 10) || 50, 1), 100)
+  const offset = Math.max(parseInt(query.offset as string, 10) || 0, 0)
 
   // Sorting
   const sortBy = (query.sortBy as string) || 'name'
@@ -83,11 +83,11 @@ export default defineEventHandler(async (event) => {
     conditions.push(ilike(schema.parts.location, `%${location}%`))
   }
 
-  if (minCost && !isNaN(minCost)) {
+  if (minCost && !Number.isNaN(minCost)) {
     conditions.push(gte(sql`CAST(${schema.parts.unitCost} AS NUMERIC)`, minCost))
   }
 
-  if (maxCost && !isNaN(maxCost)) {
+  if (maxCost && !Number.isNaN(maxCost)) {
     conditions.push(lte(sql`CAST(${schema.parts.unitCost} AS NUMERIC)`, maxCost))
   }
 

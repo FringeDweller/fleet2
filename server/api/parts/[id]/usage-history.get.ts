@@ -21,8 +21,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event)
-  const limit = Math.min(Math.max(parseInt(query.limit as string) || 50, 1), 100)
-  const offset = Math.max(parseInt(query.offset as string) || 0, 0)
+  const limit = Math.min(Math.max(parseInt(query.limit as string, 10) || 50, 1), 100)
+  const offset = Math.max(parseInt(query.offset as string, 10) || 0, 0)
 
   // Verify part exists and belongs to org
   const part = await db.query.parts.findFirst({

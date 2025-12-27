@@ -139,35 +139,35 @@ describe('Status Transition Rules', () => {
   }
 
   it('should allow draft to transition to open', () => {
-    expect(validTransitions['draft']).toContain('open')
+    expect(validTransitions.draft).toContain('open')
   })
 
   it('should allow open to transition to in_progress', () => {
-    expect(validTransitions['open']).toContain('in_progress')
+    expect(validTransitions.open).toContain('in_progress')
   })
 
   it('should allow in_progress to transition to completed', () => {
-    expect(validTransitions['in_progress']).toContain('completed')
+    expect(validTransitions.in_progress).toContain('completed')
   })
 
   it('should allow in_progress to transition to pending_parts', () => {
-    expect(validTransitions['in_progress']).toContain('pending_parts')
+    expect(validTransitions.in_progress).toContain('pending_parts')
   })
 
   it('should not allow closed to transition anywhere', () => {
-    expect(validTransitions['closed']).toHaveLength(0)
+    expect(validTransitions.closed).toHaveLength(0)
   })
 
   it('should allow reverting from completed to in_progress', () => {
-    expect(validTransitions['completed']).toContain('in_progress')
+    expect(validTransitions.completed).toContain('in_progress')
   })
 
   it('should not allow draft to transition directly to completed', () => {
-    expect(validTransitions['draft']).not.toContain('completed')
+    expect(validTransitions.draft).not.toContain('completed')
   })
 
   it('should not allow open to transition directly to completed', () => {
-    expect(validTransitions['open']).not.toContain('completed')
+    expect(validTransitions.open).not.toContain('completed')
   })
 })
 

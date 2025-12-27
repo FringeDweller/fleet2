@@ -245,12 +245,12 @@ describe('WorkOrderStatusHistory Logic', () => {
     }
 
     it('should return correct colors for each status', () => {
-      expect(statusColors['draft']).toBe('neutral')
-      expect(statusColors['open']).toBe('info')
-      expect(statusColors['in_progress']).toBe('warning')
-      expect(statusColors['pending_parts']).toBe('warning')
-      expect(statusColors['completed']).toBe('success')
-      expect(statusColors['closed']).toBe('neutral')
+      expect(statusColors.draft).toBe('neutral')
+      expect(statusColors.open).toBe('info')
+      expect(statusColors.in_progress).toBe('warning')
+      expect(statusColors.pending_parts).toBe('warning')
+      expect(statusColors.completed).toBe('success')
+      expect(statusColors.closed).toBe('neutral')
     })
   })
 
@@ -265,12 +265,12 @@ describe('WorkOrderStatusHistory Logic', () => {
     }
 
     it('should return correct labels for each status', () => {
-      expect(statusLabels['draft']).toBe('Draft')
-      expect(statusLabels['open']).toBe('Open')
-      expect(statusLabels['in_progress']).toBe('In Progress')
-      expect(statusLabels['pending_parts']).toBe('Pending Parts')
-      expect(statusLabels['completed']).toBe('Completed')
-      expect(statusLabels['closed']).toBe('Closed')
+      expect(statusLabels.draft).toBe('Draft')
+      expect(statusLabels.open).toBe('Open')
+      expect(statusLabels.in_progress).toBe('In Progress')
+      expect(statusLabels.pending_parts).toBe('Pending Parts')
+      expect(statusLabels.completed).toBe('Completed')
+      expect(statusLabels.closed).toBe('Closed')
     })
   })
 })

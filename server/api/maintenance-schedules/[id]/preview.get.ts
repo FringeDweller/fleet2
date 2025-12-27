@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const count = query.count ? parseInt(query.count as string, 10) : 10
 
-  if (isNaN(count) || count < 1 || count > 100) {
+  if (Number.isNaN(count) || count < 1 || count > 100) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Count must be between 1 and 100',
