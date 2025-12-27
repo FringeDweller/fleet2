@@ -1,6 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const createPartSchema = z.object({
   sku: z.string().min(1, 'SKU is required').max(50),
@@ -17,7 +17,7 @@ const createPartSchema = z.object({
   unitCost: z.number().min(0).optional(),
   supplier: z.string().max(200).optional(),
   supplierPartNumber: z.string().max(100).optional(),
-  location: z.string().max(100).optional()
+  location: z.string().max(100).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -46,14 +46,14 @@ export default defineEventHandler(async (event) => {
     const category = await db.query.partCategories.findFirst({
       where: and(
         eq(schema.partCategories.id, result.data.categoryId),
-        eq(schema.partCategories.organisationId, session.user.organisationId)
-      )
+        eq(schema.partCategories.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!category) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Category not found'
+        statusMessage: 'Category not found',
       })
     }
   }
@@ -62,14 +62,14 @@ export default defineEventHandler(async (event) => {
   const existingSku = await db.query.parts.findFirst({
     where: and(
       eq(schema.parts.organisationId, session.user.organisationId),
-      eq(schema.parts.sku, result.data.sku)
-    )
+      eq(schema.parts.sku, result.data.sku),
+    ),
   })
 
   if (existingSku) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'A part with this SKU already exists'
+      statusMessage: 'A part with this SKU already exists',
     })
   }
 
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
       unitCost: result.data.unitCost?.toString(),
       supplier: result.data.supplier,
       supplierPartNumber: result.data.supplierPartNumber,
-      location: result.data.location
+      location: result.data.location,
     })
     .returning()
 
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'part',
     entityId: part!.id,
-    newValues: { sku: result.data.sku, name: result.data.name }
+    newValues: { sku: result.data.sku, name: result.data.name },
   })
 
   return part

@@ -25,7 +25,7 @@ const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 }
 
 const statusLabels = {
@@ -34,7 +34,7 @@ const statusLabels = {
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
   completed: 'Completed',
-  closed: 'Closed'
+  closed: 'Closed',
 } as const
 
 function getStatusColor(status: string) {

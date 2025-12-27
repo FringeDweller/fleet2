@@ -1,15 +1,15 @@
 import {
+  decimal,
+  index,
+  integer,
   pgTable,
-  uuid,
-  varchar,
   text,
   timestamp,
-  integer,
-  decimal,
-  index
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import { workOrders } from './work-orders'
 import { users } from './users'
+import { workOrders } from './work-orders'
 
 export const workOrderParts = pgTable(
   'work_order_parts',
@@ -28,9 +28,9 @@ export const workOrderParts = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [index('work_order_parts_work_order_id_idx').on(table.workOrderId)]
+  (table) => [index('work_order_parts_work_order_id_idx').on(table.workOrderId)],
 )
 
 export type WorkOrderPart = typeof workOrderParts.$inferSelect

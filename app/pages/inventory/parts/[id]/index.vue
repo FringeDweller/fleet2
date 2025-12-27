@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { formatDistanceToNow } from 'date-fns'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface PartUsageHistory {
@@ -17,8 +17,8 @@ interface PartUsageHistory {
   notes: string | null
   reference: string | null
   createdAt: string
-  user: { id: string, firstName: string, lastName: string } | null
-  workOrder: { id: string, workOrderNumber: string, title: string } | null
+  user: { id: string; firstName: string; lastName: string } | null
+  workOrder: { id: string; workOrderNumber: string; title: string } | null
 }
 
 interface Part {
@@ -36,7 +36,7 @@ interface Part {
   supplierPartNumber: string | null
   location: string | null
   isActive: boolean
-  category: { id: string, name: string } | null
+  category: { id: string; name: string } | null
   usageHistory: PartUsageHistory[]
   createdAt: string
   updatedAt: string
@@ -50,9 +50,9 @@ const {
   data: part,
   status,
   error,
-  refresh
+  refresh,
 } = await useFetch<Part>(`/api/parts/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 // Active tab
@@ -61,16 +61,16 @@ const activeTab = ref((route.query.tab as string) || 'details')
 // Stock adjustment form
 const adjustmentSchema = z.object({
   usageType: z.enum(['adjustment', 'restock', 'return', 'damaged', 'expired']),
-  quantityChange: z.number().refine(val => val !== 0, 'Quantity change cannot be zero'),
+  quantityChange: z.number().refine((val) => val !== 0, 'Quantity change cannot be zero'),
   notes: z.string().optional(),
-  reference: z.string().max(200).optional()
+  reference: z.string().max(200).optional(),
 })
 
 type AdjustmentSchema = z.output<typeof adjustmentSchema>
 
 const adjustmentState = reactive<Partial<AdjustmentSchema>>({
   usageType: 'adjustment',
-  quantityChange: 0
+  quantityChange: 0,
 })
 
 const adjusting = ref(false)
@@ -80,12 +80,12 @@ async function submitAdjustment(event: FormSubmitEvent<AdjustmentSchema>) {
   try {
     await $fetch(`/api/parts/${route.params.id}/adjust-stock`, {
       method: 'POST',
-      body: event.data
+      body: event.data,
     })
     toast.add({
       title: 'Stock adjusted',
       description: 'The stock level has been updated.',
-      color: 'success'
+      color: 'success',
     })
     adjustmentState.quantityChange = 0
     adjustmentState.notes = undefined
@@ -97,7 +97,7 @@ async function submitAdjustment(event: FormSubmitEvent<AdjustmentSchema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to adjust stock.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     adjusting.value = false
@@ -110,14 +110,14 @@ async function deletePart() {
     await ($fetch as any)(`/api/parts/${route.params.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Part deleted',
-      description: 'The part has been deleted successfully.'
+      description: 'The part has been deleted successfully.',
     })
     router.push('/inventory/parts')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to delete part.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -127,7 +127,7 @@ const usageTypeOptions = [
   { label: 'Restock', value: 'restock' },
   { label: 'Return', value: 'return' },
   { label: 'Damaged', value: 'damaged' },
-  { label: 'Expired', value: 'expired' }
+  { label: 'Expired', value: 'expired' },
 ]
 
 const usageTypeColors: Record<string, string> = {
@@ -136,7 +136,7 @@ const usageTypeColors: Record<string, string> = {
   restock: 'success',
   return: 'warning',
   damaged: 'error',
-  expired: 'error'
+  expired: 'error',
 }
 
 function isLowStock(): boolean {
@@ -150,7 +150,7 @@ const formatDate = (date: string) => {
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 </script>

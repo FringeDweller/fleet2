@@ -1,5 +1,5 @@
-import { db, schema } from './db'
 import type { NewNotification } from '../db/schema/notifications'
+import { db, schema } from './db'
 
 export async function createNotification(notification: Omit<NewNotification, 'id' | 'createdAt'>) {
   const [result] = await db.insert(schema.notifications).values(notification).returning()
@@ -21,7 +21,7 @@ export async function createWorkOrderAssignedNotification(params: {
     title: 'Work Order Assigned',
     body: `${params.assignedByName} assigned you to ${params.workOrderNumber}: ${params.workOrderTitle}`,
     link: `/work-orders/${params.workOrderId}`,
-    isRead: false
+    isRead: false,
   })
 }
 
@@ -39,7 +39,7 @@ export async function createWorkOrderUnassignedNotification(params: {
     title: 'Work Order Unassigned',
     body: `${params.unassignedByName} removed you from ${params.workOrderNumber}: ${params.workOrderTitle}`,
     link: undefined,
-    isRead: false
+    isRead: false,
   })
 }
 
@@ -58,6 +58,6 @@ export async function createScheduledMaintenanceNotification(params: {
     title: 'Scheduled Maintenance Work Order',
     body: `Auto-generated work order ${params.workOrderNumber} for ${params.assetNumber} - ${params.scheduleName}`,
     link: `/work-orders/${params.workOrderId}`,
-    isRead: false
+    isRead: false,
   })
 }

@@ -1,4 +1,4 @@
-import { Queue, Worker, type Job, type Processor } from 'bullmq'
+import { type Job, type Processor, Queue, Worker } from 'bullmq'
 import { redis } from './redis'
 
 // Queue configuration
@@ -8,16 +8,16 @@ const defaultQueueOptions = {
     attempts: 3,
     backoff: {
       type: 'exponential' as const,
-      delay: 1000
+      delay: 1000,
     },
     removeOnComplete: {
       age: 24 * 60 * 60, // Keep completed jobs for 24 hours
-      count: 1000 // Keep last 1000 completed jobs
+      count: 1000, // Keep last 1000 completed jobs
     },
     removeOnFail: {
-      age: 7 * 24 * 60 * 60 // Keep failed jobs for 7 days
-    }
-  }
+      age: 7 * 24 * 60 * 60, // Keep failed jobs for 7 days
+    },
+  },
 }
 
 // Job queues
@@ -25,17 +25,17 @@ export const queues = {
   email: new Queue('email', defaultQueueOptions),
   notifications: new Queue('notifications', defaultQueueOptions),
   reports: new Queue('reports', defaultQueueOptions),
-  maintenance: new Queue('maintenance', defaultQueueOptions)
+  maintenance: new Queue('maintenance', defaultQueueOptions),
 }
 
 // Worker factory function
 export function createWorker<T>(
   queueName: keyof typeof queues,
-  processor: Processor<T>
+  processor: Processor<T>,
 ): Worker<T> {
   return new Worker<T>(queueName, processor, {
     connection: redis,
-    concurrency: 5
+    concurrency: 5,
   })
 }
 
@@ -71,5 +71,5 @@ export const jobs = {
 
   async scheduleMaintenanceCheck(assetId: string): Promise<Job> {
     return queues.maintenance.add('check', { assetId })
-  }
+  },
 }

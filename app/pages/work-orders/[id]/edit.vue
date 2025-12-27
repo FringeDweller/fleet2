@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 import { format, parseISO } from 'date-fns'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface WorkOrder {
@@ -40,9 +40,9 @@ const toast = useToast()
 const {
   data: workOrder,
   status: fetchStatus,
-  error
+  error,
 } = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
@@ -56,7 +56,7 @@ const schema = z.object({
   estimatedDuration: z.number().int().positive().optional().nullable(),
   actualDuration: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
-  completionNotes: z.string().optional().nullable()
+  completionNotes: z.string().optional().nullable(),
 })
 
 type Schema = z.output<typeof schema>
@@ -70,7 +70,7 @@ const state = reactive<Partial<Schema>>({
   estimatedDuration: undefined,
   actualDuration: undefined,
   notes: undefined,
-  completionNotes: undefined
+  completionNotes: undefined,
 })
 
 // Watch for work order data and populate form
@@ -89,7 +89,7 @@ watch(
       state.completionNotes = wo.completionNotes ?? undefined
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const loading = ref(false)
@@ -102,13 +102,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       method: 'PUT',
       body: {
         ...event.data,
-        dueDate: event.data.dueDate ? new Date(event.data.dueDate).toISOString() : null
-      }
+        dueDate: event.data.dueDate ? new Date(event.data.dueDate).toISOString() : null,
+      },
     })
     toast.add({
       title: 'Work order updated',
       description: 'The work order has been updated successfully.',
-      color: 'success'
+      color: 'success',
     })
     router.push(`/work-orders/${route.params.id}`)
   } catch (err: unknown) {
@@ -116,7 +116,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to update work order.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -127,14 +127,14 @@ const priorityOptions = [
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' }
+  { label: 'Critical', value: 'critical' },
 ]
 
 const technicianOptions = computed(() => {
   return (
-    technicians.value?.map(t => ({
+    technicians.value?.map((t) => ({
       label: `${t.firstName} ${t.lastName}`,
-      value: t.id
+      value: t.id,
     })) || []
   )
 })

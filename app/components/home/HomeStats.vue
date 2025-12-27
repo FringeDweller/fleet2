@@ -10,7 +10,7 @@ function formatCurrency(value: number): string {
   return value.toLocaleString('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   })
 }
 
@@ -21,7 +21,7 @@ const baseStats = [
     minValue: 400,
     maxValue: 1000,
     minVariation: -15,
-    maxVariation: 25
+    maxVariation: 25,
   },
   {
     title: 'Conversions',
@@ -29,7 +29,7 @@ const baseStats = [
     minValue: 1000,
     maxValue: 2000,
     minVariation: -10,
-    maxVariation: 20
+    maxVariation: 20,
   },
   {
     title: 'Revenue',
@@ -38,7 +38,7 @@ const baseStats = [
     maxValue: 500000,
     minVariation: -20,
     maxVariation: 30,
-    formatter: formatCurrency
+    formatter: formatCurrency,
   },
   {
     title: 'Orders',
@@ -46,8 +46,8 @@ const baseStats = [
     minValue: 100,
     maxValue: 300,
     minVariation: -5,
-    maxVariation: 15
-  }
+    maxVariation: 15,
+  },
 ]
 
 const { data: stats } = await useAsyncData<Stat[]>(
@@ -61,14 +61,14 @@ const { data: stats } = await useAsyncData<Stat[]>(
         title: stat.title,
         icon: stat.icon,
         value: stat.formatter ? stat.formatter(value) : value,
-        variation
+        variation,
       }
     })
   },
   {
     watch: [() => props.period, () => props.range],
-    default: () => []
-  }
+    default: () => [],
+  },
 )
 </script>
 

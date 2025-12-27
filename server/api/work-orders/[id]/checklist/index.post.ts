@@ -1,11 +1,11 @@
+import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../../utils/db'
-import { eq, and, sql } from 'drizzle-orm'
 
 const createChecklistItemSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional().nullable(),
-  isRequired: z.boolean().default(false)
+  isRequired: z.boolean().default(false),
 })
 
 export default defineEventHandler(async (event) => {
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -42,15 +42,15 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -69,14 +69,14 @@ export default defineEventHandler(async (event) => {
       title: result.data.title,
       description: result.data.description,
       isRequired: result.data.isRequired,
-      order: nextOrder
+      order: nextOrder,
     })
     .returning()
 
   if (!item) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create checklist item'
+      statusMessage: 'Failed to create checklist item',
     })
   }
 

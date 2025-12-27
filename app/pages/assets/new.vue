@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface AssetCategory {
@@ -15,7 +15,7 @@ const router = useRouter()
 const toast = useToast()
 
 const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
-  lazy: true
+  lazy: true,
 })
 
 const schema = z.object({
@@ -29,7 +29,7 @@ const schema = z.object({
   mileage: z.number().min(0).optional(),
   status: z.enum(['active', 'inactive', 'maintenance', 'disposed']),
   description: z.string().optional(),
-  categoryId: z.string().uuid().optional()
+  categoryId: z.string().uuid().optional(),
 })
 
 type Schema = z.output<typeof schema>
@@ -45,7 +45,7 @@ const state = reactive<Partial<Schema>>({
   mileage: 0,
   status: 'active',
   description: undefined,
-  categoryId: undefined
+  categoryId: undefined,
 })
 
 const loading = ref(false)
@@ -55,12 +55,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     const asset = await $fetch('/api/assets', {
       method: 'POST',
-      body: event.data
+      body: event.data,
     })
     toast.add({
       title: 'Asset created',
       description: `Asset ${(asset as { assetNumber: string }).assetNumber} has been created successfully.`,
-      color: 'success'
+      color: 'success',
     })
     router.push('/assets')
   } catch (error: unknown) {
@@ -68,7 +68,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: err.data?.message || 'Failed to create asset.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -79,11 +79,11 @@ const statusOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
   { label: 'Maintenance', value: 'maintenance' },
-  { label: 'Disposed', value: 'disposed' }
+  { label: 'Disposed', value: 'disposed' },
 ]
 
 const categoryOptions = computed(() => {
-  return categories.value?.map(c => ({ label: c.name, value: c.id })) || []
+  return categories.value?.map((c) => ({ label: c.name, value: c.id })) || []
 })
 </script>
 

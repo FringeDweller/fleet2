@@ -33,13 +33,13 @@ interface ThresholdAlert {
 
 const { data: alerts, status } = await useFetch<ThresholdAlert[]>(
   '/api/maintenance-schedules/approaching-thresholds',
-  { lazy: true }
+  { lazy: true },
 )
 
 const urgencyConfig = {
   approaching: { color: 'warning', icon: 'i-lucide-alert-triangle', label: 'Approaching' },
   due: { color: 'error', icon: 'i-lucide-alert-circle', label: 'Due Soon' },
-  overdue: { color: 'error', icon: 'i-lucide-x-circle', label: 'Overdue' }
+  overdue: { color: 'error', icon: 'i-lucide-x-circle', label: 'Overdue' },
 } as const
 
 function getAssetLabel(asset: ThresholdAlert['asset']) {

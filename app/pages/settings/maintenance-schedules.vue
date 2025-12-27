@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { upperFirst } from 'scule'
-import { getPaginationRowModel } from '@tanstack/table-core'
 import type { Row } from '@tanstack/table-core'
+import { getPaginationRowModel } from '@tanstack/table-core'
 import { formatDistanceToNow, parseISO } from 'date-fns'
+import { upperFirst } from 'scule'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface MaintenanceScheduleRow {
@@ -20,9 +20,9 @@ interface MaintenanceScheduleRow {
   intervalHours: number | null
   nextDueDate: string | null
   isActive: boolean
-  asset: { id: string, assetNumber: string, make: string | null, model: string | null } | null
-  category: { id: string, name: string } | null
-  template: { id: string, name: string } | null
+  asset: { id: string; assetNumber: string; make: string | null; model: string | null } | null
+  category: { id: string; name: string } | null
+  template: { id: string; name: string } | null
   createdAt: string
 }
 
@@ -39,8 +39,8 @@ const route = useRoute()
 const columnFilters = ref([
   {
     id: 'name',
-    value: ''
-  }
+    value: '',
+  },
 ])
 const columnVisibility = ref()
 const rowSelection = ref({})
@@ -61,46 +61,46 @@ const { data, status, refresh } = await useFetch<MaintenanceScheduleRow[]>(
   '/api/maintenance-schedules',
   {
     lazy: true,
-    query: queryParams
-  }
+    query: queryParams,
+  },
 )
 
 function getRowItems(row: Row<MaintenanceScheduleRow>) {
   return [
     {
       type: 'label',
-      label: 'Actions'
+      label: 'Actions',
     },
     {
       label: 'View details',
       icon: 'i-lucide-eye',
       onSelect() {
         router.push(`/settings/maintenance-schedules/${row.original.id}`)
-      }
+      },
     },
     {
       label: 'Edit schedule',
       icon: 'i-lucide-pencil',
       onSelect() {
         router.push(`/settings/maintenance-schedules/${row.original.id}/edit`)
-      }
+      },
     },
     {
       label: 'Preview occurrences',
       icon: 'i-lucide-calendar',
       onSelect() {
         router.push(`/settings/maintenance-schedules/${row.original.id}?tab=preview`)
-      }
+      },
     },
     {
       label: row.original.isActive ? 'Pause schedule' : 'Activate schedule',
       icon: row.original.isActive ? 'i-lucide-pause' : 'i-lucide-play',
       onSelect() {
         toggleActive(row.original.id, row.original.isActive)
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Archive schedule',
@@ -108,8 +108,8 @@ function getRowItems(row: Row<MaintenanceScheduleRow>) {
       color: 'error',
       onSelect() {
         archiveSchedule(row.original.id)
-      }
-    }
+      },
+    },
   ]
 }
 
@@ -117,18 +117,18 @@ async function toggleActive(id: string, currentStatus: boolean) {
   try {
     await $fetch(`/api/maintenance-schedules/${id}`, {
       method: 'PUT' as const,
-      body: { isActive: !currentStatus }
+      body: { isActive: !currentStatus },
     })
     toast.add({
       title: currentStatus ? 'Schedule paused' : 'Schedule activated',
-      description: `The maintenance schedule has been ${currentStatus ? 'paused' : 'activated'}.`
+      description: `The maintenance schedule has been ${currentStatus ? 'paused' : 'activated'}.`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update schedule status.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -138,14 +138,14 @@ async function archiveSchedule(id: string) {
     await $fetch(`/api/maintenance-schedules/${id}`, { method: 'DELETE' as const })
     toast.add({
       title: 'Schedule archived',
-      description: 'The maintenance schedule has been archived successfully.'
+      description: 'The maintenance schedule has been archived successfully.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive schedule.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -153,13 +153,13 @@ async function archiveSchedule(id: string) {
 const scheduleTypeColors = {
   time_based: 'info',
   usage_based: 'warning',
-  combined: 'primary'
+  combined: 'primary',
 } as const
 
 const scheduleTypeLabels = {
   time_based: 'Time-Based',
   usage_based: 'Usage-Based',
-  combined: 'Combined'
+  combined: 'Combined',
 } as const
 
 const intervalTypeLabels = {
@@ -168,7 +168,7 @@ const intervalTypeLabels = {
   monthly: 'Monthly',
   quarterly: 'Quarterly',
   annually: 'Annually',
-  custom: 'Custom'
+  custom: 'Custom',
 } as const
 
 const columns: TableColumn<MaintenanceScheduleRow>[] = [
@@ -176,19 +176,19 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all',
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
-      })
+        ariaLabel: 'Select row',
+      }),
   },
   {
     accessorKey: 'name',
@@ -204,14 +204,14 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
     cell: ({ row }) =>
       h('div', { class: 'max-w-[200px]' }, [
         h('p', { class: 'font-medium text-highlighted truncate' }, row.original.name),
-        h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-')
-      ])
+        h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-'),
+      ]),
   },
   {
     accessorKey: 'scheduleType',
@@ -225,8 +225,8 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       let displayLabel: string
       if (scheduleType === 'time_based') {
         const intervalLabel = intervalTypeLabels[row.original.intervalType]
-        displayLabel
-          = row.original.intervalType === 'custom'
+        displayLabel =
+          row.original.intervalType === 'custom'
             ? `Every ${row.original.intervalValue} days`
             : intervalLabel
       } else {
@@ -234,7 +234,7 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       }
 
       return h(UBadge, { variant: 'subtle', color }, () => displayLabel)
-    }
+    },
   },
   {
     accessorKey: 'assignedTo',
@@ -246,18 +246,18 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
           h(
             'p',
             { class: 'text-xs text-muted truncate' },
-            `${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim() || '-'
-          )
+            `${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim() || '-',
+          ),
         ])
       }
       if (row.original.category) {
         return h('div', { class: 'flex items-center gap-1' }, [
           h('span', { class: 'text-sm' }, row.original.category.name),
-          h(UBadge, { size: 'xs', variant: 'subtle', color: 'neutral' }, () => 'Category')
+          h(UBadge, { size: 'xs', variant: 'subtle', color: 'neutral' }, () => 'Category'),
         ])
       }
       return h('span', { class: 'text-muted' }, '-')
-    }
+    },
   },
   {
     accessorKey: 'template',
@@ -265,7 +265,7 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     cell: ({ row }) => {
       if (!row.original.template) return h('span', { class: 'text-muted' }, '-')
       return h('span', { class: 'text-sm' }, row.original.template.name)
-    }
+    },
   },
   {
     accessorKey: 'nextDueDate',
@@ -283,9 +283,9 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       return h(
         'span',
         { class: 'text-sm' },
-        formatDistanceToNow(parseISO(nextDue), { addSuffix: true })
+        formatDistanceToNow(parseISO(nextDue), { addSuffix: true }),
       )
-    }
+    },
   },
   {
     accessorKey: 'isActive',
@@ -297,11 +297,11 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
         UBadge,
         {
           variant: 'subtle',
-          color: isActive ? 'success' : 'neutral'
+          color: isActive ? 'success' : 'neutral',
         },
-        () => (isActive ? 'Active' : 'Paused')
+        () => (isActive ? 'Active' : 'Paused'),
       )
-    }
+    },
   },
   {
     id: 'actions',
@@ -313,19 +313,19 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
           UDropdownMenu,
           {
             content: { align: 'end' },
-            items: getRowItems(row)
+            items: getRowItems(row),
           },
           () =>
             h(UButton, {
               icon: 'i-lucide-ellipsis-vertical',
               color: 'neutral',
               variant: 'ghost',
-              class: 'ml-auto'
-            })
-        )
+              class: 'ml-auto',
+            }),
+        ),
       )
-    }
-  }
+    },
+  },
 ]
 
 const search = computed({
@@ -334,12 +334,12 @@ const search = computed({
   },
   set: (value: string) => {
     table.value?.tableApi?.getColumn('name')?.setFilterValue(value || undefined)
-  }
+  },
 })
 
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 10
+  pageSize: 10,
 })
 </script>
 

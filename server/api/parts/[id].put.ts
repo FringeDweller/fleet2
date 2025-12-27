@@ -1,6 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updatePartSchema = z.object({
   sku: z.string().min(1).max(50).optional(),
@@ -17,7 +17,7 @@ const updatePartSchema = z.object({
   supplier: z.string().max(200).optional().nullable(),
   supplierPartNumber: z.string().max(100).optional().nullable(),
   location: z.string().max(100).optional().nullable(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Part ID is required'
+      statusMessage: 'Part ID is required',
     })
   }
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -54,14 +54,14 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.parts.findFirst({
     where: and(
       eq(schema.parts.id, id),
-      eq(schema.parts.organisationId, session.user.organisationId)
-    )
+      eq(schema.parts.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Part not found'
+      statusMessage: 'Part not found',
     })
   }
 
@@ -70,14 +70,14 @@ export default defineEventHandler(async (event) => {
     const category = await db.query.partCategories.findFirst({
       where: and(
         eq(schema.partCategories.id, result.data.categoryId),
-        eq(schema.partCategories.organisationId, session.user.organisationId)
-      )
+        eq(schema.partCategories.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!category) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Category not found'
+        statusMessage: 'Category not found',
       })
     }
   }
@@ -87,21 +87,21 @@ export default defineEventHandler(async (event) => {
     const duplicateSku = await db.query.parts.findFirst({
       where: and(
         eq(schema.parts.organisationId, session.user.organisationId),
-        eq(schema.parts.sku, result.data.sku)
-      )
+        eq(schema.parts.sku, result.data.sku),
+      ),
     })
 
     if (duplicateSku) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'A part with this SKU already exists'
+        statusMessage: 'A part with this SKU already exists',
       })
     }
   }
 
   // Prepare update values, converting numbers to strings for decimals
   const updateValues: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.sku !== undefined) updateValues.sku = result.data.sku
@@ -137,7 +137,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'part',
     entityId: id,
     oldValues: { sku: existing.sku, name: existing.name },
-    newValues: result.data
+    newValues: result.data,
   })
 
   return updated

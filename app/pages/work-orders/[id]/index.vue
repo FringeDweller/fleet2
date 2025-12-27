@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { format, parseISO, isPast } from 'date-fns'
+import { format, isPast, parseISO } from 'date-fns'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface ChecklistItem {
@@ -12,7 +12,7 @@ interface ChecklistItem {
   isRequired: boolean
   isCompleted: boolean
   completedAt: string | null
-  completedBy: { id: string, firstName: string, lastName: string } | null
+  completedBy: { id: string; firstName: string; lastName: string } | null
   notes: string | null
   order: number
 }
@@ -26,7 +26,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
-  addedBy?: { id: string, firstName: string, lastName: string }
+  addedBy?: { id: string; firstName: string; lastName: string }
 }
 
 interface Photo {
@@ -36,7 +36,7 @@ interface Photo {
   photoType: 'before' | 'during' | 'after' | 'issue' | 'other'
   caption: string | null
   createdAt: string
-  uploadedBy?: { id: string, firstName: string, lastName: string }
+  uploadedBy?: { id: string; firstName: string; lastName: string }
 }
 
 interface StatusHistoryItem {
@@ -45,7 +45,7 @@ interface StatusHistoryItem {
   toStatus: string
   notes: string | null
   createdAt: string
-  changedBy: { id: string, firstName: string, lastName: string, avatarUrl: string | null }
+  changedBy: { id: string; firstName: string; lastName: string; avatarUrl: string | null }
 }
 
 interface WorkOrder {
@@ -98,9 +98,9 @@ const {
   data: workOrder,
   status,
   error,
-  refresh
+  refresh,
 } = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'error'> = {
@@ -109,14 +109,14 @@ const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 }
 
 const priorityColors = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
-  critical: 'error'
+  critical: 'error',
 } as const
 
 const statusLabels = {
@@ -125,29 +125,29 @@ const statusLabels = {
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
   completed: 'Completed',
-  closed: 'Closed'
+  closed: 'Closed',
 } as const
 
-const validTransitions: Record<string, { label: string, value: string }[]> = {
+const validTransitions: Record<string, { label: string; value: string }[]> = {
   draft: [{ label: 'Open', value: 'open' }],
   open: [
     { label: 'Start Work', value: 'in_progress' },
-    { label: 'Close', value: 'closed' }
+    { label: 'Close', value: 'closed' },
   ],
   in_progress: [
     { label: 'Pending Parts', value: 'pending_parts' },
     { label: 'Complete', value: 'completed' },
-    { label: 'Re-open', value: 'open' }
+    { label: 'Re-open', value: 'open' },
   ],
   pending_parts: [
     { label: 'Resume Work', value: 'in_progress' },
-    { label: 'Re-open', value: 'open' }
+    { label: 'Re-open', value: 'open' },
   ],
   completed: [
     { label: 'Close', value: 'closed' },
-    { label: 'Revert to In Progress', value: 'in_progress' }
+    { label: 'Revert to In Progress', value: 'in_progress' },
   ],
-  closed: []
+  closed: [],
 }
 
 const activeTab = ref('details')
@@ -158,18 +158,18 @@ async function changeStatus(newStatus: string) {
   try {
     await $fetch(`/api/work-orders/${route.params.id}/status`, {
       method: 'POST',
-      body: { status: newStatus }
+      body: { status: newStatus },
     })
     toast.add({
       title: 'Status updated',
-      description: `Work order status changed to ${statusLabels[newStatus as keyof typeof statusLabels]}.`
+      description: `Work order status changed to ${statusLabels[newStatus as keyof typeof statusLabels]}.`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update status.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     statusChangeLoading.value = false
@@ -182,14 +182,14 @@ async function archiveWorkOrder() {
     await $fetch(`/api/work-orders/${route.params.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Work order archived',
-      description: 'The work order has been archived successfully.'
+      description: 'The work order has been archived successfully.',
     })
     router.push('/work-orders')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive work order.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -210,7 +210,7 @@ function isOverdue(dueDate: string | null, status: string): boolean {
 
 const checklistProgress = computed(() => {
   if (!workOrder.value?.checklistItems.length) return null
-  const completed = workOrder.value.checklistItems.filter(i => i.isCompleted).length
+  const completed = workOrder.value.checklistItems.filter((i) => i.isCompleted).length
   const total = workOrder.value.checklistItems.length
   return { completed, total, percentage: Math.round((completed / total) * 100) }
 })
@@ -220,19 +220,19 @@ const tabs = computed(() => [
   {
     label: `Checklist${checklistProgress.value ? ` (${checklistProgress.value.completed}/${checklistProgress.value.total})` : ''}`,
     value: 'checklist',
-    icon: 'i-lucide-check-square'
+    icon: 'i-lucide-check-square',
   },
   {
     label: `Parts (${workOrder.value?.parts.length || 0})`,
     value: 'parts',
-    icon: 'i-lucide-wrench'
+    icon: 'i-lucide-wrench',
   },
   {
     label: `Photos (${workOrder.value?.photos.length || 0})`,
     value: 'photos',
-    icon: 'i-lucide-image'
+    icon: 'i-lucide-image',
   },
-  { label: 'History', value: 'history', icon: 'i-lucide-history' }
+  { label: 'History', value: 'history', icon: 'i-lucide-history' },
 ])
 </script>
 

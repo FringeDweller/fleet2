@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,21 +16,21 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Template ID is required'
+      statusMessage: 'Template ID is required',
     })
   }
 
   const template = await db.query.taskTemplates.findFirst({
     where: and(
       eq(schema.taskTemplates.id, id),
-      eq(schema.taskTemplates.organisationId, session.user.organisationId)
-    )
+      eq(schema.taskTemplates.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!template) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Template not found'
+      statusMessage: 'Template not found',
     })
   }
 

@@ -1,5 +1,5 @@
+import { and, eq, ne } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ne } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
       eq(schema.workOrders.organisationId, session.user.organisationId),
       eq(schema.workOrders.assignedToId, session.user.id),
       eq(schema.workOrders.isArchived, false),
-      ne(schema.workOrders.status, 'closed')
+      ne(schema.workOrders.status, 'closed'),
     ),
     with: {
       asset: {
@@ -24,15 +24,15 @@ export default defineEventHandler(async (event) => {
           id: true,
           assetNumber: true,
           make: true,
-          model: true
-        }
-      }
+          model: true,
+        },
+      },
     },
     orderBy: (workOrders, { asc, desc }) => [
       // Prioritize in_progress, then by due date
       asc(workOrders.dueDate),
-      desc(workOrders.priority)
-    ]
+      desc(workOrders.priority),
+    ],
   })
 
   return workOrders

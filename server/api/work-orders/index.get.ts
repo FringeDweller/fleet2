@@ -1,5 +1,5 @@
+import { and, eq, ilike, inArray, isNull, lte, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, lte, isNull, inArray } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
     'in_progress',
     'pending_parts',
     'completed',
-    'closed'
+    'closed',
   ] as const
   if (status && validStatuses.includes(status as (typeof validStatuses)[number])) {
     conditions.push(eq(schema.workOrders.status, status as (typeof validStatuses)[number]))
@@ -60,9 +60,9 @@ export default defineEventHandler(async (event) => {
   if (scheduleId) {
     const scheduleWorkOrders = await db.query.maintenanceScheduleWorkOrders.findMany({
       where: eq(schema.maintenanceScheduleWorkOrders.scheduleId, scheduleId),
-      columns: { workOrderId: true }
+      columns: { workOrderId: true },
     })
-    const workOrderIds = scheduleWorkOrders.map(swo => swo.workOrderId)
+    const workOrderIds = scheduleWorkOrders.map((swo) => swo.workOrderId)
     if (workOrderIds.length > 0) {
       conditions.push(inArray(schema.workOrders.id, workOrderIds))
     } else {
@@ -77,8 +77,8 @@ export default defineEventHandler(async (event) => {
       or(
         eq(schema.workOrders.status, 'open'),
         eq(schema.workOrders.status, 'in_progress'),
-        eq(schema.workOrders.status, 'pending_parts')
-      )!
+        eq(schema.workOrders.status, 'pending_parts'),
+      )!,
     )
   }
 
@@ -87,8 +87,8 @@ export default defineEventHandler(async (event) => {
       or(
         ilike(schema.workOrders.workOrderNumber, `%${search}%`),
         ilike(schema.workOrders.title, `%${search}%`),
-        ilike(schema.workOrders.description, `%${search}%`)
-      )!
+        ilike(schema.workOrders.description, `%${search}%`),
+      )!,
     )
   }
 
@@ -102,18 +102,18 @@ export default defineEventHandler(async (event) => {
           firstName: true,
           lastName: true,
           email: true,
-          avatarUrl: true
-        }
+          avatarUrl: true,
+        },
       },
       createdBy: {
         columns: {
           id: true,
           firstName: true,
-          lastName: true
-        }
-      }
+          lastName: true,
+        },
+      },
     },
-    orderBy: (workOrders, { desc }) => [desc(workOrders.createdAt)]
+    orderBy: (workOrders, { desc }) => [desc(workOrders.createdAt)],
   })
 
   return workOrders

@@ -1,5 +1,5 @@
+import { and, eq, ilike, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -49,31 +49,31 @@ export default defineEventHandler(async (event) => {
     'monthly',
     'quarterly',
     'annually',
-    'custom'
+    'custom',
   ] as const
   if (
-    intervalType
-    && validIntervalTypes.includes(intervalType as (typeof validIntervalTypes)[number])
+    intervalType &&
+    validIntervalTypes.includes(intervalType as (typeof validIntervalTypes)[number])
   ) {
     conditions.push(
       eq(
         schema.maintenanceSchedules.intervalType,
-        intervalType as (typeof validIntervalTypes)[number]
-      )
+        intervalType as (typeof validIntervalTypes)[number],
+      ),
     )
   }
 
   // Filter by schedule type
   const validScheduleTypes = ['time_based', 'usage_based', 'combined'] as const
   if (
-    scheduleType
-    && validScheduleTypes.includes(scheduleType as (typeof validScheduleTypes)[number])
+    scheduleType &&
+    validScheduleTypes.includes(scheduleType as (typeof validScheduleTypes)[number])
   ) {
     conditions.push(
       eq(
         schema.maintenanceSchedules.scheduleType,
-        scheduleType as (typeof validScheduleTypes)[number]
-      )
+        scheduleType as (typeof validScheduleTypes)[number],
+      ),
     )
   }
 
@@ -82,8 +82,8 @@ export default defineEventHandler(async (event) => {
     conditions.push(
       or(
         ilike(schema.maintenanceSchedules.name, `%${search}%`),
-        ilike(schema.maintenanceSchedules.description, `%${search}%`)
-      )!
+        ilike(schema.maintenanceSchedules.description, `%${search}%`),
+      )!,
     )
   }
 
@@ -99,18 +99,18 @@ export default defineEventHandler(async (event) => {
           firstName: true,
           lastName: true,
           email: true,
-          avatarUrl: true
-        }
+          avatarUrl: true,
+        },
       },
       createdBy: {
         columns: {
           id: true,
           firstName: true,
-          lastName: true
-        }
-      }
+          lastName: true,
+        },
+      },
     },
-    orderBy: (schedules, { desc }) => [desc(schedules.createdAt)]
+    orderBy: (schedules, { desc }) => [desc(schedules.createdAt)],
   })
 
   return schedules

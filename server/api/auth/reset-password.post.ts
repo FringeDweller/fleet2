@@ -8,7 +8,7 @@ const resetPasswordSchema = z.object({
     .min(8, 'Password must be at least 8 characters')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
 })
 
 export default defineEventHandler(async (event) => {
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -32,12 +32,12 @@ export default defineEventHandler(async (event) => {
   if (!success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid or expired reset token'
+      statusMessage: 'Invalid or expired reset token',
     })
   }
 
   return {
     success: true,
-    message: 'Password reset successfully'
+    message: 'Password reset successfully',
   }
 })

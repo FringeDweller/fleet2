@@ -1,6 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updateSavedSearchSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -20,11 +20,11 @@ const updateSavedSearchSchema = z.object({
       hoursMax: z.number().optional(),
       includeArchived: z.boolean().optional(),
       sortBy: z.string().optional(),
-      sortOrder: z.enum(['asc', 'desc']).optional()
+      sortOrder: z.enum(['asc', 'desc']).optional(),
     })
     .optional(),
   isDefault: z.boolean().optional(),
-  isShared: z.boolean().optional()
+  isShared: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing saved search ID'
+      statusMessage: 'Missing saved search ID',
     })
   }
 
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -62,14 +62,14 @@ export default defineEventHandler(async (event) => {
     where: and(
       eq(schema.savedSearches.id, id),
       eq(schema.savedSearches.organisationId, session.user.organisationId),
-      eq(schema.savedSearches.userId, session.user.id)
-    )
+      eq(schema.savedSearches.userId, session.user.id),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Saved search not found or you do not have permission to edit it'
+      statusMessage: 'Saved search not found or you do not have permission to edit it',
     })
   }
 
@@ -85,8 +85,8 @@ export default defineEventHandler(async (event) => {
           eq(schema.savedSearches.organisationId, session.user.organisationId),
           eq(schema.savedSearches.userId, session.user.id),
           eq(schema.savedSearches.entity, existing.entity),
-          eq(schema.savedSearches.isDefault, true)
-        )
+          eq(schema.savedSearches.isDefault, true),
+        ),
       )
   }
 
@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'saved_search',
     entityId: id,
     oldValues: { name: existing.name, filters: existing.filters, isShared: existing.isShared },
-    newValues: updateData
+    newValues: updateData,
   })
 
   return updated

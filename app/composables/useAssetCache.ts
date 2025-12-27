@@ -113,7 +113,7 @@ export function useAssetCache() {
       licensePlate: asset.licensePlate ?? null,
       status: asset.status ?? 'active',
       categoryName: asset.category?.name ?? null,
-      cachedAt: Date.now()
+      cachedAt: Date.now(),
     }
 
     setCache(cache)
@@ -142,7 +142,7 @@ export function useAssetCache() {
     const now = Date.now()
 
     return Object.values(cache.assets)
-      .filter(asset => now - asset.cachedAt <= CACHE_MAX_AGE)
+      .filter((asset) => now - asset.cachedAt <= CACHE_MAX_AGE)
       .sort((a, b) => b.cachedAt - a.cachedAt)
   }
 
@@ -151,11 +151,11 @@ export function useAssetCache() {
 
     return getAllCachedAssets().filter((asset) => {
       return (
-        asset.assetNumber.toLowerCase().includes(lowerQuery)
-        || asset.vin?.toLowerCase().includes(lowerQuery)
-        || asset.make?.toLowerCase().includes(lowerQuery)
-        || asset.model?.toLowerCase().includes(lowerQuery)
-        || asset.licensePlate?.toLowerCase().includes(lowerQuery)
+        asset.assetNumber.toLowerCase().includes(lowerQuery) ||
+        asset.vin?.toLowerCase().includes(lowerQuery) ||
+        asset.make?.toLowerCase().includes(lowerQuery) ||
+        asset.model?.toLowerCase().includes(lowerQuery) ||
+        asset.licensePlate?.toLowerCase().includes(lowerQuery)
       )
     })
   }
@@ -170,7 +170,7 @@ export function useAssetCache() {
     }
   }
 
-  function getCacheStats(): { count: number, oldestAge: number | null } {
+  function getCacheStats(): { count: number; oldestAge: number | null } {
     const assets = getAllCachedAssets()
     const first = assets[0]
     if (!first) {
@@ -180,7 +180,7 @@ export function useAssetCache() {
     const oldest = assets.reduce((min, a) => (a.cachedAt < min.cachedAt ? a : min), first)
     return {
       count: assets.length,
-      oldestAge: Date.now() - oldest.cachedAt
+      oldestAge: Date.now() - oldest.cachedAt,
     }
   }
 
@@ -191,6 +191,6 @@ export function useAssetCache() {
     getAllCachedAssets,
     searchCachedAssets,
     clearCache,
-    getCacheStats
+    getCacheStats,
   }
 }

@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const STATUSES = ['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed'] as const
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(schema.workOrders.organisationId, session.user.organisationId),
-    eq(schema.workOrders.isArchived, false)
+    eq(schema.workOrders.isArchived, false),
   ]
 
   if (assignedToId) {
@@ -39,41 +39,41 @@ export default defineEventHandler(async (event) => {
           id: true,
           assetNumber: true,
           make: true,
-          model: true
-        }
+          model: true,
+        },
       },
       assignedTo: {
         columns: {
           id: true,
           firstName: true,
           lastName: true,
-          avatarUrl: true
-        }
-      }
+          avatarUrl: true,
+        },
+      },
     },
     orderBy: (workOrders, { asc, desc }) => [
       desc(workOrders.priority),
       asc(workOrders.dueDate),
-      desc(workOrders.createdAt)
-    ]
+      desc(workOrders.createdAt),
+    ],
   })
 
   // Group by status
   const grouped = STATUSES.reduce(
     (acc, status) => {
-      acc[status] = workOrders.filter(wo => wo.status === status)
+      acc[status] = workOrders.filter((wo) => wo.status === status)
       return acc
     },
-    {} as Record<(typeof STATUSES)[number], typeof workOrders>
+    {} as Record<(typeof STATUSES)[number], typeof workOrders>,
   )
 
   return {
-    columns: STATUSES.map(status => ({
+    columns: STATUSES.map((status) => ({
       id: status,
       title: formatStatusTitle(status),
       count: grouped[status].length,
-      workOrders: grouped[status]
-    }))
+      workOrders: grouped[status],
+    })),
   }
 })
 
@@ -84,7 +84,7 @@ function formatStatusTitle(status: string): string {
     in_progress: 'In Progress',
     pending_parts: 'Pending Parts',
     completed: 'Completed',
-    closed: 'Closed'
+    closed: 'Closed',
   }
   return titles[status] || status
 }

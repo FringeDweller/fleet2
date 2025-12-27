@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -15,10 +15,10 @@ export default defineEventHandler(async (event) => {
     .update(schema.notifications)
     .set({
       isRead: true,
-      readAt: new Date()
+      readAt: new Date(),
     })
     .where(
-      and(eq(schema.notifications.userId, session.user.id), eq(schema.notifications.isRead, false))
+      and(eq(schema.notifications.userId, session.user.id), eq(schema.notifications.isRead, false)),
     )
 
   return { success: true }

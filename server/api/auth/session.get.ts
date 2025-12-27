@@ -4,12 +4,12 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     return {
       authenticated: false,
-      user: null
+      user: null,
     }
   }
 
   return {
     authenticated: true,
-    user: session.user
+    user: session.user,
   }
 })

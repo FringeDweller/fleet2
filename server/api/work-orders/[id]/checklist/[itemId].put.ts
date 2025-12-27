@@ -1,13 +1,13 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updateChecklistItemSchema = z.object({
   title: z.string().min(1).max(200).optional(),
   description: z.string().optional().nullable(),
   isRequired: z.boolean().optional(),
   isCompleted: z.boolean().optional(),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!id || !itemId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID and item ID are required'
+      statusMessage: 'Work order ID and item ID are required',
     })
   }
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -45,15 +45,15 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -61,19 +61,19 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.workOrderChecklistItems.findFirst({
     where: and(
       eq(schema.workOrderChecklistItems.id, itemId),
-      eq(schema.workOrderChecklistItems.workOrderId, id)
-    )
+      eq(schema.workOrderChecklistItems.workOrderId, id),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Checklist item not found'
+      statusMessage: 'Checklist item not found',
     })
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.title !== undefined) updateData.title = result.data.title
@@ -99,15 +99,15 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(schema.workOrderChecklistItems.id, itemId),
-        eq(schema.workOrderChecklistItems.workOrderId, id)
-      )
+        eq(schema.workOrderChecklistItems.workOrderId, id),
+      ),
     )
     .returning()
 
   if (!item) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update checklist item'
+      statusMessage: 'Failed to update checklist item',
     })
   }
 

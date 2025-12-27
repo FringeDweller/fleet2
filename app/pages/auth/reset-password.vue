@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { z } from 'zod'
 
 definePageMeta({
   layout: 'auth',
-  middleware: 'guest'
+  middleware: 'guest',
 })
 
 const route = useRoute()
@@ -25,18 +25,18 @@ const schema = z
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number'),
-    confirmPassword: z.string()
+    confirmPassword: z.string(),
   })
-  .refine(data => data.password === data.confirmPassword, {
+  .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
-    path: ['confirmPassword']
+    path: ['confirmPassword'],
   })
 
 type Schema = z.output<typeof schema>
 
 const state = reactive<Partial<Schema>>({
   password: undefined,
-  confirmPassword: undefined
+  confirmPassword: undefined,
 })
 
 if (!token.value) {
@@ -51,14 +51,14 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: {
         token: token.value,
-        password: event.data.password
-      }
+        password: event.data.password,
+      },
     })
 
     toast.add({
       title: 'Password reset successful',
       description: 'You can now sign in with your new password.',
-      color: 'success'
+      color: 'success',
     })
     router.push('/auth/login')
   } catch (error: unknown) {
@@ -66,7 +66,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Reset failed',
       description: err.data?.statusMessage || 'Invalid or expired reset token',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     isLoading.value = false

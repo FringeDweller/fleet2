@@ -1,15 +1,15 @@
 import {
+  boolean,
+  index,
+  integer,
   pgTable,
-  uuid,
-  varchar,
   text,
   timestamp,
-  boolean,
-  integer,
-  index
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import { workOrders } from './work-orders'
 import { users } from './users'
+import { workOrders } from './work-orders'
 
 export const workOrderChecklistItems = pgTable(
   'work_order_checklist_items',
@@ -28,12 +28,12 @@ export const workOrderChecklistItems = pgTable(
     notes: text('notes'),
     order: integer('order').default(0).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('work_order_checklist_items_work_order_id_idx').on(table.workOrderId),
-    index('work_order_checklist_items_order_idx').on(table.order)
-  ]
+    index('work_order_checklist_items_order_idx').on(table.order),
+  ],
 )
 
 export type WorkOrderChecklistItem = typeof workOrderChecklistItems.$inferSelect

@@ -10,7 +10,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
-  addedBy?: { id: string, firstName: string, lastName: string }
+  addedBy?: { id: string; firstName: string; lastName: string }
 }
 
 const props = defineProps<{
@@ -32,7 +32,7 @@ const newPart = ref({
   partNumber: '',
   quantity: 1,
   unitCost: null as number | null,
-  notes: ''
+  notes: '',
 })
 
 const totalCost = computed(() => {
@@ -49,7 +49,7 @@ function resetForm() {
     partNumber: '',
     quantity: 1,
     unitCost: null,
-    notes: ''
+    notes: '',
   }
 }
 
@@ -63,12 +63,12 @@ async function addPart() {
         partNumber: newPart.value.partNumber.trim() || null,
         quantity: newPart.value.quantity,
         unitCost: newPart.value.unitCost,
-        notes: newPart.value.notes.trim() || null
-      }
+        notes: newPart.value.notes.trim() || null,
+      },
     })
     toast.add({
       title: 'Part added',
-      description: 'Part has been added to the work order.'
+      description: 'Part has been added to the work order.',
     })
     resetForm()
     addModalOpen.value = false
@@ -77,7 +77,7 @@ async function addPart() {
     toast.add({
       title: 'Error',
       description: 'Failed to add part.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -86,18 +86,18 @@ async function deletePart(part: Part) {
   loading.value[part.id] = true
   try {
     await $fetch(`/api/work-orders/${props.workOrderId}/parts/${part.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Part removed',
-      description: 'Part has been removed from the work order.'
+      description: 'Part has been removed from the work order.',
     })
     emit('refresh')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to remove part.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value[part.id] = false

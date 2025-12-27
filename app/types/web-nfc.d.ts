@@ -27,12 +27,12 @@ interface NDEFReader extends EventTarget {
   addEventListener(
     type: 'reading',
     listener: (event: NDEFReadingEvent) => void,
-    options?: boolean | AddEventListenerOptions
+    options?: boolean | AddEventListenerOptions,
   ): void
   addEventListener(
     type: 'readingerror',
     listener: (event: Event) => void,
-    options?: boolean | AddEventListenerOptions
+    options?: boolean | AddEventListenerOptions,
   ): void
 }
 

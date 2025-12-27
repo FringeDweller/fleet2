@@ -6,7 +6,7 @@ const redisUrl = process.env.NUXT_REDIS_URL || 'redis://localhost:63791'
 export const redis = new Redis(redisUrl, {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
-  lazyConnect: true
+  lazyConnect: true,
 })
 
 // Cache utility functions
@@ -80,7 +80,7 @@ export const cache = {
    */
   async expire(key: string, ttlSeconds: number): Promise<void> {
     await redis.expire(key, ttlSeconds)
-  }
+  },
 }
 
 // Session storage for Redis-based sessions
@@ -101,5 +101,5 @@ export const sessionStorage = {
 
   async touch(sessionId: string, ttlSeconds: number): Promise<void> {
     await cache.expire(`${this.prefix}${sessionId}`, ttlSeconds)
-  }
+  },
 }

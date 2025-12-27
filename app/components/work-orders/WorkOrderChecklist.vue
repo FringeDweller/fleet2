@@ -8,7 +8,7 @@ interface ChecklistItem {
   isRequired: boolean
   isCompleted: boolean
   completedAt: string | null
-  completedBy: { id: string, firstName: string, lastName: string } | null
+  completedBy: { id: string; firstName: string; lastName: string } | null
   notes: string | null
   order: number
 }
@@ -30,12 +30,12 @@ const loading = ref<Record<string, boolean>>({})
 const newItem = ref({
   title: '',
   description: '',
-  isRequired: false
+  isRequired: false,
 })
 
 const progress = computed(() => {
   if (!props.items.length) return null
-  const completed = props.items.filter(i => i.isCompleted).length
+  const completed = props.items.filter((i) => i.isCompleted).length
   const total = props.items.length
   return { completed, total, percentage: Math.round((completed / total) * 100) }
 })
@@ -46,14 +46,14 @@ async function toggleComplete(item: ChecklistItem) {
   try {
     await $fetch(`/api/work-orders/${props.workOrderId}/checklist/${item.id}`, {
       method: 'PUT',
-      body: { isCompleted: !item.isCompleted }
+      body: { isCompleted: !item.isCompleted },
     })
     emit('refresh')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update checklist item.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value[item.id] = false
@@ -68,12 +68,12 @@ async function addItem() {
       body: {
         title: newItem.value.title.trim(),
         description: newItem.value.description.trim() || null,
-        isRequired: newItem.value.isRequired
-      }
+        isRequired: newItem.value.isRequired,
+      },
     })
     toast.add({
       title: 'Item added',
-      description: 'Checklist item has been added.'
+      description: 'Checklist item has been added.',
     })
     newItem.value = { title: '', description: '', isRequired: false }
     addModalOpen.value = false
@@ -82,7 +82,7 @@ async function addItem() {
     toast.add({
       title: 'Error',
       description: 'Failed to add checklist item.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -91,18 +91,18 @@ async function deleteItem(item: ChecklistItem) {
   loading.value[item.id] = true
   try {
     await $fetch(`/api/work-orders/${props.workOrderId}/checklist/${item.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Item removed',
-      description: 'Checklist item has been removed.'
+      description: 'Checklist item has been removed.',
     })
     emit('refresh')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to remove checklist item.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value[item.id] = false

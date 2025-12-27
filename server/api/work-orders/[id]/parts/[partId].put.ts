@@ -1,13 +1,13 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updatePartSchema = z.object({
   partName: z.string().min(1).max(200).optional(),
   partNumber: z.string().max(100).optional().nullable(),
   quantity: z.number().int().positive().optional(),
   unitCost: z.number().positive().optional().nullable(),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!id || !partId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID and part ID are required'
+      statusMessage: 'Work order ID and part ID are required',
     })
   }
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -45,32 +45,32 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
   // Get existing part
   const existing = await db.query.workOrderParts.findFirst({
-    where: and(eq(schema.workOrderParts.id, partId), eq(schema.workOrderParts.workOrderId, id))
+    where: and(eq(schema.workOrderParts.id, partId), eq(schema.workOrderParts.workOrderId, id)),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Part not found'
+      statusMessage: 'Part not found',
     })
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.partName !== undefined) updateData.partName = result.data.partName
@@ -79,8 +79,8 @@ export default defineEventHandler(async (event) => {
 
   // Handle quantity/cost updates - recalculate total
   const quantity = result.data.quantity ?? existing.quantity
-  const unitCost
-    = result.data.unitCost !== undefined
+  const unitCost =
+    result.data.unitCost !== undefined
       ? result.data.unitCost
       : existing.unitCost
         ? parseFloat(existing.unitCost)
@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
   if (!part) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update part'
+      statusMessage: 'Failed to update part',
     })
   }
 

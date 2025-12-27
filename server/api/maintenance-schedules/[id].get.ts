@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,14 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Schedule ID is required'
+      statusMessage: 'Schedule ID is required',
     })
   }
 
   const schedule = await db.query.maintenanceSchedules.findFirst({
     where: and(
       eq(schema.maintenanceSchedules.id, id),
-      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
+      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
     ),
     with: {
       asset: true,
@@ -35,15 +35,15 @@ export default defineEventHandler(async (event) => {
           firstName: true,
           lastName: true,
           email: true,
-          avatarUrl: true
-        }
+          avatarUrl: true,
+        },
       },
       createdBy: {
         columns: {
           id: true,
           firstName: true,
-          lastName: true
-        }
+          lastName: true,
+        },
       },
       generatedWorkOrders: {
         with: {
@@ -55,19 +55,19 @@ export default defineEventHandler(async (event) => {
               status: true,
               priority: true,
               dueDate: true,
-              createdAt: true
-            }
-          }
+              createdAt: true,
+            },
+          },
         },
-        orderBy: (orders, { desc }) => [desc(orders.scheduledDate)]
-      }
-    }
+        orderBy: (orders, { desc }) => [desc(orders.scheduledDate)],
+      },
+    },
   })
 
   if (!schedule) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Maintenance schedule not found'
+      statusMessage: 'Maintenance schedule not found',
     })
   }
 

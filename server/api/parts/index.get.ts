@@ -1,5 +1,5 @@
+import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, gte, lte, sql, asc, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     'supplier',
     'location',
     'createdAt',
-    'updatedAt'
+    'updatedAt',
   ]
 
   const conditions = [eq(schema.parts.organisationId, session.user.organisationId)]
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
   // Low stock filter - parts at or below reorder threshold
   if (lowStock) {
     conditions.push(
-      sql`CAST(${schema.parts.quantityInStock} AS NUMERIC) <= COALESCE(CAST(${schema.parts.reorderThreshold} AS NUMERIC), 0)`
+      sql`CAST(${schema.parts.quantityInStock} AS NUMERIC) <= COALESCE(CAST(${schema.parts.reorderThreshold} AS NUMERIC), 0)`,
     )
   }
 
@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
         ilike(schema.parts.description, `%${search}%`),
         ilike(schema.parts.supplier, `%${search}%`),
         ilike(schema.parts.supplierPartNumber, `%${search}%`),
-        ilike(schema.parts.location, `%${search}%`)
-      )!
+        ilike(schema.parts.location, `%${search}%`),
+      )!,
     )
   }
 
@@ -108,11 +108,11 @@ export default defineEventHandler(async (event) => {
   const parts = await db.query.parts.findMany({
     where: whereClause,
     with: {
-      category: true
+      category: true,
     },
-    orderBy: parts => [sortFn(parts[sortField as keyof typeof parts])],
+    orderBy: (parts) => [sortFn(parts[sortField as keyof typeof parts])],
     limit,
-    offset
+    offset,
   })
 
   return {
@@ -121,7 +121,7 @@ export default defineEventHandler(async (event) => {
       total,
       limit,
       offset,
-      hasMore: offset + parts.length < total
-    }
+      hasMore: offset + parts.length < total,
+    },
   }
 })

@@ -1,13 +1,13 @@
 import {
+  boolean,
+  index,
+  jsonb,
+  pgEnum,
   pgTable,
-  uuid,
-  varchar,
   text,
   timestamp,
-  boolean,
-  jsonb,
-  index,
-  pgEnum
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { users } from './users'
@@ -31,13 +31,13 @@ export const savedSearches = pgTable(
     isDefault: boolean('is_default').default(false).notNull(),
     isShared: boolean('is_shared').default(false).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('saved_searches_organisation_id_idx').on(table.organisationId),
     index('saved_searches_user_id_idx').on(table.userId),
-    index('saved_searches_entity_idx').on(table.entity)
-  ]
+    index('saved_searches_entity_idx').on(table.entity),
+  ],
 )
 
 export interface SavedSearchFilters {

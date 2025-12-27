@@ -1,6 +1,6 @@
-import { pgTable, uuid, text, timestamp, index } from 'drizzle-orm/pg-core'
-import { workOrders, workOrderStatusEnum } from './work-orders'
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 import { users } from './users'
+import { workOrderStatusEnum, workOrders } from './work-orders'
 
 export const workOrderStatusHistory = pgTable(
   'work_order_status_history',
@@ -15,12 +15,12 @@ export const workOrderStatusHistory = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     notes: text('notes'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('work_order_status_history_work_order_id_idx').on(table.workOrderId),
-    index('work_order_status_history_created_at_idx').on(table.createdAt)
-  ]
+    index('work_order_status_history_created_at_idx').on(table.createdAt),
+  ],
 )
 
 export type WorkOrderStatusHistory = typeof workOrderStatusHistory.$inferSelect

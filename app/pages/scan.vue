@@ -3,7 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 definePageMeta({
   middleware: 'auth',
-  layout: 'minimal'
+  layout: 'minimal',
 })
 
 const router = useRouter()
@@ -52,10 +52,10 @@ async function startScanner() {
       { facingMode: 'environment' },
       {
         fps: 10,
-        qrbox: { width: 250, height: 250 }
+        qrbox: { width: 250, height: 250 },
       },
       onScanSuccess,
-      () => {} // Ignore scan failures (no QR in frame)
+      () => {}, // Ignore scan failures (no QR in frame)
     )
 
     isScanning.value = true
@@ -65,7 +65,7 @@ async function startScanner() {
     toast.add({
       title: 'Camera Error',
       description: message,
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -126,14 +126,14 @@ async function processScannedCode(code: string) {
       if (cachedAsset) {
         toast.add({
           title: 'Asset Found (Cached)',
-          description: `${cachedAsset.assetNumber} - Viewing offline data`
+          description: `${cachedAsset.assetNumber} - Viewing offline data`,
         })
         router.push(`/assets/${assetId}`)
       } else {
         toast.add({
           title: 'Asset Not Cached',
           description: 'This asset is not available offline. Connect to the internet to view it.',
-          color: 'warning'
+          color: 'warning',
         })
       }
       return
@@ -144,7 +144,7 @@ async function processScannedCode(code: string) {
       await $fetch(`/api/assets/${assetId}`)
       toast.add({
         title: 'Asset Found',
-        description: 'Navigating to asset details...'
+        description: 'Navigating to asset details...',
       })
       router.push(`/assets/${assetId}`)
     } catch {
@@ -153,14 +153,14 @@ async function processScannedCode(code: string) {
         toast.add({
           title: 'Asset Not Found',
           description: 'This asset may have been removed. Showing cached data.',
-          color: 'warning'
+          color: 'warning',
         })
         router.push(`/assets/${assetId}`)
       } else {
         toast.add({
           title: 'Asset Not Found',
           description: 'The scanned code does not match any asset.',
-          color: 'error'
+          color: 'error',
         })
       }
     }
@@ -168,7 +168,7 @@ async function processScannedCode(code: string) {
     toast.add({
       title: 'Invalid Code',
       description: 'The scanned code is not a valid asset identifier.',
-      color: 'warning'
+      color: 'warning',
     })
   }
 }
@@ -182,7 +182,7 @@ async function startNfcReading() {
     toast.add({
       title: 'NFC Not Supported',
       description: 'Your device does not support NFC.',
-      color: 'warning'
+      color: 'warning',
     })
     return
   }
@@ -213,20 +213,20 @@ async function startNfcReading() {
       toast.add({
         title: 'NFC Read Error',
         description: 'Failed to read NFC tag. Try again.',
-        color: 'error'
+        color: 'error',
       })
     })
 
     toast.add({
       title: 'NFC Ready',
-      description: 'Hold your device near an NFC tag.'
+      description: 'Hold your device near an NFC tag.',
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to start NFC'
     toast.add({
       title: 'NFC Error',
       description: message,
-      color: 'error'
+      color: 'error',
     })
   }
 }

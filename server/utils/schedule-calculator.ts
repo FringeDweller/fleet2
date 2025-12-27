@@ -15,7 +15,7 @@ export function calculateNextDueDate(
   fromDate: Date,
   dayOfWeek?: number | null,
   dayOfMonth?: number | null,
-  monthOfYear?: number | null
+  monthOfYear?: number | null,
 ): Date {
   const next = new Date(fromDate)
 
@@ -38,7 +38,7 @@ export function calculateNextDueDate(
       if (dayOfMonth) {
         // Handle month overflow (e.g., February 31 -> last day of February)
         next.setDate(
-          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()),
         )
       }
       break
@@ -47,7 +47,7 @@ export function calculateNextDueDate(
       next.setMonth(next.getMonth() + 3 * intervalValue)
       if (dayOfMonth) {
         next.setDate(
-          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()),
         )
       }
       break
@@ -57,7 +57,7 @@ export function calculateNextDueDate(
       if (monthOfYear) next.setMonth(monthOfYear - 1)
       if (dayOfMonth) {
         next.setDate(
-          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate())
+          Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()),
         )
       }
       break
@@ -89,9 +89,9 @@ export function previewScheduleOccurrences(
     monthOfYear?: number | null
     leadTimeDays: number
   },
-  count: number = 10
-): Array<{ dueDate: Date, leadDate: Date }> {
-  const occurrences: Array<{ dueDate: Date, leadDate: Date }> = []
+  count: number = 10,
+): Array<{ dueDate: Date; leadDate: Date }> {
+  const occurrences: Array<{ dueDate: Date; leadDate: Date }> = []
   let currentDate = new Date(config.startDate)
 
   for (let i = 0; i < count; i++) {
@@ -101,7 +101,7 @@ export function previewScheduleOccurrences(
       currentDate,
       config.dayOfWeek,
       config.dayOfMonth,
-      config.monthOfYear
+      config.monthOfYear,
     )
 
     // Stop if we've passed the end date

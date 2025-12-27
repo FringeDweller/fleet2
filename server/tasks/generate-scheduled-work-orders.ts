@@ -22,7 +22,7 @@ import { generateScheduledWorkOrders } from '../utils/work-order-generator'
 export default defineTask({
   meta: {
     name: 'maintenance:generate-work-orders',
-    description: 'Generate work orders from maintenance schedules'
+    description: 'Generate work orders from maintenance schedules',
   },
   async run() {
     console.log('[Task] Starting scheduled work order generation...')
@@ -32,10 +32,10 @@ export default defineTask({
 
       const summary = {
         total: results.length,
-        created: results.filter(r => r.status === 'created').length,
-        skipped: results.filter(r => r.status === 'skipped').length,
-        errors: results.filter(r => r.status === 'error').length,
-        results: results.filter(r => r.status === 'created' || r.status === 'error')
+        created: results.filter((r) => r.status === 'created').length,
+        skipped: results.filter((r) => r.status === 'skipped').length,
+        errors: results.filter((r) => r.status === 'error').length,
+        results: results.filter((r) => r.status === 'created' || r.status === 'error'),
       }
 
       console.log(`[Task] Work order generation complete:`)
@@ -47,7 +47,7 @@ export default defineTask({
       if (summary.created > 0) {
         console.log('\nCreated work orders:')
         summary.results
-          .filter(r => r.status === 'created')
+          .filter((r) => r.status === 'created')
           .forEach((r) => {
             console.log(`  - ${r.workOrderNumber} for ${r.assetNumber} (${r.scheduleName})`)
           })
@@ -56,7 +56,7 @@ export default defineTask({
       if (summary.errors > 0) {
         console.error('\nErrors:')
         summary.results
-          .filter(r => r.status === 'error')
+          .filter((r) => r.status === 'error')
           .forEach((r) => {
             console.error(`  - ${r.scheduleName}: ${r.reason}`)
           })
@@ -67,5 +67,5 @@ export default defineTask({
       console.error('[Task] Fatal error during work order generation:', error)
       throw error
     }
-  }
+  },
 })

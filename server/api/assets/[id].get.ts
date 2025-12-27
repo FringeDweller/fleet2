@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,24 +16,24 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Asset ID is required'
+      statusMessage: 'Asset ID is required',
     })
   }
 
   const asset = await db.query.assets.findFirst({
     where: and(
       eq(schema.assets.id, id),
-      eq(schema.assets.organisationId, session.user.organisationId)
+      eq(schema.assets.organisationId, session.user.organisationId),
     ),
     with: {
-      category: true
-    }
+      category: true,
+    },
   })
 
   if (!asset) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Asset not found'
+      statusMessage: 'Asset not found',
     })
   }
 

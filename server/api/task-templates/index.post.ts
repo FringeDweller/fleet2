@@ -6,7 +6,7 @@ const checklistItemSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().optional(),
   isRequired: z.boolean().default(false),
-  order: z.number().int().min(0)
+  order: z.number().int().min(0),
 })
 
 const requiredPartSchema = z.object({
@@ -15,7 +15,7 @@ const requiredPartSchema = z.object({
   partNumber: z.string().max(100).optional(),
   quantity: z.number().int().positive().default(1),
   estimatedCost: z.number().positive().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 const createTemplateSchema = z.object({
@@ -27,7 +27,7 @@ const createTemplateSchema = z.object({
   skillLevel: z.enum(['entry', 'intermediate', 'advanced', 'expert']).optional().nullable(),
   checklistItems: z.array(checklistItemSchema).default([]),
   requiredParts: z.array(requiredPartSchema).default([]),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean().default(true),
 })
 
 export default defineEventHandler(async (event) => {
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -63,14 +63,14 @@ export default defineEventHandler(async (event) => {
       skillLevel: result.data.skillLevel,
       checklistItems: result.data.checklistItems,
       requiredParts: result.data.requiredParts,
-      isActive: result.data.isActive
+      isActive: result.data.isActive,
     })
     .returning()
 
   if (!template) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create template'
+      statusMessage: 'Failed to create template',
     })
   }
 
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'task_template',
     entityId: template.id,
-    newValues: template
+    newValues: template,
   })
 
   return template

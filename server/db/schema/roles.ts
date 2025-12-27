@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, jsonb } from 'drizzle-orm/pg-core'
+import { jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
 // Predefined roles: Admin, Fleet Manager, Supervisor, Technician, Operator
 export const ROLES = {
@@ -6,7 +6,7 @@ export const ROLES = {
   FLEET_MANAGER: 'fleet_manager',
   SUPERVISOR: 'supervisor',
   TECHNICIAN: 'technician',
-  OPERATOR: 'operator'
+  OPERATOR: 'operator',
 } as const
 
 export type RoleName = (typeof ROLES)[keyof typeof ROLES]
@@ -18,7 +18,7 @@ export const roles = pgTable('roles', {
   description: text('description'),
   permissions: jsonb('permissions').$type<string[]>().default([]).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })
 
 export type Role = typeof roles.$inferSelect
@@ -38,7 +38,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'reports:write',
     'users:read',
     'settings:read',
-    'settings:write'
+    'settings:write',
   ],
   [ROLES.SUPERVISOR]: [
     'assets:read',
@@ -46,8 +46,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, string[]> = {
     'work_orders:read',
     'work_orders:write',
     'reports:read',
-    'users:read'
+    'users:read',
   ],
   [ROLES.TECHNICIAN]: ['assets:read', 'work_orders:read', 'work_orders:write', 'reports:read'],
-  [ROLES.OPERATOR]: ['assets:read', 'work_orders:read']
+  [ROLES.OPERATOR]: ['assets:read', 'work_orders:read'],
 }

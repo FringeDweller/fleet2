@@ -1,5 +1,5 @@
+import { and, desc, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(schema.notifications.userId, session.user.id),
-    eq(schema.notifications.organisationId, session.user.organisationId)
+    eq(schema.notifications.organisationId, session.user.organisationId),
   ]
 
   if (unreadOnly) {
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const notifications = await db.query.notifications.findMany({
     where: and(...conditions),
     orderBy: [desc(schema.notifications.createdAt)],
-    limit
+    limit,
   })
 
   return notifications

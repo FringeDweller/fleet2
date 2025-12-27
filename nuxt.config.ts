@@ -6,11 +6,11 @@ export default defineNuxtConfig({
     '@nuxt/test-utils/module',
     '@vueuse/nuxt',
     '@pinia/nuxt',
-    'nuxt-auth-utils'
+    'nuxt-auth-utils',
   ],
 
   devtools: {
-    enabled: true
+    enabled: true,
   },
 
   css: ['~/assets/css/main.css'],
@@ -18,42 +18,42 @@ export default defineNuxtConfig({
   runtimeConfig: {
     // Server-only keys
     database: {
-      url: ''
+      url: '',
     },
     redis: {
-      url: ''
+      url: '',
     },
     // Public keys exposed to client
     public: {
-      appName: 'Fleet'
-    }
+      appName: 'Fleet',
+    },
   },
 
   routeRules: {
     '/api/**': {
-      cors: true
-    }
+      cors: true,
+    },
   },
 
   compatibilityDate: '2024-07-11',
 
   nitro: {
     experimental: {
-      tasks: true
-    }
+      tasks: true,
+    },
   },
 
   typescript: {
     strict: true,
-    typeCheck: true
+    typeCheck: true,
   },
 
   eslint: {
     config: {
       stylistic: {
         commaDangle: 'never',
-        braceStyle: '1tbs'
-      }
-    }
-  }
+        braceStyle: '1tbs',
+      },
+    },
+  },
 })

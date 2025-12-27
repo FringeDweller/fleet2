@@ -1,6 +1,6 @@
-import { pgTable, uuid, varchar, timestamp, text, jsonb, index } from 'drizzle-orm/pg-core'
-import { users } from './users'
+import { index, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
+import { users } from './users'
 
 export const auditLog = pgTable(
   'audit_log',
@@ -17,14 +17,14 @@ export const auditLog = pgTable(
     newValues: jsonb('new_values'),
     ipAddress: varchar('ip_address', { length: 45 }),
     userAgent: text('user_agent'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('audit_log_organisation_id_idx').on(table.organisationId),
     index('audit_log_user_id_idx').on(table.userId),
     index('audit_log_entity_type_idx').on(table.entityType),
-    index('audit_log_created_at_idx').on(table.createdAt)
-  ]
+    index('audit_log_created_at_idx').on(table.createdAt),
+  ],
 )
 
 export type AuditLog = typeof auditLog.$inferSelect

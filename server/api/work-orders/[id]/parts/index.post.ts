@@ -1,13 +1,13 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const createPartSchema = z.object({
   partName: z.string().min(1).max(200),
   partNumber: z.string().max(100).optional().nullable(),
   quantity: z.number().int().positive().default(1),
   unitCost: z.number().positive().optional().nullable(),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -44,15 +44,15 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -71,14 +71,14 @@ export default defineEventHandler(async (event) => {
       unitCost: result.data.unitCost?.toFixed(2),
       totalCost,
       notes: result.data.notes,
-      addedById: session.user.id
+      addedById: session.user.id,
     })
     .returning()
 
   if (!part) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to add part'
+      statusMessage: 'Failed to add part',
     })
   }
 

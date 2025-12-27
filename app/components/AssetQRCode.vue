@@ -23,7 +23,7 @@ watch(
   async () => {
     await generateQRCode()
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 async function generateQRCode() {
@@ -37,9 +37,9 @@ async function generateQRCode() {
       margin: 1,
       color: {
         dark: '#000000',
-        light: '#ffffff'
+        light: '#ffffff',
       },
-      errorCorrectionLevel: 'M'
+      errorCorrectionLevel: 'M',
     })
   } catch (err) {
     console.error('Failed to generate QR code:', err)
@@ -57,9 +57,9 @@ async function downloadQRCode() {
     margin: 2,
     color: {
       dark: '#000000',
-      light: '#ffffff'
+      light: '#ffffff',
     },
-    errorCorrectionLevel: 'H'
+    errorCorrectionLevel: 'H',
   })
 
   const link = document.createElement('a')
@@ -77,9 +77,9 @@ async function printQRCode() {
     margin: 2,
     color: {
       dark: '#000000',
-      light: '#ffffff'
+      light: '#ffffff',
     },
-    errorCorrectionLevel: 'H'
+    errorCorrectionLevel: 'H',
   })
 
   const printWindow = window.open('', '_blank')

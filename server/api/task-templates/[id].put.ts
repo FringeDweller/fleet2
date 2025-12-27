@@ -1,13 +1,13 @@
+import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and, sql } from 'drizzle-orm'
 
 const checklistItemSchema = z.object({
   id: z.string().uuid(),
   title: z.string().min(1).max(200),
   description: z.string().optional(),
   isRequired: z.boolean().default(false),
-  order: z.number().int().min(0)
+  order: z.number().int().min(0),
 })
 
 const requiredPartSchema = z.object({
@@ -16,7 +16,7 @@ const requiredPartSchema = z.object({
   partNumber: z.string().max(100).optional(),
   quantity: z.number().int().positive().default(1),
   estimatedCost: z.number().positive().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 const updateTemplateSchema = z.object({
@@ -28,7 +28,7 @@ const updateTemplateSchema = z.object({
   skillLevel: z.enum(['entry', 'intermediate', 'advanced', 'expert']).optional().nullable(),
   checklistItems: z.array(checklistItemSchema).optional(),
   requiredParts: z.array(requiredPartSchema).optional(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Template ID is required'
+      statusMessage: 'Template ID is required',
     })
   }
 
@@ -57,7 +57,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -65,27 +65,27 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.taskTemplates.findFirst({
     where: and(
       eq(schema.taskTemplates.id, id),
-      eq(schema.taskTemplates.organisationId, session.user.organisationId)
-    )
+      eq(schema.taskTemplates.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Template not found'
+      statusMessage: 'Template not found',
     })
   }
 
   // Check if checklist items changed to increment version
-  const checklistChanged
-    = result.data.checklistItems !== undefined
-      && JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
-  const partsChanged
-    = result.data.requiredParts !== undefined
-      && JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
+  const checklistChanged =
+    result.data.checklistItems !== undefined &&
+    JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
+  const partsChanged =
+    result.data.requiredParts !== undefined &&
+    JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.name !== undefined) updateData.name = result.data.name
@@ -112,15 +112,15 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(schema.taskTemplates.id, id),
-        eq(schema.taskTemplates.organisationId, session.user.organisationId)
-      )
+        eq(schema.taskTemplates.organisationId, session.user.organisationId),
+      ),
     )
     .returning()
 
   if (!template) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update template'
+      statusMessage: 'Failed to update template',
     })
   }
 
@@ -132,7 +132,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'task_template',
     entityId: template.id,
     oldValues: existing,
-    newValues: template
+    newValues: template,
   })
 
   return template

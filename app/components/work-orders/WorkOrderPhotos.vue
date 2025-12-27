@@ -8,7 +8,7 @@ interface Photo {
   photoType: 'before' | 'during' | 'after' | 'issue' | 'other'
   caption: string | null
   createdAt: string
-  uploadedBy?: { id: string, firstName: string, lastName: string }
+  uploadedBy?: { id: string; firstName: string; lastName: string }
 }
 
 const props = defineProps<{
@@ -30,7 +30,7 @@ const loading = ref<Record<string, boolean>>({})
 const newPhoto = ref({
   photoUrl: '',
   photoType: 'during' as 'before' | 'during' | 'after' | 'issue' | 'other',
-  caption: ''
+  caption: '',
 })
 
 const photoTypes = [
@@ -38,7 +38,7 @@ const photoTypes = [
   { label: 'During', value: 'during' },
   { label: 'After', value: 'after' },
   { label: 'Issue', value: 'issue' },
-  { label: 'Other', value: 'other' }
+  { label: 'Other', value: 'other' },
 ]
 
 const typeColors: Record<string, 'warning' | 'info' | 'success' | 'error' | 'neutral'> = {
@@ -46,14 +46,14 @@ const typeColors: Record<string, 'warning' | 'info' | 'success' | 'error' | 'neu
   during: 'info',
   after: 'success',
   issue: 'error',
-  other: 'neutral'
+  other: 'neutral',
 }
 
 function resetForm() {
   newPhoto.value = {
     photoUrl: '',
     photoType: 'during',
-    caption: ''
+    caption: '',
   }
 }
 
@@ -75,12 +75,12 @@ async function addPhoto() {
       body: {
         photoUrl: newPhoto.value.photoUrl.trim(),
         photoType: newPhoto.value.photoType,
-        caption: newPhoto.value.caption.trim() || null
-      }
+        caption: newPhoto.value.caption.trim() || null,
+      },
     })
     toast.add({
       title: 'Photo added',
-      description: 'Photo has been added to the work order.'
+      description: 'Photo has been added to the work order.',
     })
     resetForm()
     uploadModalOpen.value = false
@@ -89,7 +89,7 @@ async function addPhoto() {
     toast.add({
       title: 'Error',
       description: 'Failed to add photo.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -98,18 +98,18 @@ async function deletePhoto(photo: Photo) {
   loading.value[photo.id] = true
   try {
     await $fetch(`/api/work-orders/${props.workOrderId}/photos/${photo.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Photo removed',
-      description: 'Photo has been removed from the work order.'
+      description: 'Photo has been removed from the work order.',
     })
     emit('refresh')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to remove photo.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value[photo.id] = false
@@ -122,7 +122,7 @@ const groupedPhotos = computed(() => {
     during: [],
     after: [],
     issue: [],
-    other: []
+    other: [],
   }
   for (const photo of props.photos) {
     const photoType = photo.photoType || 'other'

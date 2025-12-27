@@ -2,7 +2,7 @@
 import { format, parseISO } from 'date-fns'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface MaintenanceSchedule {
@@ -34,9 +34,9 @@ interface MaintenanceSchedule {
     mileage: string | null
     operationalHours: string | null
   } | null
-  category: { id: string, name: string } | null
-  template: { id: string, name: string, description: string | null } | null
-  defaultAssignee: { id: string, firstName: string, lastName: string } | null
+  category: { id: string; name: string } | null
+  template: { id: string; name: string; description: string | null } | null
+  defaultAssignee: { id: string; firstName: string; lastName: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -67,13 +67,13 @@ const activeTab = ref((route.query.tab as string) || 'details')
 const {
   data: schedule,
   status,
-  refresh
+  refresh,
 } = await useFetch<MaintenanceSchedule>(`/api/maintenance-schedules/${scheduleId}`, { lazy: true })
 
 // For time-based schedules, fetch preview of next occurrences
 const { data: preview } = await useFetch<SchedulePreview[]>(
   `/api/maintenance-schedules/${scheduleId}/preview`,
-  { lazy: true, query: { limit: 10 } }
+  { lazy: true, query: { limit: 10 } },
 )
 
 // For usage-based schedules, calculate current progress
@@ -85,21 +85,21 @@ const usageProgress = computed(() => {
   const currentMileage = asset.mileage ? parseFloat(asset.mileage.toString()) : null
   const currentHours = asset.operationalHours ? parseFloat(asset.operationalHours.toString()) : null
 
-  const mileageProgress
-    = schedule.value.intervalMileage && currentMileage !== null
+  const mileageProgress =
+    schedule.value.intervalMileage && currentMileage !== null
       ? calculateProgress(
           currentMileage,
           schedule.value.lastTriggeredMileage ? parseFloat(schedule.value.lastTriggeredMileage) : 0,
-          schedule.value.intervalMileage
+          schedule.value.intervalMileage,
         )
       : null
 
-  const hoursProgress
-    = schedule.value.intervalHours && currentHours !== null
+  const hoursProgress =
+    schedule.value.intervalHours && currentHours !== null
       ? calculateProgress(
           currentHours,
           schedule.value.lastTriggeredHours ? parseFloat(schedule.value.lastTriggeredHours) : 0,
-          schedule.value.intervalHours
+          schedule.value.intervalHours,
         )
       : null
 
@@ -118,7 +118,7 @@ function calculateProgress(current: number, lastTriggered: number, interval: num
     interval,
     nextTrigger,
     remaining,
-    progress
+    progress,
   }
 }
 
@@ -131,7 +131,7 @@ function getProgressColor(progress: number, threshold: number): 'success' | 'war
 
 const { data: workOrders } = await useFetch<WorkOrder[]>(`/api/work-orders`, {
   lazy: true,
-  query: { scheduleId }
+  query: { scheduleId },
 })
 
 const intervalTypeLabels = {
@@ -140,7 +140,7 @@ const intervalTypeLabels = {
   monthly: 'Monthly',
   quarterly: 'Quarterly',
   annually: 'Annually',
-  custom: 'Custom'
+  custom: 'Custom',
 } as const
 
 const dayOfWeekLabels = [
@@ -150,7 +150,7 @@ const dayOfWeekLabels = [
   'Wednesday',
   'Thursday',
   'Friday',
-  'Saturday'
+  'Saturday',
 ]
 
 const monthLabels = [
@@ -165,14 +165,14 @@ const monthLabels = [
   'September',
   'October',
   'November',
-  'December'
+  'December',
 ]
 
 const priorityColors = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
-  critical: 'error'
+  critical: 'error',
 } as const
 
 const statusColors = {
@@ -181,7 +181,7 @@ const statusColors = {
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 } as const
 
 const statusLabels = {
@@ -190,7 +190,7 @@ const statusLabels = {
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
   completed: 'Completed',
-  closed: 'Closed'
+  closed: 'Closed',
 } as const
 
 function getIntervalDescription(sched: MaintenanceSchedule): string {
@@ -210,9 +210,9 @@ function getIntervalDescription(sched: MaintenanceSchedule): string {
     return `Day ${sched.dayOfMonth} of every quarter`
   }
   if (
-    sched.intervalType === 'annually'
-    && sched.dayOfMonth !== null
-    && sched.monthOfYear !== null
+    sched.intervalType === 'annually' &&
+    sched.dayOfMonth !== null &&
+    sched.monthOfYear !== null
   ) {
     return `${monthLabels[sched.monthOfYear - 1]} ${sched.dayOfMonth}`
   }
@@ -224,18 +224,18 @@ async function toggleActive() {
   try {
     await $fetch(`/api/maintenance-schedules/${scheduleId}`, {
       method: 'PUT' as const,
-      body: { isActive: !schedule.value.isActive }
+      body: { isActive: !schedule.value.isActive },
     })
     toast.add({
       title: schedule.value.isActive ? 'Schedule paused' : 'Schedule activated',
-      description: `The maintenance schedule has been ${schedule.value.isActive ? 'paused' : 'activated'}.`
+      description: `The maintenance schedule has been ${schedule.value.isActive ? 'paused' : 'activated'}.`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update schedule status.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -245,14 +245,14 @@ async function archiveSchedule() {
     await $fetch(`/api/maintenance-schedules/${scheduleId}`, { method: 'DELETE' as const })
     toast.add({
       title: 'Schedule archived',
-      description: 'The maintenance schedule has been archived successfully.'
+      description: 'The maintenance schedule has been archived successfully.',
     })
     router.push('/settings/maintenance-schedules')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive schedule.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -260,7 +260,7 @@ async function archiveSchedule() {
 const tabs = [
   { label: 'Details', value: 'details' },
   { label: 'Preview (Next 10)', value: 'preview' },
-  { label: 'Work Order History', value: 'history' }
+  { label: 'Work Order History', value: 'history' },
 ]
 
 watch(activeTab, (newTab) => {

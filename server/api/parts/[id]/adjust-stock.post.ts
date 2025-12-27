@@ -1,12 +1,12 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const adjustStockSchema = z.object({
   usageType: z.enum(['adjustment', 'restock', 'return', 'damaged', 'expired']),
-  quantityChange: z.number().refine(val => val !== 0, 'Quantity change cannot be zero'),
+  quantityChange: z.number().refine((val) => val !== 0, 'Quantity change cannot be zero'),
   notes: z.string().optional(),
-  reference: z.string().max(200).optional()
+  reference: z.string().max(200).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Part ID is required'
+      statusMessage: 'Part ID is required',
     })
   }
 
@@ -37,19 +37,19 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
   // Verify part exists and belongs to org
   const part = await db.query.parts.findFirst({
-    where: and(eq(schema.parts.id, id), eq(schema.parts.organisationId, user.organisationId))
+    where: and(eq(schema.parts.id, id), eq(schema.parts.organisationId, user.organisationId)),
   })
 
   if (!part) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Part not found'
+      statusMessage: 'Part not found',
     })
   }
 
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
   if (newQuantity < 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot reduce stock below zero'
+      statusMessage: 'Cannot reduce stock below zero',
     })
   }
 
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
       .update(schema.parts)
       .set({
         quantityInStock: newQuantity.toString(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(schema.parts.id, id))
 
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
       unitCostAtTime: part.unitCost,
       notes: result.data.notes,
       reference: result.data.reference,
-      userId: user.id
+      userId: user.id,
     })
   })
 
@@ -99,14 +99,14 @@ export default defineEventHandler(async (event) => {
     newValues: {
       quantityInStock: newQuantity,
       adjustmentType: result.data.usageType,
-      adjustmentAmount: result.data.quantityChange
-    }
+      adjustmentAmount: result.data.quantityChange,
+    },
   })
 
   // Fetch updated part
   const updated = await db.query.parts.findFirst({
     where: eq(schema.parts.id, id),
-    with: { category: true }
+    with: { category: true },
   })
 
   return updated

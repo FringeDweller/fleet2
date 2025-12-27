@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 import { previewScheduleOccurrences } from '../../../utils/schedule-calculator'
 
 export default defineEventHandler(async (event) => {
@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Schedule ID is required'
+      statusMessage: 'Schedule ID is required',
     })
   }
 
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   if (isNaN(count) || count < 1 || count > 100) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Count must be between 1 and 100'
+      statusMessage: 'Count must be between 1 and 100',
     })
   }
 
@@ -35,17 +35,17 @@ export default defineEventHandler(async (event) => {
   const schedule = await db.query.maintenanceSchedules.findFirst({
     where: and(
       eq(schema.maintenanceSchedules.id, id),
-      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
+      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
     ),
     with: {
-      asset: true
-    }
+      asset: true,
+    },
   })
 
   if (!schedule) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Maintenance schedule not found'
+      statusMessage: 'Maintenance schedule not found',
     })
   }
 
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     if (!schedule.asset) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Usage-based schedules require a specific asset'
+        statusMessage: 'Usage-based schedules require a specific asset',
       })
     }
 
@@ -77,25 +77,25 @@ export default defineEventHandler(async (event) => {
               ? parseFloat(schedule.lastTriggeredMileage)
               : 0,
             nextTrigger:
-              (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0)
-              + schedule.intervalMileage,
+              (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0) +
+              schedule.intervalMileage,
             progress: currentMileage
               ? Math.round(
-                  ((currentMileage
-                    - (schedule.lastTriggeredMileage
+                  ((currentMileage -
+                    (schedule.lastTriggeredMileage
                       ? parseFloat(schedule.lastTriggeredMileage)
-                      : 0))
-                    / schedule.intervalMileage)
-                  * 100
+                      : 0)) /
+                    schedule.intervalMileage) *
+                    100,
                 )
               : 0,
             alertReached: currentMileage
-              ? ((currentMileage
-                - (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0))
-              / schedule.intervalMileage)
-            * 100
-            >= (schedule.thresholdAlertPercent || 90)
-              : false
+              ? ((currentMileage -
+                  (schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0)) /
+                  schedule.intervalMileage) *
+                  100 >=
+                (schedule.thresholdAlertPercent || 90)
+              : false,
           }
         : null,
       hours: schedule.intervalHours
@@ -105,25 +105,25 @@ export default defineEventHandler(async (event) => {
               ? parseFloat(schedule.lastTriggeredHours)
               : 0,
             nextTrigger:
-              (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0)
-              + schedule.intervalHours,
+              (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0) +
+              schedule.intervalHours,
             progress: currentHours
               ? Math.round(
-                  ((currentHours
-                    - (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0))
-                  / schedule.intervalHours)
-                * 100
+                  ((currentHours -
+                    (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0)) /
+                    schedule.intervalHours) *
+                    100,
                 )
               : 0,
             alertReached: currentHours
-              ? ((currentHours
-                - (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0))
-              / schedule.intervalHours)
-            * 100
-            >= (schedule.thresholdAlertPercent || 90)
-              : false
+              ? ((currentHours -
+                  (schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0)) /
+                  schedule.intervalHours) *
+                  100 >=
+                (schedule.thresholdAlertPercent || 90)
+              : false,
           }
-        : null
+        : null,
     }
   }
 
@@ -131,7 +131,7 @@ export default defineEventHandler(async (event) => {
   if (!schedule.intervalType || !schedule.startDate) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Time-based schedules require intervalType and startDate'
+      statusMessage: 'Time-based schedules require intervalType and startDate',
     })
   }
 
@@ -144,9 +144,9 @@ export default defineEventHandler(async (event) => {
       dayOfWeek: schedule.dayOfWeek,
       dayOfMonth: schedule.dayOfMonth,
       monthOfYear: schedule.monthOfYear,
-      leadTimeDays: schedule.leadTimeDays
+      leadTimeDays: schedule.leadTimeDays,
     },
-    count
+    count,
   )
 
   return {
@@ -154,9 +154,9 @@ export default defineEventHandler(async (event) => {
     scheduleName: schedule.name,
     scheduleType: schedule.scheduleType,
     count: occurrences.length,
-    occurrences: occurrences.map(occ => ({
+    occurrences: occurrences.map((occ) => ({
       dueDate: occ.dueDate.toISOString(),
-      leadDate: occ.leadDate.toISOString()
-    }))
+      leadDate: occ.leadDate.toISOString(),
+    })),
   }
 })

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 
 // Schema validation tests
@@ -11,12 +11,12 @@ const workOrderSchema = z.object({
   dueDate: z.string().datetime().optional().nullable(),
   estimatedDuration: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
-  templateId: z.string().uuid().optional().nullable()
+  templateId: z.string().uuid().optional().nullable(),
 })
 
 const statusTransitionSchema = z.object({
   status: z.enum(['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed']),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 describe('Work Order Schema Validation', () => {
@@ -30,7 +30,7 @@ describe('Work Order Schema Validation', () => {
         priority: 'medium',
         dueDate: '2024-12-31T23:59:59.000Z',
         estimatedDuration: 60,
-        notes: 'Use synthetic oil'
+        notes: 'Use synthetic oil',
       }
 
       const result = workOrderSchema.safeParse(validWorkOrder)
@@ -40,7 +40,7 @@ describe('Work Order Schema Validation', () => {
     it('should require title', () => {
       const invalidWorkOrder = {
         assetId: '123e4567-e89b-12d3-a456-426614174000',
-        priority: 'medium'
+        priority: 'medium',
       }
 
       const result = workOrderSchema.safeParse(invalidWorkOrder)
@@ -51,7 +51,7 @@ describe('Work Order Schema Validation', () => {
       const invalidWorkOrder = {
         title: 'Test',
         assetId: 'not-a-uuid',
-        priority: 'medium'
+        priority: 'medium',
       }
 
       const result = workOrderSchema.safeParse(invalidWorkOrder)
@@ -62,7 +62,7 @@ describe('Work Order Schema Validation', () => {
       const invalidWorkOrder = {
         title: 'Test',
         assetId: '123e4567-e89b-12d3-a456-426614174000',
-        priority: 'urgent' // not a valid priority
+        priority: 'urgent', // not a valid priority
       }
 
       const result = workOrderSchema.safeParse(invalidWorkOrder)
@@ -78,7 +78,7 @@ describe('Work Order Schema Validation', () => {
         assignedToId: null,
         dueDate: null,
         estimatedDuration: null,
-        notes: null
+        notes: null,
       }
 
       const result = workOrderSchema.safeParse(workOrder)
@@ -89,7 +89,7 @@ describe('Work Order Schema Validation', () => {
       const invalidWorkOrder = {
         title: 'a'.repeat(201),
         assetId: '123e4567-e89b-12d3-a456-426614174000',
-        priority: 'medium'
+        priority: 'medium',
       }
 
       const result = workOrderSchema.safeParse(invalidWorkOrder)
@@ -101,7 +101,7 @@ describe('Work Order Schema Validation', () => {
     it('should validate valid status transitions', () => {
       const validTransition = {
         status: 'in_progress',
-        notes: 'Starting work now'
+        notes: 'Starting work now',
       }
 
       const result = statusTransitionSchema.safeParse(validTransition)
@@ -110,7 +110,7 @@ describe('Work Order Schema Validation', () => {
 
     it('should require valid status enum', () => {
       const invalidTransition = {
-        status: 'invalid_status'
+        status: 'invalid_status',
       }
 
       const result = statusTransitionSchema.safeParse(invalidTransition)
@@ -119,7 +119,7 @@ describe('Work Order Schema Validation', () => {
 
     it('should allow notes to be optional', () => {
       const transition = {
-        status: 'completed'
+        status: 'completed',
       }
 
       const result = statusTransitionSchema.safeParse(transition)
@@ -135,7 +135,7 @@ describe('Status Transition Rules', () => {
     in_progress: ['pending_parts', 'completed', 'open'],
     pending_parts: ['in_progress', 'open'],
     completed: ['closed', 'in_progress'],
-    closed: []
+    closed: [],
   }
 
   it('should allow draft to transition to open', () => {
@@ -197,14 +197,14 @@ describe('Checklist Item Validation', () => {
   const checklistItemSchema = z.object({
     title: z.string().min(1).max(200),
     description: z.string().optional().nullable(),
-    isRequired: z.boolean().default(false)
+    isRequired: z.boolean().default(false),
   })
 
   it('should validate a valid checklist item', () => {
     const item = {
       title: 'Check oil level',
       description: 'Ensure oil is at proper level',
-      isRequired: true
+      isRequired: true,
     }
 
     const result = checklistItemSchema.safeParse(item)
@@ -214,7 +214,7 @@ describe('Checklist Item Validation', () => {
   it('should require title', () => {
     const item = {
       description: 'No title',
-      isRequired: false
+      isRequired: false,
     }
 
     const result = checklistItemSchema.safeParse(item)
@@ -223,7 +223,7 @@ describe('Checklist Item Validation', () => {
 
   it('should default isRequired to false', () => {
     const item = {
-      title: 'Check oil level'
+      title: 'Check oil level',
     }
 
     const result = checklistItemSchema.safeParse(item)
@@ -240,7 +240,7 @@ describe('Parts Validation', () => {
     partNumber: z.string().max(100).optional().nullable(),
     quantity: z.number().int().positive().default(1),
     unitCost: z.number().positive().optional().nullable(),
-    notes: z.string().optional().nullable()
+    notes: z.string().optional().nullable(),
   })
 
   it('should validate a valid part', () => {
@@ -249,7 +249,7 @@ describe('Parts Validation', () => {
       partNumber: 'OIL-1234',
       quantity: 1,
       unitCost: 15.99,
-      notes: 'OEM part'
+      notes: 'OEM part',
     }
 
     const result = partSchema.safeParse(part)
@@ -259,7 +259,7 @@ describe('Parts Validation', () => {
   it('should require partName', () => {
     const part = {
       partNumber: 'TEST-123',
-      quantity: 1
+      quantity: 1,
     }
 
     const result = partSchema.safeParse(part)
@@ -269,7 +269,7 @@ describe('Parts Validation', () => {
   it('should require positive quantity', () => {
     const part = {
       partName: 'Oil Filter',
-      quantity: 0
+      quantity: 0,
     }
 
     const result = partSchema.safeParse(part)
@@ -278,7 +278,7 @@ describe('Parts Validation', () => {
 
   it('should default quantity to 1', () => {
     const part = {
-      partName: 'Oil Filter'
+      partName: 'Oil Filter',
     }
 
     const result = partSchema.safeParse(part)
@@ -301,14 +301,14 @@ describe('Photo Validation', () => {
     photoUrl: z.string().url(),
     thumbnailUrl: z.string().url().optional().nullable(),
     photoType: z.enum(['before', 'during', 'after', 'issue', 'other']).default('other'),
-    caption: z.string().max(500).optional().nullable()
+    caption: z.string().max(500).optional().nullable(),
   })
 
   it('should validate a valid photo', () => {
     const photo = {
       photoUrl: 'https://example.com/photo.jpg',
       photoType: 'before',
-      caption: 'Before starting work'
+      caption: 'Before starting work',
     }
 
     const result = photoSchema.safeParse(photo)
@@ -318,7 +318,7 @@ describe('Photo Validation', () => {
   it('should require valid URL for photoUrl', () => {
     const photo = {
       photoUrl: 'not-a-url',
-      photoType: 'before'
+      photoType: 'before',
     }
 
     const result = photoSchema.safeParse(photo)
@@ -327,7 +327,7 @@ describe('Photo Validation', () => {
 
   it('should default photoType to other', () => {
     const photo = {
-      photoUrl: 'https://example.com/photo.jpg'
+      photoUrl: 'https://example.com/photo.jpg',
     }
 
     const result = photoSchema.safeParse(photo)
@@ -342,7 +342,7 @@ describe('Photo Validation', () => {
     for (const photoType of types) {
       const photo = {
         photoUrl: 'https://example.com/photo.jpg',
-        photoType
+        photoType,
       }
       const result = photoSchema.safeParse(photo)
       expect(result.success).toBe(true)
@@ -356,7 +356,7 @@ describe('Task Template Validation', () => {
     title: z.string().min(1).max(200),
     description: z.string().optional(),
     isRequired: z.boolean(),
-    order: z.number().int().nonnegative()
+    order: z.number().int().nonnegative(),
   })
 
   const templateSchema = z.object({
@@ -364,7 +364,7 @@ describe('Task Template Validation', () => {
     description: z.string().optional().nullable(),
     estimatedDuration: z.number().int().positive().optional().nullable(),
     checklistItems: z.array(templateChecklistItemSchema).default([]),
-    isActive: z.boolean().default(true)
+    isActive: z.boolean().default(true),
   })
 
   it('should validate a valid template', () => {
@@ -378,12 +378,12 @@ describe('Task Template Validation', () => {
           title: 'Drain oil',
           description: 'Remove drain plug',
           isRequired: true,
-          order: 0
+          order: 0,
         },
         { id: '2', title: 'Replace filter', isRequired: true, order: 1 },
-        { id: '3', title: 'Add new oil', isRequired: true, order: 2 }
+        { id: '3', title: 'Add new oil', isRequired: true, order: 2 },
       ],
-      isActive: true
+      isActive: true,
     }
 
     const result = templateSchema.safeParse(template)
@@ -392,7 +392,7 @@ describe('Task Template Validation', () => {
 
   it('should require name', () => {
     const template = {
-      description: 'No name template'
+      description: 'No name template',
     }
 
     const result = templateSchema.safeParse(template)
@@ -401,7 +401,7 @@ describe('Task Template Validation', () => {
 
   it('should default checklistItems to empty array', () => {
     const template = {
-      name: 'Empty Template'
+      name: 'Empty Template',
     }
 
     const result = templateSchema.safeParse(template)
@@ -413,7 +413,7 @@ describe('Task Template Validation', () => {
 
   it('should default isActive to true', () => {
     const template = {
-      name: 'Active Template'
+      name: 'Active Template',
     }
 
     const result = templateSchema.safeParse(template)

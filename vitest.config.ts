@@ -5,8 +5,8 @@ export default defineVitestConfig({
     environment: 'nuxt',
     environmentOptions: {
       nuxt: {
-        domEnvironment: 'happy-dom'
-      }
+        domEnvironment: 'happy-dom',
+      },
     },
     include: ['**/*.{test,spec}.{js,ts,jsx,tsx}'],
     exclude: ['node_modules', '.nuxt', '.output', 'e2e/**'],
@@ -20,9 +20,9 @@ export default defineVitestConfig({
         'coverage/**',
         '**/*.d.ts',
         '**/*.config.*',
-        '**/types/**'
-      ]
+        '**/types/**',
+      ],
     },
-    globals: true
-  }
+    globals: true,
+  },
 })

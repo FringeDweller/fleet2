@@ -39,7 +39,7 @@ const skillLevelOptions = [
   { label: 'Entry Level', value: 'entry' },
   { label: 'Intermediate', value: 'intermediate' },
   { label: 'Advanced', value: 'advanced' },
-  { label: 'Expert', value: 'expert' }
+  { label: 'Expert', value: 'expert' },
 ]
 
 const toast = useToast()
@@ -52,14 +52,14 @@ const loading = ref(false)
 const {
   data: templates,
   status,
-  refresh
+  refresh,
 } = await useFetch<TaskTemplate[]>('/api/task-templates', {
   query: computed(() => ({
     search: search.value || undefined,
-    includeArchived: showArchived.value ? 'true' : undefined
+    includeArchived: showArchived.value ? 'true' : undefined,
   })),
   lazy: true,
-  default: () => []
+  default: () => [],
 })
 
 const currentTemplate = ref({
@@ -72,13 +72,13 @@ const currentTemplate = ref({
   skillLevel: 'entry' as SkillLevel,
   checklistItems: [] as TemplateChecklistItem[],
   requiredParts: [] as TemplateRequiredPart[],
-  isActive: true
+  isActive: true,
 })
 
 const newChecklistItem = ref({
   title: '',
   description: '',
-  isRequired: false
+  isRequired: false,
 })
 
 const newRequiredPart = ref({
@@ -86,7 +86,7 @@ const newRequiredPart = ref({
   partNumber: '',
   quantity: 1,
   estimatedCost: null as number | null,
-  notes: ''
+  notes: '',
 })
 
 function openCreateModal() {
@@ -101,7 +101,7 @@ function openCreateModal() {
     skillLevel: 'entry',
     checklistItems: [],
     requiredParts: [],
-    isActive: true
+    isActive: true,
   }
   modalOpen.value = true
 }
@@ -118,7 +118,7 @@ function openEditModal(template: TaskTemplate) {
     skillLevel: template.skillLevel || 'entry',
     checklistItems: [...template.checklistItems],
     requiredParts: [...(template.requiredParts || [])],
-    isActive: template.isActive
+    isActive: template.isActive,
   }
   modalOpen.value = true
 }
@@ -132,7 +132,7 @@ function addRequiredPart() {
     partNumber: newRequiredPart.value.partNumber.trim() || undefined,
     quantity: newRequiredPart.value.quantity,
     estimatedCost: newRequiredPart.value.estimatedCost || undefined,
-    notes: newRequiredPart.value.notes.trim() || undefined
+    notes: newRequiredPart.value.notes.trim() || undefined,
   })
 
   newRequiredPart.value = {
@@ -140,12 +140,14 @@ function addRequiredPart() {
     partNumber: '',
     quantity: 1,
     estimatedCost: null,
-    notes: ''
+    notes: '',
   }
 }
 
 function removeRequiredPart(id: string) {
-  currentTemplate.value.requiredParts = currentTemplate.value.requiredParts.filter(p => p.id !== id)
+  currentTemplate.value.requiredParts = currentTemplate.value.requiredParts.filter(
+    (p) => p.id !== id,
+  )
 }
 
 function addChecklistItem() {
@@ -156,7 +158,7 @@ function addChecklistItem() {
     title: newChecklistItem.value.title.trim(),
     description: newChecklistItem.value.description.trim() || undefined,
     isRequired: newChecklistItem.value.isRequired,
-    order: currentTemplate.value.checklistItems.length
+    order: currentTemplate.value.checklistItems.length,
   })
 
   newChecklistItem.value = { title: '', description: '', isRequired: false }
@@ -164,7 +166,7 @@ function addChecklistItem() {
 
 function removeChecklistItem(id: string) {
   currentTemplate.value.checklistItems = currentTemplate.value.checklistItems.filter(
-    i => i.id !== id
+    (i) => i.id !== id,
   )
   // Reorder
   currentTemplate.value.checklistItems.forEach((item, idx) => {
@@ -209,26 +211,26 @@ async function saveTemplate() {
       skillLevel: currentTemplate.value.skillLevel,
       checklistItems: currentTemplate.value.checklistItems,
       requiredParts: currentTemplate.value.requiredParts,
-      isActive: currentTemplate.value.isActive
+      isActive: currentTemplate.value.isActive,
     }
 
     if (isEditing.value) {
       await $fetch(`/api/task-templates/${currentTemplate.value.id}`, {
         method: 'PUT',
-        body
+        body,
       })
       toast.add({
         title: 'Template updated',
-        description: 'The task template has been updated successfully.'
+        description: 'The task template has been updated successfully.',
       })
     } else {
       await $fetch('/api/task-templates', {
         method: 'POST',
-        body
+        body,
       })
       toast.add({
         title: 'Template created',
-        description: 'The task template has been created successfully.'
+        description: 'The task template has been created successfully.',
       })
     }
 
@@ -238,7 +240,7 @@ async function saveTemplate() {
     toast.add({
       title: 'Error',
       description: isEditing.value ? 'Failed to update template.' : 'Failed to create template.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -249,18 +251,18 @@ async function toggleActive(template: TaskTemplate) {
   try {
     await $fetch(`/api/task-templates/${template.id}`, {
       method: 'PUT',
-      body: { isActive: !template.isActive }
+      body: { isActive: !template.isActive },
     })
     toast.add({
       title: template.isActive ? 'Template deactivated' : 'Template activated',
-      description: `The template "${template.name}" has been ${template.isActive ? 'deactivated' : 'activated'}.`
+      description: `The template "${template.name}" has been ${template.isActive ? 'deactivated' : 'activated'}.`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update template status.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -270,14 +272,14 @@ async function archiveTemplate(template: TaskTemplate) {
     await $fetch(`/api/task-templates/${template.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Template archived',
-      description: `The template "${template.name}" has been archived.`
+      description: `The template "${template.name}" has been archived.`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive template.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -288,22 +290,22 @@ function getRowActions(template: TaskTemplate) {
       {
         label: 'Edit',
         icon: 'i-lucide-pencil',
-        onSelect: () => openEditModal(template)
+        onSelect: () => openEditModal(template),
       },
       {
         label: template.isActive ? 'Deactivate' : 'Activate',
         icon: template.isActive ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left',
-        onSelect: () => toggleActive(template)
-      }
+        onSelect: () => toggleActive(template),
+      },
     ],
     [
       {
         label: 'Archive',
         icon: 'i-lucide-archive',
         color: 'error' as const,
-        onSelect: () => archiveTemplate(template)
-      }
-    ]
+        onSelect: () => archiveTemplate(template),
+      },
+    ],
   ]
 }
 </script>

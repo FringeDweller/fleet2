@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { upperFirst } from 'scule'
-import { getPaginationRowModel } from '@tanstack/table-core'
 import type { Row } from '@tanstack/table-core'
+import { getPaginationRowModel } from '@tanstack/table-core'
 import { formatDistanceToNow, isPast, parseISO } from 'date-fns'
+import { upperFirst } from 'scule'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface WorkOrder {
@@ -52,8 +52,8 @@ const route = useRoute()
 const columnFilters = ref([
   {
     id: 'workOrderNumber',
-    value: ''
-  }
+    value: '',
+  },
 ])
 const columnVisibility = ref()
 const rowSelection = ref({})
@@ -62,7 +62,9 @@ const rowSelection = ref({})
 const statusFilter = ref((route.query.status as string) || 'all')
 const priorityFilter = ref((route.query.priority as string) || 'all')
 const assigneeFilter = ref(
-  route.query.assignedToId === 'null' ? 'unassigned' : (route.query.assignedToId as string) || 'all'
+  route.query.assignedToId === 'null'
+    ? 'unassigned'
+    : (route.query.assignedToId as string) || 'all',
 )
 
 // Computed query params for API
@@ -86,13 +88,13 @@ const { data: technicians } = await useFetch<Technician[]>('/api/technicians', {
 const assigneeOptions = computed(() => {
   const options = [
     { label: 'All Assignees', value: 'all' },
-    { label: 'Unassigned', value: 'unassigned' }
+    { label: 'Unassigned', value: 'unassigned' },
   ]
   if (technicians.value) {
     for (const tech of technicians.value) {
       options.push({
         label: `${tech.firstName} ${tech.lastName}`,
-        value: tech.id
+        value: tech.id,
       })
     }
   }
@@ -101,28 +103,28 @@ const assigneeOptions = computed(() => {
 
 const { data, status, refresh } = await useFetch<WorkOrder[]>('/api/work-orders', {
   lazy: true,
-  query: queryParams
+  query: queryParams,
 })
 
 function getRowItems(row: Row<WorkOrder>) {
   return [
     {
       type: 'label',
-      label: 'Actions'
+      label: 'Actions',
     },
     {
       label: 'View details',
       icon: 'i-lucide-eye',
       onSelect() {
         router.push(`/work-orders/${row.original.id}`)
-      }
+      },
     },
     {
       label: 'Edit work order',
       icon: 'i-lucide-pencil',
       onSelect() {
         router.push(`/work-orders/${row.original.id}/edit`)
-      }
+      },
     },
     {
       label: 'Copy WO number',
@@ -131,12 +133,12 @@ function getRowItems(row: Row<WorkOrder>) {
         navigator.clipboard.writeText(row.original.workOrderNumber)
         toast.add({
           title: 'Copied to clipboard',
-          description: 'Work order number copied to clipboard'
+          description: 'Work order number copied to clipboard',
         })
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Archive work order',
@@ -144,8 +146,8 @@ function getRowItems(row: Row<WorkOrder>) {
       color: 'error',
       onSelect() {
         archiveWorkOrder(row.original.id)
-      }
-    }
+      },
+    },
   ]
 }
 
@@ -155,14 +157,14 @@ async function archiveWorkOrder(id: string) {
     await $fetch(`/api/work-orders/${id}`, { method: 'DELETE' })
     toast.add({
       title: 'Work order archived',
-      description: 'The work order has been archived successfully.'
+      description: 'The work order has been archived successfully.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive work order.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -173,14 +175,14 @@ const statusColors = {
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 } as const
 
 const priorityColors = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
-  critical: 'error'
+  critical: 'error',
 } as const
 
 const statusLabels = {
@@ -189,7 +191,7 @@ const statusLabels = {
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
   completed: 'Completed',
-  closed: 'Closed'
+  closed: 'Closed',
 } as const
 
 function isOverdue(dueDate: string | null, status: string): boolean {
@@ -203,19 +205,19 @@ const columns: TableColumn<WorkOrder>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all',
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
-      })
+        ariaLabel: 'Select row',
+      }),
   },
   {
     accessorKey: 'workOrderNumber',
@@ -231,11 +233,11 @@ const columns: TableColumn<WorkOrder>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
     cell: ({ row }) =>
-      h('span', { class: 'font-medium text-highlighted' }, row.original.workOrderNumber)
+      h('span', { class: 'font-medium text-highlighted' }, row.original.workOrderNumber),
   },
   {
     accessorKey: 'title',
@@ -246,9 +248,9 @@ const columns: TableColumn<WorkOrder>[] = [
         h(
           'p',
           { class: 'text-sm text-muted truncate' },
-          `${row.original.asset.assetNumber} - ${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim()
-        )
-      ])
+          `${row.original.asset.assetNumber} - ${row.original.asset.make || ''} ${row.original.asset.model || ''}`.trim(),
+        ),
+      ]),
   },
   {
     accessorKey: 'priority',
@@ -259,9 +261,9 @@ const columns: TableColumn<WorkOrder>[] = [
       return h(
         UBadge,
         { class: 'capitalize', variant: 'subtle', color },
-        () => row.original.priority
+        () => row.original.priority,
       )
-    }
+    },
   },
   {
     accessorKey: 'status',
@@ -270,7 +272,7 @@ const columns: TableColumn<WorkOrder>[] = [
     cell: ({ row }) => {
       const color = statusColors[row.original.status]
       return h(UBadge, { variant: 'subtle', color }, () => statusLabels[row.original.status])
-    }
+    },
   },
   {
     accessorKey: 'assignedTo',
@@ -282,11 +284,11 @@ const columns: TableColumn<WorkOrder>[] = [
         h(UAvatar, {
           src: assignee.avatarUrl || undefined,
           alt: `${assignee.firstName} ${assignee.lastName}`,
-          size: 'xs'
+          size: 'xs',
         }),
-        h('span', undefined, `${assignee.firstName} ${assignee.lastName}`)
+        h('span', undefined, `${assignee.firstName} ${assignee.lastName}`),
       ])
-    }
+    },
   },
   {
     accessorKey: 'dueDate',
@@ -298,14 +300,14 @@ const columns: TableColumn<WorkOrder>[] = [
       return h(
         'span',
         {
-          class: overdue ? 'text-error font-medium' : undefined
+          class: overdue ? 'text-error font-medium' : undefined,
         },
         [
           formatDistanceToNow(parseISO(dueDate), { addSuffix: true }),
-          overdue ? h('span', { class: 'ml-1' }, '(Overdue)') : null
-        ]
+          overdue ? h('span', { class: 'ml-1' }, '(Overdue)') : null,
+        ],
       )
-    }
+    },
   },
   {
     id: 'actions',
@@ -317,19 +319,19 @@ const columns: TableColumn<WorkOrder>[] = [
           UDropdownMenu,
           {
             content: { align: 'end' },
-            items: getRowItems(row)
+            items: getRowItems(row),
           },
           () =>
             h(UButton, {
               icon: 'i-lucide-ellipsis-vertical',
               color: 'neutral',
               variant: 'ghost',
-              class: 'ml-auto'
-            })
-        )
+              class: 'ml-auto',
+            }),
+        ),
       )
-    }
-  }
+    },
+  },
 ]
 
 const search = computed({
@@ -338,12 +340,12 @@ const search = computed({
   },
   set: (value: string) => {
     table.value?.tableApi?.getColumn('workOrderNumber')?.setFilterValue(value || undefined)
-  }
+  },
 })
 
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 10
+  pageSize: 10,
 })
 </script>
 

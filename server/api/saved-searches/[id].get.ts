@@ -1,5 +1,5 @@
+import { and, eq, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, or } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing saved search ID'
+      statusMessage: 'Missing saved search ID',
     })
   }
 
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     where: and(
       eq(schema.savedSearches.id, id),
       eq(schema.savedSearches.organisationId, session.user.organisationId),
-      or(eq(schema.savedSearches.userId, session.user.id), eq(schema.savedSearches.isShared, true))
+      or(eq(schema.savedSearches.userId, session.user.id), eq(schema.savedSearches.isShared, true)),
     ),
     with: {
       user: {
@@ -32,16 +32,16 @@ export default defineEventHandler(async (event) => {
           id: true,
           firstName: true,
           lastName: true,
-          email: true
-        }
-      }
-    }
+          email: true,
+        },
+      },
+    },
   })
 
   if (!savedSearch) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Saved search not found'
+      statusMessage: 'Saved search not found',
     })
   }
 

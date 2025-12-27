@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { z } from 'zod'
 
 definePageMeta({
   layout: 'auth',
-  middleware: 'guest'
+  middleware: 'guest',
 })
 
 const toast = useToast()
@@ -13,13 +13,13 @@ const isLoading = ref(false)
 const isSubmitted = ref(false)
 
 const schema = z.object({
-  email: z.string().email('Please enter a valid email address')
+  email: z.string().email('Please enter a valid email address'),
 })
 
 type Schema = z.output<typeof schema>
 
 const state = reactive<Partial<Schema>>({
-  email: undefined
+  email: undefined,
 })
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
@@ -29,21 +29,21 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     await $fetch('/api/auth/forgot-password', {
       method: 'POST',
       body: {
-        email: event.data.email
-      }
+        email: event.data.email,
+      },
     })
 
     isSubmitted.value = true
     toast.add({
       title: 'Check your email',
-      description: 'If an account exists, we\'ve sent password reset instructions.',
-      color: 'success'
+      description: "If an account exists, we've sent password reset instructions.",
+      color: 'success',
     })
   } catch {
     toast.add({
       title: 'Error',
       description: 'Something went wrong. Please try again.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     isLoading.value = false

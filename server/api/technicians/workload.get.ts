@@ -1,5 +1,5 @@
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, inArray, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,14 +7,14 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
   // First get the technician role ID
   const technicianRole = await db.query.roles.findFirst({
     where: eq(schema.roles.name, 'Technician'),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!technicianRole) {
@@ -26,20 +26,20 @@ export default defineEventHandler(async (event) => {
     where: and(
       eq(schema.users.organisationId, session.user.organisationId),
       eq(schema.users.isActive, true),
-      eq(schema.users.roleId, technicianRole.id)
+      eq(schema.users.roleId, technicianRole.id),
     ),
     columns: {
       id: true,
       firstName: true,
       lastName: true,
       email: true,
-      avatarUrl: true
-    }
+      avatarUrl: true,
+    },
   })
 
   // Get work order counts by technician
   const activeStatuses = ['open', 'in_progress', 'pending_parts'] as const
-  const technicianIds = technicians.map(t => t.id)
+  const technicianIds = technicians.map((t) => t.id)
 
   if (technicianIds.length === 0) {
     return []
@@ -50,24 +50,7 @@ export default defineEventHandler(async (event) => {
     .select({
       assignedToId: schema.workOrders.assignedToId,
       status: schema.workOrders.status,
-      count: sql<number>`count(*)::int`
-    })
-    .from(schema.workOrders)
-    .where(
-      and(
-        eq(schema.workOrders.organisationId, session.user.organisationId),
-        eq(schema.workOrders.isArchived, false),
-        inArray(schema.workOrders.status, activeStatuses),
-        inArray(schema.workOrders.assignedToId, technicianIds)
-      )
-    )
-    .groupBy(schema.workOrders.assignedToId, schema.workOrders.status)
-
-  // Get overdue counts per technician
-  const overdueCounts = await db
-    .select({
-      assignedToId: schema.workOrders.assignedToId,
-      count: sql<number>`count(*)::int`
+      count: sql<number>`count(*)::int`,
     })
     .from(schema.workOrders)
     .where(
@@ -76,8 +59,25 @@ export default defineEventHandler(async (event) => {
         eq(schema.workOrders.isArchived, false),
         inArray(schema.workOrders.status, activeStatuses),
         inArray(schema.workOrders.assignedToId, technicianIds),
-        sql`${schema.workOrders.dueDate} < now()`
-      )
+      ),
+    )
+    .groupBy(schema.workOrders.assignedToId, schema.workOrders.status)
+
+  // Get overdue counts per technician
+  const overdueCounts = await db
+    .select({
+      assignedToId: schema.workOrders.assignedToId,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(schema.workOrders)
+    .where(
+      and(
+        eq(schema.workOrders.organisationId, session.user.organisationId),
+        eq(schema.workOrders.isArchived, false),
+        inArray(schema.workOrders.status, activeStatuses),
+        inArray(schema.workOrders.assignedToId, technicianIds),
+        sql`${schema.workOrders.dueDate} < now()`,
+      ),
     )
     .groupBy(schema.workOrders.assignedToId)
 
@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
         in_progress: 0,
         pending_parts: 0,
         overdue: 0,
-        total: 0
+        total: 0,
       })
     }
     const entry = workloadMap.get(row.assignedToId)!
@@ -121,14 +121,14 @@ export default defineEventHandler(async (event) => {
   }
 
   // Build response
-  return technicians.map(tech => ({
+  return technicians.map((tech) => ({
     ...tech,
     workload: workloadMap.get(tech.id) || {
       open: 0,
       in_progress: 0,
       pending_parts: 0,
       overdue: 0,
-      total: 0
-    }
+      total: 0,
+    },
   }))
 })

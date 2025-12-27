@@ -1,5 +1,5 @@
+import { and, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, gte, lte, sql } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
 
   if (status && ['active', 'inactive', 'maintenance', 'disposed'].includes(status)) {
     conditions.push(
-      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed')
+      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed'),
     )
   }
 
@@ -53,8 +53,8 @@ export default defineEventHandler(async (event) => {
         ilike(schema.assets.make, `%${search}%`),
         ilike(schema.assets.model, `%${search}%`),
         ilike(schema.assets.licensePlate, `%${search}%`),
-        ilike(schema.assets.description, `%${search}%`)
-      )!
+        ilike(schema.assets.description, `%${search}%`),
+      )!,
     )
   }
 
@@ -93,9 +93,9 @@ export default defineEventHandler(async (event) => {
   const assets = await db.query.assets.findMany({
     where: and(...conditions),
     with: {
-      category: true
+      category: true,
     },
-    orderBy: (assets, { asc }) => [asc(assets.assetNumber)]
+    orderBy: (assets, { asc }) => [asc(assets.assetNumber)],
   })
 
   // Generate CSV
@@ -111,7 +111,7 @@ export default defineEventHandler(async (event) => {
     'Mileage',
     'Operational Hours',
     'Description',
-    'Created At'
+    'Created At',
   ]
 
   const escapeCSV = (value: string | number | null | undefined): string => {
@@ -123,7 +123,7 @@ export default defineEventHandler(async (event) => {
     return str
   }
 
-  const rows = assets.map(asset =>
+  const rows = assets.map((asset) =>
     [
       escapeCSV(asset.assetNumber),
       escapeCSV(asset.vin),
@@ -136,8 +136,8 @@ export default defineEventHandler(async (event) => {
       escapeCSV(asset.mileage),
       escapeCSV(asset.operationalHours),
       escapeCSV(asset.description),
-      escapeCSV(asset.createdAt?.toISOString())
-    ].join(',')
+      escapeCSV(asset.createdAt?.toISOString()),
+    ].join(','),
   )
 
   const csv = [headers.join(','), ...rows].join('\n')
@@ -148,7 +148,7 @@ export default defineEventHandler(async (event) => {
     userId: session.user.id,
     action: 'export',
     entityType: 'assets',
-    newValues: { count: assets.length, filters: { search, status, categoryId, make, model } }
+    newValues: { count: assets.length, filters: { search, status, categoryId, make, model } },
   })
 
   // Set response headers for CSV download
@@ -156,7 +156,7 @@ export default defineEventHandler(async (event) => {
   setHeader(
     event,
     'Content-Disposition',
-    `attachment; filename="assets-export-${new Date().toISOString().split('T')[0]}.csv"`
+    `attachment; filename="assets-export-${new Date().toISOString().split('T')[0]}.csv"`,
   )
 
   return csv

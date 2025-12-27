@@ -41,19 +41,19 @@ const expandedCategories = ref<Set<string>>(new Set())
 const {
   data: categoryTree,
   status,
-  refresh
+  refresh,
 } = await useFetch<CategoryNode[]>('/api/asset-categories/tree', {
   query: computed(() => ({
-    includeInactive: showInactive.value ? 'true' : undefined
+    includeInactive: showInactive.value ? 'true' : undefined,
   })),
   lazy: true,
-  default: () => []
+  default: () => [],
 })
 
 // Flat list for parent selection
 const { data: allCategories } = await useFetch<CategoryNode[]>('/api/asset-categories/tree', {
   lazy: true,
-  default: () => []
+  default: () => [],
 })
 
 const currentCategory = ref({
@@ -63,7 +63,7 @@ const currentCategory = ref({
   parentId: undefined as string | undefined,
   defaultMaintenanceSchedules: [] as CategoryMaintenanceTemplate[],
   defaultParts: [] as DefaultPart[],
-  isActive: true
+  isActive: true,
 })
 
 const newSchedule = ref({
@@ -73,7 +73,7 @@ const newSchedule = ref({
   intervalHours: null as number | null,
   intervalMileage: null as number | null,
   estimatedDuration: null as number | null,
-  checklistItems: ''
+  checklistItems: '',
 })
 
 const newPart = ref({
@@ -81,14 +81,14 @@ const newPart = ref({
   partNumber: '',
   quantity: 1,
   estimatedCost: null as number | null,
-  notes: ''
+  notes: '',
 })
 
 function flattenCategories(
   nodes: CategoryNode[],
-  level = 0
-): Array<{ id: string, name: string, level: number }> {
-  const result: Array<{ id: string, name: string, level: number }> = []
+  level = 0,
+): Array<{ id: string; name: string; level: number }> {
+  const result: Array<{ id: string; name: string; level: number }> = []
   for (const node of nodes) {
     result.push({ id: node.id, name: node.name, level })
     if (node.children.length > 0) {
@@ -103,11 +103,11 @@ const parentOptions = computed(() => {
   return [
     { label: 'No Parent (Root Category)', value: '' },
     ...flat
-      .filter(c => c.id !== currentCategory.value.id)
-      .map(c => ({
+      .filter((c) => c.id !== currentCategory.value.id)
+      .map((c) => ({
         label: '\u00A0\u00A0'.repeat(c.level) + c.name,
-        value: c.id
-      }))
+        value: c.id,
+      })),
   ]
 })
 
@@ -128,7 +128,7 @@ function openCreateModal(parentId?: string) {
     parentId: parentId || undefined,
     defaultMaintenanceSchedules: [],
     defaultParts: [],
-    isActive: true
+    isActive: true,
   }
   modalOpen.value = true
 }
@@ -142,7 +142,7 @@ function openEditModal(category: CategoryNode) {
     parentId: category.parentId ?? undefined,
     defaultMaintenanceSchedules: [...(category.defaultMaintenanceSchedules || [])],
     defaultParts: [...(category.defaultParts || [])],
-    isActive: category.isActive
+    isActive: category.isActive,
   }
   modalOpen.value = true
 }
@@ -159,8 +159,8 @@ function addSchedule() {
     intervalMileage: newSchedule.value.intervalMileage || undefined,
     estimatedDuration: newSchedule.value.estimatedDuration || undefined,
     checklistItems: newSchedule.value.checklistItems
-      ? newSchedule.value.checklistItems.split('\n').filter(i => i.trim())
-      : undefined
+      ? newSchedule.value.checklistItems.split('\n').filter((i) => i.trim())
+      : undefined,
   })
 
   newSchedule.value = {
@@ -170,13 +170,13 @@ function addSchedule() {
     intervalHours: null,
     intervalMileage: null,
     estimatedDuration: null,
-    checklistItems: ''
+    checklistItems: '',
   }
 }
 
 function removeSchedule(id: string) {
-  currentCategory.value.defaultMaintenanceSchedules
-    = currentCategory.value.defaultMaintenanceSchedules.filter(s => s.id !== id)
+  currentCategory.value.defaultMaintenanceSchedules =
+    currentCategory.value.defaultMaintenanceSchedules.filter((s) => s.id !== id)
 }
 
 function addPart() {
@@ -188,14 +188,14 @@ function addPart() {
     partNumber: newPart.value.partNumber.trim() || undefined,
     quantity: newPart.value.quantity,
     estimatedCost: newPart.value.estimatedCost || undefined,
-    notes: newPart.value.notes.trim() || undefined
+    notes: newPart.value.notes.trim() || undefined,
   })
 
   newPart.value = { partName: '', partNumber: '', quantity: 1, estimatedCost: null, notes: '' }
 }
 
 function removePart(id: string) {
-  currentCategory.value.defaultParts = currentCategory.value.defaultParts.filter(p => p.id !== id)
+  currentCategory.value.defaultParts = currentCategory.value.defaultParts.filter((p) => p.id !== id)
 }
 
 async function saveCategory() {
@@ -209,27 +209,27 @@ async function saveCategory() {
       parentId: currentCategory.value.parentId || null,
       defaultMaintenanceSchedules: currentCategory.value.defaultMaintenanceSchedules,
       defaultParts: currentCategory.value.defaultParts,
-      isActive: currentCategory.value.isActive
+      isActive: currentCategory.value.isActive,
     }
 
     if (isEditing.value) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await ($fetch as any)(`/api/asset-categories/${currentCategory.value.id}`, {
         method: 'PUT',
-        body
+        body,
       })
       toast.add({
         title: 'Category updated',
-        description: 'The asset category has been updated successfully.'
+        description: 'The asset category has been updated successfully.',
       })
     } else {
       await $fetch('/api/asset-categories', {
         method: 'POST',
-        body
+        body,
       })
       toast.add({
         title: 'Category created',
-        description: 'The asset category has been created successfully.'
+        description: 'The asset category has been created successfully.',
       })
     }
 
@@ -240,9 +240,9 @@ async function saveCategory() {
     toast.add({
       title: 'Error',
       description:
-        err.data?.statusMessage
-        || (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
-      color: 'error'
+        err.data?.statusMessage ||
+        (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -254,17 +254,17 @@ async function toggleActive(category: CategoryNode) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/asset-categories/${category.id}`, {
       method: 'PUT',
-      body: { isActive: !category.isActive }
+      body: { isActive: !category.isActive },
     })
     toast.add({
-      title: category.isActive ? 'Category deactivated' : 'Category activated'
+      title: category.isActive ? 'Category deactivated' : 'Category activated',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update category status.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -273,11 +273,11 @@ async function deleteCategory(category: CategoryNode) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/asset-categories/${category.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Category deleted',
-      description: `"${category.name}" has been deleted.`
+      description: `"${category.name}" has been deleted.`,
     })
     refresh()
   } catch (error: unknown) {
@@ -285,7 +285,7 @@ async function deleteCategory(category: CategoryNode) {
     toast.add({
       title: 'Error',
       description: err.data?.statusMessage || 'Failed to delete category.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -296,27 +296,27 @@ function getRowActions(category: CategoryNode) {
       {
         label: 'Edit',
         icon: 'i-lucide-pencil',
-        onSelect: () => openEditModal(category)
+        onSelect: () => openEditModal(category),
       },
       {
         label: 'Add Subcategory',
         icon: 'i-lucide-plus',
-        onSelect: () => openCreateModal(category.id)
+        onSelect: () => openCreateModal(category.id),
       },
       {
         label: category.isActive ? 'Deactivate' : 'Activate',
         icon: category.isActive ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left',
-        onSelect: () => toggleActive(category)
-      }
+        onSelect: () => toggleActive(category),
+      },
     ],
     [
       {
         label: 'Delete',
         icon: 'i-lucide-trash-2',
         color: 'error' as const,
-        onSelect: () => deleteCategory(category)
-      }
-    ]
+        onSelect: () => deleteCategory(category),
+      },
+    ],
   ]
 }
 </script>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
+import { h, resolveComponent } from 'vue'
 import type { Period, Range, Sale } from '~/types'
 
 const props = defineProps<{
@@ -15,7 +15,7 @@ const sampleEmails = [
   'mia.white@example.com',
   'william.brown@example.com',
   'emma.davis@example.com',
-  'ethan.harris@example.com'
+  'ethan.harris@example.com',
 ]
 
 const { data } = await useAsyncData(
@@ -33,7 +33,7 @@ const { data } = await useAsyncData(
         date: date.toISOString(),
         status: randomFrom(['paid', 'failed', 'refunded']),
         email: randomFrom(sampleEmails),
-        amount: randomInt(100, 1000)
+        amount: randomInt(100, 1000),
       })
     }
 
@@ -41,15 +41,15 @@ const { data } = await useAsyncData(
   },
   {
     watch: [() => props.period, () => props.range],
-    default: () => []
-  }
+    default: () => [],
+  },
 )
 
 const columns: TableColumn<Sale>[] = [
   {
     accessorKey: 'id',
     header: 'ID',
-    cell: ({ row }) => `#${row.getValue('id')}`
+    cell: ({ row }) => `#${row.getValue('id')}`,
   },
   {
     accessorKey: 'date',
@@ -60,9 +60,9 @@ const columns: TableColumn<Sale>[] = [
         month: 'short',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
       })
-    }
+    },
   },
   {
     accessorKey: 'status',
@@ -71,17 +71,17 @@ const columns: TableColumn<Sale>[] = [
       const color = {
         paid: 'success' as const,
         failed: 'error' as const,
-        refunded: 'neutral' as const
+        refunded: 'neutral' as const,
       }[row.getValue('status') as string]
 
       return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () =>
-        row.getValue('status')
+        row.getValue('status'),
       )
-    }
+    },
   },
   {
     accessorKey: 'email',
-    header: 'Email'
+    header: 'Email',
   },
   {
     accessorKey: 'amount',
@@ -91,12 +91,12 @@ const columns: TableColumn<Sale>[] = [
 
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'EUR'
+        currency: 'EUR',
       }).format(amount)
 
       return h('div', { class: 'text-right font-medium' }, formatted)
-    }
-  }
+    },
+  },
 ]
 </script>
 

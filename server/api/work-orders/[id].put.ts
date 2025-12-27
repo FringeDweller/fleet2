@@ -1,9 +1,9 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 import {
   createWorkOrderAssignedNotification,
-  createWorkOrderUnassignedNotification
+  createWorkOrderUnassignedNotification,
 } from '../../utils/notifications'
 
 const updateWorkOrderSchema = z.object({
@@ -15,7 +15,7 @@ const updateWorkOrderSchema = z.object({
   estimatedDuration: z.number().int().positive().optional().nullable(),
   actualDuration: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
-  completionNotes: z.string().optional().nullable()
+  completionNotes: z.string().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -52,19 +52,19 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
-    )
+      eq(schema.workOrders.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.title !== undefined) updateData.title = result.data.title
@@ -87,15 +87,15 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(schema.workOrders.id, id),
-        eq(schema.workOrders.organisationId, session.user.organisationId)
-      )
+        eq(schema.workOrders.organisationId, session.user.organisationId),
+      ),
     )
     .returning()
 
   if (!workOrder) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to update work order'
+      statusMessage: 'Failed to update work order',
     })
   }
 
@@ -107,7 +107,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'work_order',
     entityId: workOrder.id,
     oldValues: existing,
-    newValues: workOrder
+    newValues: workOrder,
   })
 
   // Handle assignment notifications
@@ -124,7 +124,7 @@ export default defineEventHandler(async (event) => {
         userId: oldAssignee,
         workOrderNumber: workOrder.workOrderNumber,
         workOrderTitle: workOrder.title,
-        unassignedByName: assignedByName
+        unassignedByName: assignedByName,
       })
     }
 
@@ -136,7 +136,7 @@ export default defineEventHandler(async (event) => {
         workOrderNumber: workOrder.workOrderNumber,
         workOrderTitle: workOrder.title,
         workOrderId: workOrder.id,
-        assignedByName
+        assignedByName,
       })
     }
   }

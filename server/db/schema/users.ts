@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, boolean, integer, index } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { roles } from './roles'
 
@@ -26,13 +26,13 @@ export const users = pgTable(
     passwordResetToken: varchar('password_reset_token', { length: 255 }),
     passwordResetExpires: timestamp('password_reset_expires', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('users_organisation_id_idx').on(table.organisationId),
     index('users_email_idx').on(table.email),
-    index('users_role_id_idx').on(table.roleId)
-  ]
+    index('users_role_id_idx').on(table.roleId),
+  ],
 )
 
 export type User = typeof users.$inferSelect

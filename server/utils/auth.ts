@@ -1,14 +1,14 @@
 import { hash, verify } from '@node-rs/argon2'
-import { db, schema } from './db'
-import { eq, and, gt } from 'drizzle-orm'
+import { and, eq, gt } from 'drizzle-orm'
 import type { SafeUser } from '../db/schema/users'
+import { db, schema } from './db'
 
 // Argon2 configuration (OWASP recommended)
 const ARGON2_OPTIONS = {
   memoryCost: 19456, // 19 MiB
   timeCost: 2,
   outputLen: 32,
-  parallelism: 1
+  parallelism: 1,
 }
 
 // Account lockout configuration
@@ -41,8 +41,8 @@ export async function authenticateUser(email: string, password: string): Promise
     where: eq(schema.users.email, email.toLowerCase()),
     with: {
       role: true,
-      organisation: true
-    }
+      organisation: true,
+    },
   })
 
   if (!user) {
@@ -60,7 +60,7 @@ export async function authenticateUser(email: string, password: string): Promise
     return {
       success: false,
       error: `Account is locked. Try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}`,
-      isLocked: true
+      isLocked: true,
     }
   }
 
@@ -72,7 +72,7 @@ export async function authenticateUser(email: string, password: string): Promise
     const newFailedAttempts = user.failedLoginAttempts + 1
     const updates: Partial<typeof schema.users.$inferInsert> = {
       failedLoginAttempts: newFailedAttempts,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
 
     // Lock account if max attempts exceeded
@@ -88,14 +88,14 @@ export async function authenticateUser(email: string, password: string): Promise
       return {
         success: false,
         error: `Account locked after ${MAX_FAILED_ATTEMPTS} failed attempts. Try again in ${LOCKOUT_DURATION_MINUTES} minutes`,
-        isLocked: true
+        isLocked: true,
       }
     }
 
     return {
       success: false,
       error: 'Invalid email or password',
-      remainingAttempts: Math.max(0, remainingAttempts)
+      remainingAttempts: Math.max(0, remainingAttempts),
     }
   }
 
@@ -106,7 +106,7 @@ export async function authenticateUser(email: string, password: string): Promise
       failedLoginAttempts: 0,
       lockedUntil: null,
       lastLoginAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.users.id, user.id))
 
@@ -124,7 +124,7 @@ export async function authenticateUser(email: string, password: string): Promise
     emailVerified: user.emailVerified,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
   }
 
   return { success: true, user: safeUser }
@@ -132,7 +132,7 @@ export async function authenticateUser(email: string, password: string): Promise
 
 export async function getUserById(userId: string): Promise<SafeUser | null> {
   const user = await db.query.users.findFirst({
-    where: and(eq(schema.users.id, userId), eq(schema.users.isActive, true))
+    where: and(eq(schema.users.id, userId), eq(schema.users.isActive, true)),
   })
 
   if (!user) return null
@@ -150,13 +150,13 @@ export async function getUserById(userId: string): Promise<SafeUser | null> {
     emailVerified: user.emailVerified,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
   }
 }
 
 export async function generatePasswordResetToken(email: string): Promise<string | null> {
   const user = await db.query.users.findFirst({
-    where: eq(schema.users.email, email.toLowerCase())
+    where: eq(schema.users.email, email.toLowerCase()),
   })
 
   if (!user) return null
@@ -170,7 +170,7 @@ export async function generatePasswordResetToken(email: string): Promise<string 
     .set({
       passwordResetToken: token,
       passwordResetExpires: expires,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.users.id, user.id))
 
@@ -181,8 +181,8 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
   const user = await db.query.users.findFirst({
     where: and(
       eq(schema.users.passwordResetToken, token),
-      gt(schema.users.passwordResetExpires, new Date())
-    )
+      gt(schema.users.passwordResetExpires, new Date()),
+    ),
   })
 
   if (!user) return false
@@ -197,7 +197,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
       passwordResetExpires: null,
       failedLoginAttempts: 0,
       lockedUntil: null,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.users.id, user.id))
 

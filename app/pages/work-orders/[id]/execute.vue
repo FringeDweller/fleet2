@@ -3,7 +3,7 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 
 definePageMeta({
   middleware: 'auth',
-  layout: 'minimal'
+  layout: 'minimal',
 })
 
 interface ChecklistItem {
@@ -43,9 +43,9 @@ const {
   data: workOrder,
   status,
   error,
-  refresh
+  refresh,
 } = await useFetch<WorkOrder>(`/api/work-orders/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 const loading = ref<Record<string, boolean>>({})
@@ -59,7 +59,7 @@ const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 }
 
 const statusLabels: Record<string, string> = {
@@ -68,31 +68,31 @@ const statusLabels: Record<string, string> = {
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
   completed: 'Completed',
-  closed: 'Closed'
+  closed: 'Closed',
 }
 
 const priorityColors: Record<string, 'neutral' | 'info' | 'warning' | 'error'> = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
-  critical: 'error'
+  critical: 'error',
 }
 
 const checklistProgress = computed(() => {
   if (!workOrder.value?.checklistItems.length) return null
-  const completed = workOrder.value.checklistItems.filter(i => i.isCompleted).length
+  const completed = workOrder.value.checklistItems.filter((i) => i.isCompleted).length
   const total = workOrder.value.checklistItems.length
   const requiredCompleted = workOrder.value.checklistItems.filter(
-    i => i.isRequired && i.isCompleted
+    (i) => i.isRequired && i.isCompleted,
   ).length
-  const requiredTotal = workOrder.value.checklistItems.filter(i => i.isRequired).length
+  const requiredTotal = workOrder.value.checklistItems.filter((i) => i.isRequired).length
   return {
     completed,
     total,
     percentage: Math.round((completed / total) * 100),
     requiredCompleted,
     requiredTotal,
-    allRequiredDone: requiredCompleted === requiredTotal
+    allRequiredDone: requiredCompleted === requiredTotal,
   }
 })
 
@@ -112,14 +112,14 @@ async function toggleChecklistItem(item: ChecklistItem) {
   try {
     await $fetch(`/api/work-orders/${route.params.id}/checklist/${item.id}`, {
       method: 'PUT',
-      body: { isCompleted: !item.isCompleted }
+      body: { isCompleted: !item.isCompleted },
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update checklist item.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value[item.id] = false
@@ -131,18 +131,18 @@ async function startWork() {
   try {
     await $fetch(`/api/work-orders/${route.params.id}/status`, {
       method: 'POST',
-      body: { status: 'in_progress' }
+      body: { status: 'in_progress' },
     })
     toast.add({
       title: 'Work started',
-      description: 'Work order is now in progress.'
+      description: 'Work order is now in progress.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to start work.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     statusLoading.value = false
@@ -156,12 +156,12 @@ async function completeWork() {
       method: 'POST',
       body: {
         status: 'completed',
-        notes: completionNotes.value.trim() || undefined
-      }
+        notes: completionNotes.value.trim() || undefined,
+      },
     })
     toast.add({
       title: 'Work completed',
-      description: 'Work order has been marked as complete.'
+      description: 'Work order has been marked as complete.',
     })
     showCompletionModal.value = false
     router.push('/work-orders')
@@ -169,7 +169,7 @@ async function completeWork() {
     toast.add({
       title: 'Error',
       description: 'Failed to complete work order.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     statusLoading.value = false
@@ -181,18 +181,18 @@ async function markPendingParts() {
   try {
     await $fetch(`/api/work-orders/${route.params.id}/status`, {
       method: 'POST',
-      body: { status: 'pending_parts' }
+      body: { status: 'pending_parts' },
     })
     toast.add({
       title: 'Status updated',
-      description: 'Work order is now pending parts.'
+      description: 'Work order is now pending parts.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update status.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     statusLoading.value = false

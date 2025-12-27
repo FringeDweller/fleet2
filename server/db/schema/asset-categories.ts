@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, index, jsonb } from 'drizzle-orm/pg-core'
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 
 export interface CategoryMaintenanceTemplate {
@@ -37,12 +37,12 @@ export const assetCategories = pgTable(
     defaultParts: jsonb('default_parts').$type<DefaultPart[]>().default([]),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('asset_categories_organisation_id_idx').on(table.organisationId),
-    index('asset_categories_parent_id_idx').on(table.parentId)
-  ]
+    index('asset_categories_parent_id_idx').on(table.parentId),
+  ],
 )
 
 export type AssetCategory = typeof assetCategories.$inferSelect

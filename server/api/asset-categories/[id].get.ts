@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,20 +16,20 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing category ID'
+      statusMessage: 'Missing category ID',
     })
   }
 
   const category = await db.query.assetCategories.findFirst({
     where: and(
       eq(schema.assetCategories.id, id),
-      eq(schema.assetCategories.organisationId, session.user.organisationId)
+      eq(schema.assetCategories.organisationId, session.user.organisationId),
     ),
     with: {
       parent: true,
       children: {
         where: eq(schema.assetCategories.isActive, true),
-        orderBy: (categories, { asc }) => [asc(categories.name)]
+        orderBy: (categories, { asc }) => [asc(categories.name)],
       },
       assets: {
         where: eq(schema.assets.isArchived, false),
@@ -37,17 +37,17 @@ export default defineEventHandler(async (event) => {
           id: true,
           assetNumber: true,
           make: true,
-          model: true
+          model: true,
         },
-        limit: 10
-      }
-    }
+        limit: 10,
+      },
+    },
   })
 
   if (!category) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Category not found'
+      statusMessage: 'Category not found',
     })
   }
 

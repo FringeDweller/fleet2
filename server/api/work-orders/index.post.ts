@@ -1,6 +1,6 @@
+import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and, sql } from 'drizzle-orm'
 import { createWorkOrderAssignedNotification } from '../../utils/notifications'
 
 const createWorkOrderSchema = z.object({
@@ -13,7 +13,7 @@ const createWorkOrderSchema = z.object({
   status: z.enum(['draft', 'open']).default('draft'),
   dueDate: z.string().datetime().optional().nullable(),
   estimatedDuration: z.number().int().positive().optional().nullable(),
-  notes: z.string().optional().nullable()
+  notes: z.string().optional().nullable(),
 })
 
 async function generateWorkOrderNumber(organisationId: string): Promise<string> {
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -44,7 +44,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -64,18 +64,18 @@ export default defineEventHandler(async (event) => {
     const template = await db.query.taskTemplates.findFirst({
       where: and(
         eq(schema.taskTemplates.id, result.data.templateId),
-        eq(schema.taskTemplates.organisationId, session.user.organisationId)
-      )
+        eq(schema.taskTemplates.organisationId, session.user.organisationId),
+      ),
     })
 
     if (template?.checklistItems) {
-      checklistItemsToCreate = template.checklistItems.map(item => ({
+      checklistItemsToCreate = template.checklistItems.map((item) => ({
         workOrderId: '', // Will be set after work order is created
         templateItemId: item.id,
         title: item.title,
         description: item.description || null,
         isRequired: item.isRequired,
-        order: item.order
+        order: item.order,
       }))
     }
   }
@@ -95,24 +95,24 @@ export default defineEventHandler(async (event) => {
       status: result.data.status,
       dueDate: result.data.dueDate ? new Date(result.data.dueDate) : null,
       estimatedDuration: result.data.estimatedDuration,
-      notes: result.data.notes
+      notes: result.data.notes,
     })
     .returning()
 
   if (!workOrder) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create work order'
+      statusMessage: 'Failed to create work order',
     })
   }
 
   // Create checklist items if template was selected
   if (checklistItemsToCreate.length > 0) {
     await db.insert(schema.workOrderChecklistItems).values(
-      checklistItemsToCreate.map(item => ({
+      checklistItemsToCreate.map((item) => ({
         ...item,
-        workOrderId: workOrder.id
-      }))
+        workOrderId: workOrder.id,
+      })),
     )
   }
 
@@ -122,7 +122,7 @@ export default defineEventHandler(async (event) => {
     fromStatus: null,
     toStatus: result.data.status,
     changedById: session.user.id,
-    notes: 'Work order created'
+    notes: 'Work order created',
   })
 
   // Log the creation in audit log
@@ -132,7 +132,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'work_order',
     entityId: workOrder.id,
-    newValues: workOrder
+    newValues: workOrder,
   })
 
   // Notify assignee if work order was created with an assignment
@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
       workOrderNumber: workOrder.workOrderNumber,
       workOrderTitle: workOrder.title,
       workOrderId: workOrder.id,
-      assignedByName: `${session.user.firstName} ${session.user.lastName}`
+      assignedByName: `${session.user.firstName} ${session.user.lastName}`,
     })
   }
 

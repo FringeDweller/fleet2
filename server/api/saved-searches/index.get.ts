@@ -1,5 +1,5 @@
+import { and, eq, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, or } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const conditions = [
     eq(schema.savedSearches.organisationId, session.user.organisationId),
-    or(eq(schema.savedSearches.userId, session.user.id), eq(schema.savedSearches.isShared, true))!
+    or(eq(schema.savedSearches.userId, session.user.id), eq(schema.savedSearches.isShared, true))!,
   ]
 
   if (entity && ['asset', 'work_order'].includes(entity)) {
@@ -31,11 +31,11 @@ export default defineEventHandler(async (event) => {
           id: true,
           firstName: true,
           lastName: true,
-          email: true
-        }
-      }
+          email: true,
+        },
+      },
     },
-    orderBy: (searches, { desc }) => [desc(searches.createdAt)]
+    orderBy: (searches, { desc }) => [desc(searches.createdAt)],
   })
 
   return savedSearches

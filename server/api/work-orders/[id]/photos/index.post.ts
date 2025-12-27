@@ -1,12 +1,12 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const createPhotoSchema = z.object({
   photoUrl: z.string().url(),
   thumbnailUrl: z.string().url().optional().nullable(),
   photoType: z.enum(['before', 'during', 'after', 'issue', 'other']).default('other'),
-  caption: z.string().max(500).optional().nullable()
+  caption: z.string().max(500).optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -43,15 +43,15 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -63,14 +63,14 @@ export default defineEventHandler(async (event) => {
       thumbnailUrl: result.data.thumbnailUrl,
       photoType: result.data.photoType,
       caption: result.data.caption,
-      uploadedById: session.user.id
+      uploadedById: session.user.id,
     })
     .returning()
 
   if (!photo) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to add photo'
+      statusMessage: 'Failed to add photo',
     })
   }
 

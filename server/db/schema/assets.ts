@@ -1,23 +1,23 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
   boolean,
-  integer,
   decimal,
   index,
-  pgEnum
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import { organisations } from './organisations'
 import { assetCategories } from './asset-categories'
+import { organisations } from './organisations'
 
 export const assetStatusEnum = pgEnum('asset_status', [
   'active',
   'inactive',
   'maintenance',
-  'disposed'
+  'disposed',
 ])
 
 export const assets = pgTable(
@@ -42,15 +42,15 @@ export const assets = pgTable(
     isArchived: boolean('is_archived').default(false).notNull(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('assets_organisation_id_idx').on(table.organisationId),
     index('assets_category_id_idx').on(table.categoryId),
     index('assets_asset_number_idx').on(table.assetNumber),
     index('assets_status_idx').on(table.status),
-    index('assets_is_archived_idx').on(table.isArchived)
-  ]
+    index('assets_is_archived_idx').on(table.isArchived),
+  ],
 )
 
 export type Asset = typeof assets.$inferSelect

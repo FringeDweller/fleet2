@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing saved search ID'
+      statusMessage: 'Missing saved search ID',
     })
   }
 
@@ -25,14 +25,14 @@ export default defineEventHandler(async (event) => {
     where: and(
       eq(schema.savedSearches.id, id),
       eq(schema.savedSearches.organisationId, session.user.organisationId),
-      eq(schema.savedSearches.userId, session.user.id)
-    )
+      eq(schema.savedSearches.userId, session.user.id),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Saved search not found or you do not have permission to delete it'
+      statusMessage: 'Saved search not found or you do not have permission to delete it',
     })
   }
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     action: 'delete',
     entityType: 'saved_search',
     entityId: id,
-    oldValues: { name: existing.name, filters: existing.filters }
+    oldValues: { name: existing.name, filters: existing.filters },
   })
 
   return { success: true }

@@ -1,13 +1,13 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
   boolean,
   decimal,
   index,
-  pgEnum
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { partCategories } from './part-categories'
@@ -22,7 +22,7 @@ export const partUnitEnum = pgEnum('part_unit', [
   'feet',
   'box',
   'set',
-  'pair'
+  'pair',
 ])
 
 export const parts = pgTable(
@@ -49,13 +49,13 @@ export const parts = pgTable(
     location: varchar('location', { length: 100 }),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('parts_organisation_id_idx').on(table.organisationId),
     index('parts_category_id_idx').on(table.categoryId),
-    index('parts_sku_idx').on(table.sku)
-  ]
+    index('parts_sku_idx').on(table.sku),
+  ],
 )
 
 export type Part = typeof parts.$inferSelect

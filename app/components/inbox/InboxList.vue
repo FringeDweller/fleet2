@@ -22,7 +22,7 @@ watch(selectedMail, () => {
 
 defineShortcuts({
   arrowdown: () => {
-    const index = props.mails.findIndex(mail => mail.id === selectedMail.value?.id)
+    const index = props.mails.findIndex((mail) => mail.id === selectedMail.value?.id)
 
     if (index === -1) {
       selectedMail.value = props.mails[0]
@@ -31,14 +31,14 @@ defineShortcuts({
     }
   },
   arrowup: () => {
-    const index = props.mails.findIndex(mail => mail.id === selectedMail.value?.id)
+    const index = props.mails.findIndex((mail) => mail.id === selectedMail.value?.id)
 
     if (index === -1) {
       selectedMail.value = props.mails[props.mails.length - 1]
     } else if (index > 0) {
       selectedMail.value = props.mails[index - 1]
     }
-  }
+  },
 })
 </script>
 

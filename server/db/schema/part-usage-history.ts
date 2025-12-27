@@ -1,12 +1,12 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
-  timestamp,
   decimal,
   index,
   pgEnum,
-  text
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
 import { parts } from './parts'
 import { users } from './users'
@@ -18,7 +18,7 @@ export const partUsageTypeEnum = pgEnum('part_usage_type', [
   'restock',
   'return',
   'damaged',
-  'expired'
+  'expired',
 ])
 
 export const partUsageHistory = pgTable(
@@ -37,13 +37,13 @@ export const partUsageHistory = pgTable(
     notes: text('notes'),
     reference: varchar('reference', { length: 200 }),
     userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('part_usage_history_part_id_idx').on(table.partId),
     index('part_usage_history_work_order_id_idx').on(table.workOrderId),
-    index('part_usage_history_created_at_idx').on(table.createdAt)
-  ]
+    index('part_usage_history_created_at_idx').on(table.createdAt),
+  ],
 )
 
 export type PartUsageHistory = typeof partUsageHistory.$inferSelect

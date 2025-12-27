@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, index } from 'drizzle-orm/pg-core'
+import { boolean, index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 
 export const partCategories = pgTable(
@@ -13,12 +13,12 @@ export const partCategories = pgTable(
     description: text('description'),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('part_categories_organisation_id_idx').on(table.organisationId),
-    index('part_categories_parent_id_idx').on(table.parentId)
-  ]
+    index('part_categories_parent_id_idx').on(table.parentId),
+  ],
 )
 
 export type PartCategory = typeof partCategories.$inferSelect

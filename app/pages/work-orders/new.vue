@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Asset {
@@ -33,7 +33,7 @@ const toast = useToast()
 const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
 const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', {
-  lazy: true
+  lazy: true,
 })
 
 const schema = z.object({
@@ -46,7 +46,7 @@ const schema = z.object({
   status: z.enum(['draft', 'open']),
   dueDate: z.string().optional(),
   estimatedDuration: z.number().int().positive().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 type Schema = z.output<typeof schema>
@@ -61,7 +61,7 @@ const state = reactive<Partial<Schema>>({
   status: 'draft',
   dueDate: undefined,
   estimatedDuration: undefined,
-  notes: undefined
+  notes: undefined,
 })
 
 const loading = ref(false)
@@ -73,13 +73,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: {
         ...event.data,
-        dueDate: event.data.dueDate ? new Date(event.data.dueDate).toISOString() : undefined
-      }
+        dueDate: event.data.dueDate ? new Date(event.data.dueDate).toISOString() : undefined,
+      },
     })
     toast.add({
       title: 'Work order created',
       description: `Work order ${(workOrder as { workOrderNumber: string }).workOrderNumber} has been created successfully.`,
-      color: 'success'
+      color: 'success',
     })
     router.push('/work-orders')
   } catch (error: unknown) {
@@ -87,7 +87,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: err.data?.message || 'Failed to create work order.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -98,37 +98,37 @@ const priorityOptions = [
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' }
+  { label: 'Critical', value: 'critical' },
 ]
 
 const statusOptions = [
   { label: 'Draft', value: 'draft' },
-  { label: 'Open', value: 'open' }
+  { label: 'Open', value: 'open' },
 ]
 
 const assetOptions = computed(() => {
   return (
-    assets.value?.map(a => ({
+    assets.value?.map((a) => ({
       label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
-      value: a.id
+      value: a.id,
     })) || []
   )
 })
 
 const technicianOptions = computed(() => {
   return (
-    technicians.value?.map(t => ({
+    technicians.value?.map((t) => ({
       label: `${t.firstName} ${t.lastName}`,
-      value: t.id
+      value: t.id,
     })) || []
   )
 })
 
 const templateOptions = computed(() => {
   return (
-    templates.value?.map(t => ({
+    templates.value?.map((t) => ({
       label: t.name,
-      value: t.id
+      value: t.id,
     })) || []
   )
 })
@@ -138,12 +138,12 @@ watch(
   () => state.templateId,
   (templateId) => {
     if (templateId) {
-      const template = templates.value?.find(t => t.id === templateId)
+      const template = templates.value?.find((t) => t.id === templateId)
       if (template?.estimatedDuration) {
         state.estimatedDuration = template.estimatedDuration
       }
     }
-  }
+  },
 )
 </script>
 

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { z } from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import { z } from 'zod'
 
 definePageMeta({
   layout: 'auth',
-  middleware: 'guest'
+  middleware: 'guest',
 })
 
 const toast = useToast()
@@ -16,14 +16,14 @@ const showPassword = ref(false)
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(1, 'Password is required')
+  password: z.string().min(1, 'Password is required'),
 })
 
 type Schema = z.output<typeof schema>
 
 const state = reactive<Partial<Schema>>({
   email: undefined,
-  password: undefined
+  password: undefined,
 })
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
@@ -34,8 +34,8 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: {
         email: event.data.email,
-        password: event.data.password
-      }
+        password: event.data.password,
+      },
     })
 
     if (response.success) {
@@ -43,13 +43,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       toast.add({
         title: 'Welcome back!',
         description: `Logged in as ${response.user?.email}`,
-        color: 'success'
+        color: 'success',
       })
       router.push('/')
     }
   } catch (error: unknown) {
     const err = error as {
-      data?: { statusMessage?: string, data?: { remainingAttempts?: number } }
+      data?: { statusMessage?: string; data?: { remainingAttempts?: number } }
     }
     const message = err.data?.statusMessage || 'Login failed'
     const remainingAttempts = err.data?.data?.remainingAttempts
@@ -60,7 +60,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         remainingAttempts !== undefined
           ? `${message}. ${remainingAttempts} attempts remaining.`
           : message,
-      color: 'error'
+      color: 'error',
     })
   } finally {
     isLoading.value = false

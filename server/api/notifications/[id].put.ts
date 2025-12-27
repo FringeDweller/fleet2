@@ -1,9 +1,9 @@
-import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { db, schema } from '../../utils/db'
 
 const updateSchema = z.object({
-  isRead: z.boolean()
+  isRead: z.boolean(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing notification ID'
+      statusMessage: 'Missing notification ID',
     })
   }
 
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (!parsed.success) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid request body'
+      statusMessage: 'Invalid request body',
     })
   }
 
@@ -38,7 +38,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.notifications)
     .set({
       isRead: parsed.data.isRead,
-      readAt: parsed.data.isRead ? new Date() : null
+      readAt: parsed.data.isRead ? new Date() : null,
     })
     .where(and(eq(schema.notifications.id, id), eq(schema.notifications.userId, session.user.id)))
     .returning()
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   if (!updated) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Notification not found'
+      statusMessage: 'Notification not found',
     })
   }
 

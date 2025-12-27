@@ -1,6 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const maintenanceScheduleSchema = z.object({
   id: z.string().uuid(),
@@ -10,7 +10,7 @@ const maintenanceScheduleSchema = z.object({
   intervalHours: z.number().positive().optional(),
   intervalMileage: z.number().positive().optional(),
   estimatedDuration: z.number().positive().optional(),
-  checklistItems: z.array(z.string()).optional()
+  checklistItems: z.array(z.string()).optional(),
 })
 
 const defaultPartSchema = z.object({
@@ -19,7 +19,7 @@ const defaultPartSchema = z.object({
   partNumber: z.string().max(100).optional(),
   quantity: z.number().int().positive().default(1),
   estimatedCost: z.number().positive().optional(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 const createCategorySchema = z.object({
@@ -27,7 +27,7 @@ const createCategorySchema = z.object({
   description: z.string().optional(),
   parentId: z.string().uuid().optional().nullable(),
   defaultMaintenanceSchedules: z.array(maintenanceScheduleSchema).optional().default([]),
-  defaultParts: z.array(defaultPartSchema).optional().default([])
+  defaultParts: z.array(defaultPartSchema).optional().default([]),
 })
 
 export default defineEventHandler(async (event) => {
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -56,14 +56,14 @@ export default defineEventHandler(async (event) => {
     const parent = await db.query.assetCategories.findFirst({
       where: and(
         eq(schema.assetCategories.id, result.data.parentId),
-        eq(schema.assetCategories.organisationId, session.user.organisationId)
-      )
+        eq(schema.assetCategories.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!parent) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Parent category not found'
+        statusMessage: 'Parent category not found',
       })
     }
   }
@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
       description: result.data.description,
       parentId: result.data.parentId,
       defaultMaintenanceSchedules: result.data.defaultMaintenanceSchedules,
-      defaultParts: result.data.defaultParts
+      defaultParts: result.data.defaultParts,
     })
     .returning()
 
@@ -87,7 +87,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'asset_category',
     entityId: category!.id,
-    newValues: { name: result.data.name, parentId: result.data.parentId }
+    newValues: { name: result.data.name, parentId: result.data.parentId },
   })
 
   return category

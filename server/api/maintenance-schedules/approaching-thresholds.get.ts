@@ -1,5 +1,5 @@
+import { and, eq, isNotNull, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, or, isNotNull } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -19,17 +19,17 @@ export default defineEventHandler(async (event) => {
       eq(schema.maintenanceSchedules.isArchived, false),
       or(
         eq(schema.maintenanceSchedules.scheduleType, 'usage_based'),
-        eq(schema.maintenanceSchedules.scheduleType, 'combined')
+        eq(schema.maintenanceSchedules.scheduleType, 'combined'),
       ),
       or(
         isNotNull(schema.maintenanceSchedules.intervalMileage),
-        isNotNull(schema.maintenanceSchedules.intervalHours)
-      )
+        isNotNull(schema.maintenanceSchedules.intervalHours),
+      ),
     ),
     with: {
       asset: true,
-      template: true
-    }
+      template: true,
+    },
   })
 
   // Calculate threshold status for each schedule
@@ -44,29 +44,29 @@ export default defineEventHandler(async (event) => {
         ? parseFloat(schedule.asset.operationalHours)
         : null
 
-      const mileageStatus
-        = schedule.intervalMileage && currentMileage !== null
+      const mileageStatus =
+        schedule.intervalMileage && currentMileage !== null
           ? calculateUsageStatus(
               currentMileage,
               schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0,
-              schedule.intervalMileage
+              schedule.intervalMileage,
             )
           : null
 
-      const hoursStatus
-        = schedule.intervalHours && currentHours !== null
+      const hoursStatus =
+        schedule.intervalHours && currentHours !== null
           ? calculateUsageStatus(
               currentHours,
               schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0,
-              schedule.intervalHours
+              schedule.intervalHours,
             )
           : null
 
       // Only include schedules that have reached the threshold
-      const mileageAlert
-        = mileageStatus && mileageStatus.progress >= (schedule.thresholdAlertPercent || 90)
-      const hoursAlert
-        = hoursStatus && hoursStatus.progress >= (schedule.thresholdAlertPercent || 90)
+      const mileageAlert =
+        mileageStatus && mileageStatus.progress >= (schedule.thresholdAlertPercent || 90)
+      const hoursAlert =
+        hoursStatus && hoursStatus.progress >= (schedule.thresholdAlertPercent || 90)
 
       if (!mileageAlert && !hoursAlert) {
         return null
@@ -91,8 +91,8 @@ export default defineEventHandler(async (event) => {
         assetId: schedule.assetId,
         assetNumber: schedule.asset.assetNumber,
         assetName:
-          `${schedule.asset.make || ''} ${schedule.asset.model || ''}`.trim()
-          || schedule.asset.assetNumber,
+          `${schedule.asset.make || ''} ${schedule.asset.model || ''}`.trim() ||
+          schedule.asset.assetNumber,
         templateId: schedule.templateId,
         templateName: schedule.template?.name,
         mileage: mileageAlert
@@ -104,7 +104,7 @@ export default defineEventHandler(async (event) => {
               interval: schedule.intervalMileage,
               nextTrigger: mileageStatus!.nextTrigger,
               progress: mileageStatus!.progress,
-              remaining: mileageStatus!.remaining
+              remaining: mileageStatus!.remaining,
             }
           : null,
         hours: hoursAlert
@@ -116,11 +116,11 @@ export default defineEventHandler(async (event) => {
               interval: schedule.intervalHours,
               nextTrigger: hoursStatus!.nextTrigger,
               progress: hoursStatus!.progress,
-              remaining: hoursStatus!.remaining
+              remaining: hoursStatus!.remaining,
             }
           : null,
         urgency,
-        thresholdPercent: schedule.thresholdAlertPercent || 90
+        thresholdPercent: schedule.thresholdAlertPercent || 90,
       }
     })
     .filter((item): item is NonNullable<typeof item> => item !== null)
@@ -137,7 +137,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     count: approachingSchedules.length,
-    schedules: approachingSchedules
+    schedules: approachingSchedules,
   }
 })
 
@@ -150,6 +150,6 @@ function calculateUsageStatus(current: number, lastTriggered: number, interval: 
   return {
     nextTrigger,
     remaining,
-    progress
+    progress,
   }
 }

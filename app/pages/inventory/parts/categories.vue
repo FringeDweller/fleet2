@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface PartCategory {
@@ -21,9 +21,9 @@ const toast = useToast()
 const {
   data: categories,
   status,
-  refresh
+  refresh,
 } = await useFetch<PartCategory[]>('/api/part-categories', {
-  lazy: true
+  lazy: true,
 })
 
 // Modal state
@@ -34,7 +34,7 @@ const loading = ref(false)
 const schema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().optional(),
-  parentId: z.string().uuid().optional()
+  parentId: z.string().uuid().optional(),
 })
 
 type Schema = z.output<typeof schema>
@@ -42,10 +42,10 @@ type Schema = z.output<typeof schema>
 const state = reactive<Partial<Schema>>({})
 
 const parentOptions = computed(() => {
-  const options
-    = categories.value
-      ?.filter(c => c.id !== editingCategory.value?.id)
-      .map(c => ({ label: c.name, value: c.id })) || []
+  const options =
+    categories.value
+      ?.filter((c) => c.id !== editingCategory.value?.id)
+      .map((c) => ({ label: c.name, value: c.id })) || []
   return [{ label: 'None (Top-level)', value: '' }, ...options]
 })
 
@@ -75,13 +75,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         method: 'PUT',
         body: {
           ...event.data,
-          parentId: event.data.parentId || null
-        }
+          parentId: event.data.parentId || null,
+        },
       })
       toast.add({
         title: 'Category updated',
         description: 'The category has been updated successfully.',
-        color: 'success'
+        color: 'success',
       })
     } else {
       // Create new
@@ -89,13 +89,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
         method: 'POST',
         body: {
           ...event.data,
-          parentId: event.data.parentId || null
-        }
+          parentId: event.data.parentId || null,
+        },
       })
       toast.add({
         title: 'Category created',
         description: 'The category has been created successfully.',
-        color: 'success'
+        color: 'success',
       })
     }
     showModal.value = false
@@ -105,7 +105,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to save category.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -118,7 +118,7 @@ async function deleteCategory(category: PartCategory) {
     await ($fetch as any)(`/api/part-categories/${category.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Category deleted',
-      description: 'The category has been deleted successfully.'
+      description: 'The category has been deleted successfully.',
     })
     refresh()
   } catch (err: unknown) {
@@ -126,7 +126,7 @@ async function deleteCategory(category: PartCategory) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to delete category.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -142,11 +142,11 @@ const categoryTree = computed<CategoryNode[]>(() => {
 
   const buildTree = (parentId: string | null, level: number): CategoryNode[] => {
     return categories
-      .value!.filter(c => c.parentId === parentId)
-      .map(c => ({
+      .value!.filter((c) => c.parentId === parentId)
+      .map((c) => ({
         ...c,
         level,
-        children: buildTree(c.id, level + 1)
+        children: buildTree(c.id, level + 1),
       }))
   }
 

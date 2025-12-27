@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { formatDistanceToNow, parseISO, isPast } from 'date-fns'
+import { formatDistanceToNow, isPast, parseISO } from 'date-fns'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface WorkOrder {
@@ -41,7 +41,7 @@ const router = useRouter()
 const toast = useToast()
 
 const { data, status, refresh } = await useFetch<KanbanData>('/api/work-orders/kanban', {
-  lazy: true
+  lazy: true,
 })
 
 const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'error'> = {
@@ -50,14 +50,14 @@ const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 
   in_progress: 'warning',
   pending_parts: 'warning',
   completed: 'success',
-  closed: 'neutral'
+  closed: 'neutral',
 }
 
 const priorityColors: Record<string, 'neutral' | 'info' | 'warning' | 'error'> = {
   low: 'neutral',
   medium: 'info',
   high: 'warning',
-  critical: 'error'
+  critical: 'error',
 }
 
 const columnBgColors: Record<string, string> = {
@@ -66,7 +66,7 @@ const columnBgColors: Record<string, string> = {
   in_progress: 'bg-warning-50 dark:bg-warning-950',
   pending_parts: 'bg-amber-50 dark:bg-amber-950',
   completed: 'bg-success-50 dark:bg-success-950',
-  closed: 'bg-neutral-100 dark:bg-neutral-900'
+  closed: 'bg-neutral-100 dark:bg-neutral-900',
 }
 
 // Valid status transitions for drag-drop
@@ -76,7 +76,7 @@ const validTransitions: Record<string, string[]> = {
   in_progress: ['pending_parts', 'completed', 'open'],
   pending_parts: ['in_progress', 'open'],
   completed: ['closed', 'in_progress'],
-  closed: []
+  closed: [],
 }
 
 function isOverdue(dueDate: string | null, status: string): boolean {
@@ -118,7 +118,7 @@ async function onDrop(event: DragEvent, toColumn: string) {
     toast.add({
       title: 'Invalid status change',
       description: `Cannot move from ${draggedFromColumn.value} to ${toColumn}`,
-      color: 'error'
+      color: 'error',
     })
     return
   }
@@ -126,18 +126,18 @@ async function onDrop(event: DragEvent, toColumn: string) {
   try {
     await $fetch(`/api/work-orders/${draggedItem.value.id}/status`, {
       method: 'POST',
-      body: { status: toColumn }
+      body: { status: toColumn },
     })
     toast.add({
       title: 'Status updated',
-      description: `Work order moved to ${toColumn.replace('_', ' ')}`
+      description: `Work order moved to ${toColumn.replace('_', ' ')}`,
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to update status',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     draggedItem.value = null

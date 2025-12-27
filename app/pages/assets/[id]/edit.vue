@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Asset {
@@ -33,13 +33,13 @@ const toast = useToast()
 const {
   data: asset,
   status: fetchStatus,
-  error
+  error,
 } = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
-  lazy: true
+  lazy: true,
 })
 
 const schema = z.object({
@@ -53,7 +53,7 @@ const schema = z.object({
   mileage: z.number().min(0).optional(),
   status: z.enum(['active', 'inactive', 'maintenance', 'disposed']),
   description: z.string().optional().nullable(),
-  categoryId: z.string().uuid().optional()
+  categoryId: z.string().uuid().optional(),
 })
 
 type Schema = z.output<typeof schema>
@@ -77,7 +77,7 @@ watch(
       state.categoryId = newAsset.categoryId ?? undefined
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const loading = ref(false)
@@ -88,12 +88,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/assets/${route.params.id}`, {
       method: 'PUT',
-      body: event.data
+      body: event.data,
     })
     toast.add({
       title: 'Asset updated',
       description: 'The asset has been updated successfully.',
-      color: 'success'
+      color: 'success',
     })
     router.push(`/assets/${route.params.id}`)
   } catch (err: unknown) {
@@ -101,7 +101,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to update asset.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -112,11 +112,11 @@ const statusOptions = [
   { label: 'Active', value: 'active' },
   { label: 'Inactive', value: 'inactive' },
   { label: 'Maintenance', value: 'maintenance' },
-  { label: 'Disposed', value: 'disposed' }
+  { label: 'Disposed', value: 'disposed' },
 ]
 
 const categoryOptions = computed(() => {
-  return categories.value?.map(c => ({ label: c.name, value: c.id })) || []
+  return categories.value?.map((c) => ({ label: c.name, value: c.id })) || []
 })
 </script>
 

@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Schedule ID is required'
+      statusMessage: 'Schedule ID is required',
     })
   }
 
@@ -24,14 +24,14 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.maintenanceSchedules.findFirst({
     where: and(
       eq(schema.maintenanceSchedules.id, id),
-      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
-    )
+      eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Maintenance schedule not found'
+      statusMessage: 'Maintenance schedule not found',
     })
   }
 
@@ -42,13 +42,13 @@ export default defineEventHandler(async (event) => {
       isArchived: true,
       archivedAt: new Date(),
       isActive: false, // Also deactivate when archiving
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(
       and(
         eq(schema.maintenanceSchedules.id, id),
-        eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
-      )
+        eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
+      ),
     )
     .returning()
 
@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     action: 'delete',
     entityType: 'maintenance_schedule',
     entityId: id,
-    oldValues: existing
+    oldValues: existing,
   })
 
   return { success: true, archived }

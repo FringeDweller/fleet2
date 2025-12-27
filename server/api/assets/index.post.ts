@@ -1,6 +1,6 @@
+import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, sql } from 'drizzle-orm'
 
 const createAssetSchema = z.object({
   assetNumber: z.string().min(1, 'Asset number is required').max(50).optional(),
@@ -14,7 +14,7 @@ const createAssetSchema = z.object({
   status: z.enum(['active', 'inactive', 'maintenance', 'disposed']).optional().default('active'),
   description: z.string().optional().nullable(),
   imageUrl: z.string().url().max(500).optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable()
+  categoryId: z.string().uuid().optional().nullable(),
 })
 
 async function generateAssetNumber(organisationId: string): Promise<string> {
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -45,12 +45,12 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
-  const assetNumber
-    = result.data.assetNumber || (await generateAssetNumber(session.user.organisationId))
+  const assetNumber =
+    result.data.assetNumber || (await generateAssetNumber(session.user.organisationId))
 
   const [asset] = await db
     .insert(schema.assets)
@@ -67,14 +67,14 @@ export default defineEventHandler(async (event) => {
       status: result.data.status,
       description: result.data.description,
       imageUrl: result.data.imageUrl,
-      categoryId: result.data.categoryId
+      categoryId: result.data.categoryId,
     })
     .returning()
 
   if (!asset) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create asset'
+      statusMessage: 'Failed to create asset',
     })
   }
 
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'asset',
     entityId: asset.id,
-    newValues: asset
+    newValues: asset,
   })
 
   return asset

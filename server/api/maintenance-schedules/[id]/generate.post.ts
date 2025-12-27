@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 import { generateWorkOrderFromSchedule } from '../../../utils/work-order-generator'
 
 /**
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   if (!scheduleId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Schedule ID is required'
+      statusMessage: 'Schedule ID is required',
     })
   }
 
@@ -41,14 +41,14 @@ export default defineEventHandler(async (event) => {
     const schedule = await db.query.maintenanceSchedules.findFirst({
       where: and(
         eq(schema.maintenanceSchedules.id, scheduleId),
-        eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
-      )
+        eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!schedule) {
       throw createError({
         statusCode: 404,
-        statusMessage: 'Schedule not found'
+        statusMessage: 'Schedule not found',
       })
     }
 
@@ -61,8 +61,8 @@ export default defineEventHandler(async (event) => {
         where: and(
           eq(schema.assets.id, schedule.assetId),
           eq(schema.assets.organisationId, session.user.organisationId),
-          eq(schema.assets.isArchived, false)
-        )
+          eq(schema.assets.isArchived, false),
+        ),
       })
       if (asset) assets.push(asset)
     } else if (schedule.categoryId) {
@@ -71,15 +71,15 @@ export default defineEventHandler(async (event) => {
         where: and(
           eq(schema.assets.categoryId, schedule.categoryId),
           eq(schema.assets.organisationId, session.user.organisationId),
-          eq(schema.assets.isArchived, false)
-        )
+          eq(schema.assets.isArchived, false),
+        ),
       })
     }
 
     if (assets.length === 0) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'No eligible assets found for this schedule'
+        statusMessage: 'No eligible assets found for this schedule',
       })
     }
 
@@ -102,18 +102,18 @@ export default defineEventHandler(async (event) => {
         scheduleName: schedule.name,
         assetsChecked: assets.length,
         resultsCount: results.length,
-        createdCount: results.filter(r => r.status === 'created').length
-      }
+        createdCount: results.filter((r) => r.status === 'created').length,
+      },
     })
 
     return {
       results,
       summary: {
         total: results.length,
-        created: results.filter(r => r.status === 'created').length,
-        skipped: results.filter(r => r.status === 'skipped').length,
-        errors: results.filter(r => r.status === 'error').length
-      }
+        created: results.filter((r) => r.status === 'created').length,
+        skipped: results.filter((r) => r.status === 'skipped').length,
+        errors: results.filter((r) => r.status === 'error').length,
+      },
     }
   } catch (error) {
     // If it's already a createError, re-throw it
@@ -126,7 +126,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to generate work orders',
-      data: { error: error instanceof Error ? error.message : 'Unknown error' }
+      data: { error: error instanceof Error ? error.message : 'Unknown error' },
     })
   }
 })

@@ -1,5 +1,5 @@
+import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike, or, gte, lte, sql, asc, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
     'mileage',
     'operationalHours',
     'createdAt',
-    'updatedAt'
+    'updatedAt',
   ]
 
   const conditions = [eq(schema.assets.organisationId, session.user.organisationId)]
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
 
   if (status && ['active', 'inactive', 'maintenance', 'disposed'].includes(status)) {
     conditions.push(
-      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed')
+      eq(schema.assets.status, status as 'active' | 'inactive' | 'maintenance' | 'disposed'),
     )
   }
 
@@ -73,8 +73,8 @@ export default defineEventHandler(async (event) => {
         ilike(schema.assets.make, `%${search}%`),
         ilike(schema.assets.model, `%${search}%`),
         ilike(schema.assets.licensePlate, `%${search}%`),
-        ilike(schema.assets.description, `%${search}%`)
-      )!
+        ilike(schema.assets.description, `%${search}%`),
+      )!,
     )
   }
 
@@ -128,11 +128,11 @@ export default defineEventHandler(async (event) => {
   const assets = await db.query.assets.findMany({
     where: whereClause,
     with: {
-      category: true
+      category: true,
     },
-    orderBy: assets => [sortFn(assets[sortField as keyof typeof assets])],
+    orderBy: (assets) => [sortFn(assets[sortField as keyof typeof assets])],
     limit,
-    offset
+    offset,
   })
 
   return {
@@ -141,7 +141,7 @@ export default defineEventHandler(async (event) => {
       total,
       limit,
       offset,
-      hasMore: offset + assets.length < total
-    }
+      hasMore: offset + assets.length < total,
+    },
   }
 })

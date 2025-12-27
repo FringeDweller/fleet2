@@ -1,6 +1,6 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updateAssetSchema = z.object({
   assetNumber: z.string().min(1).max(50).optional(),
@@ -14,7 +14,7 @@ const updateAssetSchema = z.object({
   status: z.enum(['active', 'inactive', 'maintenance', 'disposed']).optional(),
   description: z.string().optional().nullable(),
   imageUrl: z.string().url().max(500).optional().nullable(),
-  categoryId: z.string().uuid().optional().nullable()
+  categoryId: z.string().uuid().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Asset ID is required'
+      statusMessage: 'Asset ID is required',
     })
   }
 
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -51,19 +51,19 @@ export default defineEventHandler(async (event) => {
   const existingAsset = await db.query.assets.findFirst({
     where: and(
       eq(schema.assets.id, id),
-      eq(schema.assets.organisationId, session.user.organisationId)
-    )
+      eq(schema.assets.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existingAsset) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Asset not found'
+      statusMessage: 'Asset not found',
     })
   }
 
   const updateData: Record<string, unknown> = {
-    updatedAt: new Date()
+    updatedAt: new Date(),
   }
 
   if (result.data.assetNumber !== undefined) updateData.assetNumber = result.data.assetNumber
@@ -84,7 +84,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.assets)
     .set(updateData)
     .where(
-      and(eq(schema.assets.id, id), eq(schema.assets.organisationId, session.user.organisationId))
+      and(eq(schema.assets.id, id), eq(schema.assets.organisationId, session.user.organisationId)),
     )
     .returning()
 
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'asset',
     entityId: id,
     oldValues: existingAsset,
-    newValues: updatedAsset
+    newValues: updatedAsset,
   })
 
   return updatedAsset

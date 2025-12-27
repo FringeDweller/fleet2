@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormError } from '@nuxt/ui'
+import * as z from 'zod'
 
 const passwordSchema = z.object({
   current: z.string().min(8, 'Must be at least 8 characters'),
-  new: z.string().min(8, 'Must be at least 8 characters')
+  new: z.string().min(8, 'Must be at least 8 characters'),
 })
 
 type PasswordSchema = z.output<typeof passwordSchema>
 
 const password = reactive<Partial<PasswordSchema>>({
   current: undefined,
-  new: undefined
+  new: undefined,
 })
 
 const validate = (state: Partial<PasswordSchema>): FormError[] => {

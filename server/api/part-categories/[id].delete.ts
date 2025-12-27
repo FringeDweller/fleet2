@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Category ID is required'
+      statusMessage: 'Category ID is required',
     })
   }
 
@@ -24,21 +24,21 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.partCategories.findFirst({
     where: and(
       eq(schema.partCategories.id, id),
-      eq(schema.partCategories.organisationId, session.user.organisationId)
+      eq(schema.partCategories.organisationId, session.user.organisationId),
     ),
     with: {
       children: true,
       parts: {
         where: eq(schema.parts.isActive, true),
-        limit: 1
-      }
-    }
+        limit: 1,
+      },
+    },
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Category not found'
+      statusMessage: 'Category not found',
     })
   }
 
@@ -46,7 +46,7 @@ export default defineEventHandler(async (event) => {
   if (existing.children && existing.children.length > 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot delete category with sub-categories'
+      statusMessage: 'Cannot delete category with sub-categories',
     })
   }
 
@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
   if (existing.parts && existing.parts.length > 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot delete category with parts. Move or delete parts first.'
+      statusMessage: 'Cannot delete category with parts. Move or delete parts first.',
     })
   }
 
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.partCategories)
     .set({
       isActive: false,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.partCategories.id, id))
 
@@ -74,7 +74,7 @@ export default defineEventHandler(async (event) => {
     action: 'delete',
     entityType: 'part_category',
     entityId: id,
-    oldValues: { name: existing.name }
+    oldValues: { name: existing.name },
   })
 
   return { success: true }

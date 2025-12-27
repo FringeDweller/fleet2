@@ -1,18 +1,18 @@
 import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
   boolean,
-  integer,
   decimal,
   index,
-  pgEnum
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import { organisations } from './organisations'
-import { assets } from './assets'
 import { assetCategories } from './asset-categories'
+import { assets } from './assets'
+import { organisations } from './organisations'
 import { taskTemplates } from './task-templates'
 import { users } from './users'
 import { workOrders } from './work-orders'
@@ -25,7 +25,7 @@ export const scheduleIntervalTypeEnum = pgEnum('schedule_interval_type', [
   'monthly',
   'quarterly',
   'annually',
-  'custom'
+  'custom',
 ])
 
 export const maintenanceSchedules = pgTable(
@@ -80,7 +80,7 @@ export const maintenanceSchedules = pgTable(
     leadTimeDays: integer('lead_time_days').default(7).notNull(), // Create WO this many days before due
     defaultPriority: varchar('default_priority', { length: 20 }).default('medium'),
     defaultAssigneeId: uuid('default_assignee_id').references(() => users.id, {
-      onDelete: 'set null'
+      onDelete: 'set null',
     }),
 
     // Status
@@ -92,17 +92,17 @@ export const maintenanceSchedules = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('maintenance_schedules_organisation_id_idx').on(table.organisationId),
     index('maintenance_schedules_asset_id_idx').on(table.assetId),
     index('maintenance_schedules_category_id_idx').on(table.categoryId),
     index('maintenance_schedules_schedule_type_idx').on(table.scheduleType),
     index('maintenance_schedules_next_due_date_idx').on(table.nextDueDate),
     index('maintenance_schedules_is_active_idx').on(table.isActive),
-    index('maintenance_schedules_is_archived_idx').on(table.isArchived)
-  ]
+    index('maintenance_schedules_is_archived_idx').on(table.isArchived),
+  ],
 )
 
 // Track which work orders were generated from which schedule
@@ -117,12 +117,12 @@ export const maintenanceScheduleWorkOrders = pgTable(
       .notNull()
       .references(() => workOrders.id, { onDelete: 'cascade' }),
     scheduledDate: timestamp('scheduled_date', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('maintenance_schedule_wo_schedule_id_idx').on(table.scheduleId),
-    index('maintenance_schedule_wo_work_order_id_idx').on(table.workOrderId)
-  ]
+    index('maintenance_schedule_wo_work_order_id_idx').on(table.workOrderId),
+  ],
 )
 
 export type MaintenanceSchedule = typeof maintenanceSchedules.$inferSelect

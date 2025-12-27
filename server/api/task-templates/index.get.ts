@@ -1,5 +1,5 @@
+import { and, eq, ilike } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, ilike } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   const templates = await db.query.taskTemplates.findMany({
     where: and(...conditions),
-    orderBy: (templates, { asc }) => [asc(templates.name)]
+    orderBy: (templates, { asc }) => [asc(templates.name)],
   })
 
   return templates

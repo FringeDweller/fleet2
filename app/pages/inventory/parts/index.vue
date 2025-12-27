@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { upperFirst } from 'scule'
-import { getPaginationRowModel } from '@tanstack/table-core'
 import type { Row } from '@tanstack/table-core'
+import { getPaginationRowModel } from '@tanstack/table-core'
+import { upperFirst } from 'scule'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface PartRow {
@@ -22,7 +22,7 @@ interface PartRow {
   supplier: string | null
   location: string | null
   isActive: boolean
-  category: { id: string, name: string } | null
+  category: { id: string; name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -50,8 +50,8 @@ const route = useRoute()
 const columnFilters = ref([
   {
     id: 'name',
-    value: ''
-  }
+    value: '',
+  },
 ])
 const columnVisibility = ref()
 const rowSelection = ref({})
@@ -70,20 +70,20 @@ const queryParams = computed(() => {
 
 const { data, status, refresh } = await useFetch<PartsResponse>('/api/parts', {
   lazy: true,
-  query: queryParams
+  query: queryParams,
 })
 
-const { data: categories } = await useFetch<{ id: string, name: string }[]>(
+const { data: categories } = await useFetch<{ id: string; name: string }[]>(
   '/api/part-categories',
   {
-    lazy: true
-  }
+    lazy: true,
+  },
 )
 
 const categoryOptions = computed(() => {
   return [
     { label: 'All Categories', value: '' },
-    ...(categories.value?.map(c => ({ label: c.name, value: c.id })) || [])
+    ...(categories.value?.map((c) => ({ label: c.name, value: c.id })) || []),
   ]
 })
 
@@ -91,38 +91,38 @@ function getRowItems(row: Row<PartRow>) {
   return [
     {
       type: 'label',
-      label: 'Actions'
+      label: 'Actions',
     },
     {
       label: 'View details',
       icon: 'i-lucide-eye',
       onSelect() {
         router.push(`/inventory/parts/${row.original.id}`)
-      }
+      },
     },
     {
       label: 'Edit part',
       icon: 'i-lucide-pencil',
       onSelect() {
         router.push(`/inventory/parts/${row.original.id}/edit`)
-      }
+      },
     },
     {
       label: 'Adjust stock',
       icon: 'i-lucide-package-plus',
       onSelect() {
         router.push(`/inventory/parts/${row.original.id}?tab=adjust`)
-      }
+      },
     },
     {
       label: 'View history',
       icon: 'i-lucide-history',
       onSelect() {
         router.push(`/inventory/parts/${row.original.id}?tab=history`)
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Delete part',
@@ -130,8 +130,8 @@ function getRowItems(row: Row<PartRow>) {
       color: 'error',
       onSelect() {
         deletePart(row.original.id)
-      }
-    }
+      },
+    },
   ]
 }
 
@@ -141,14 +141,14 @@ async function deletePart(id: string) {
     await ($fetch as any)(`/api/parts/${id}`, { method: 'DELETE' })
     toast.add({
       title: 'Part deleted',
-      description: 'The part has been deleted successfully.'
+      description: 'The part has been deleted successfully.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to delete part.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -163,19 +163,19 @@ const columns: TableColumn<PartRow>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all',
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
-      })
+        ariaLabel: 'Select row',
+      }),
   },
   {
     accessorKey: 'sku',
@@ -191,10 +191,10 @@ const columns: TableColumn<PartRow>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
-    cell: ({ row }) => h('span', { class: 'font-mono text-sm' }, row.original.sku)
+    cell: ({ row }) => h('span', { class: 'font-mono text-sm' }, row.original.sku),
   },
   {
     accessorKey: 'name',
@@ -210,14 +210,14 @@ const columns: TableColumn<PartRow>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
     cell: ({ row }) =>
       h('div', { class: 'max-w-[200px]' }, [
         h('p', { class: 'font-medium text-highlighted truncate' }, row.original.name),
-        h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-')
-      ])
+        h('p', { class: 'text-sm text-muted truncate' }, row.original.description || '-'),
+      ]),
   },
   {
     accessorKey: 'category',
@@ -225,7 +225,7 @@ const columns: TableColumn<PartRow>[] = [
     cell: ({ row }) => {
       if (!row.original.category) return h('span', { class: 'text-muted' }, '-')
       return h(UBadge, { variant: 'subtle', color: 'neutral' }, () => row.original.category!.name)
-    }
+    },
   },
   {
     accessorKey: 'quantityInStock',
@@ -241,7 +241,7 @@ const columns: TableColumn<PartRow>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
     cell: ({ row }) => {
@@ -251,11 +251,11 @@ const columns: TableColumn<PartRow>[] = [
         h(
           'span',
           { class: ['font-medium', lowStock ? 'text-error' : ''] },
-          `${qty.toLocaleString()} ${row.original.unit}`
+          `${qty.toLocaleString()} ${row.original.unit}`,
         ),
-        lowStock ? h(UBadge, { color: 'error', size: 'xs' }, () => 'Low') : null
+        lowStock ? h(UBadge, { color: 'error', size: 'xs' }, () => 'Low') : null,
       ])
-    }
+    },
   },
   {
     accessorKey: 'unitCost',
@@ -265,9 +265,9 @@ const columns: TableColumn<PartRow>[] = [
       return h(
         'span',
         { class: 'text-sm' },
-        `$${parseFloat(row.original.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        `$${parseFloat(row.original.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       )
-    }
+    },
   },
   {
     accessorKey: 'location',
@@ -275,7 +275,7 @@ const columns: TableColumn<PartRow>[] = [
     cell: ({ row }) => {
       if (!row.original.location) return h('span', { class: 'text-muted' }, '-')
       return h('span', { class: 'text-sm' }, row.original.location)
-    }
+    },
   },
   {
     accessorKey: 'supplier',
@@ -283,7 +283,7 @@ const columns: TableColumn<PartRow>[] = [
     cell: ({ row }) => {
       if (!row.original.supplier) return h('span', { class: 'text-muted' }, '-')
       return h('span', { class: 'text-sm truncate max-w-[150px]' }, row.original.supplier)
-    }
+    },
   },
   {
     id: 'actions',
@@ -295,19 +295,19 @@ const columns: TableColumn<PartRow>[] = [
           UDropdownMenu,
           {
             content: { align: 'end' },
-            items: getRowItems(row)
+            items: getRowItems(row),
           },
           () =>
             h(UButton, {
               icon: 'i-lucide-ellipsis-vertical',
               color: 'neutral',
               variant: 'ghost',
-              class: 'ml-auto'
-            })
-        )
+              class: 'ml-auto',
+            }),
+        ),
       )
-    }
-  }
+    },
+  },
 ]
 
 const search = computed({
@@ -316,12 +316,12 @@ const search = computed({
   },
   set: (value: string) => {
     table.value?.tableApi?.getColumn('name')?.setFilterValue(value || undefined)
-  }
+  },
 })
 
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 25
+  pageSize: 25,
 })
 </script>
 

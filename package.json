@@ -7,10 +7,10 @@
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "typecheck": "nuxt typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -22,14 +22,11 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run server/db/seed.ts",
     "prepare": "husky",
-    "validate": "pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build"
+    "validate": "bun run lint && bun run typecheck && bun run test && bun run build"
   },
   "lint-staged": {
-    "*.{js,ts,vue}": [
-      "eslint --fix"
-    ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
+    "*.{js,ts,vue,json,md,yml,yaml}": [
+      "biome check --write --no-errors-on-unmatched"
     ]
   },
   "dependencies": {
@@ -49,19 +46,17 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
-    "@nuxt/eslint": "^1.12.1",
+    "@biomejs/biome": "^2.3.10",
     "@nuxt/test-utils": "^3.21.0",
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.3",
     "@types/qrcode": "^1.5.6",
     "@vitest/coverage-v8": "^4.0.16",
     "drizzle-kit": "^0.31.8",
-    "eslint": "^9.39.2",
     "happy-dom": "^20.0.11",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "playwright": "^1.57.0",
-    "prettier": "^3.7.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16",
     "vue-tsc": "^3.2.1"

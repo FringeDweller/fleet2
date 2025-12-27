@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Asset {
@@ -35,10 +35,10 @@ const toast = useToast()
 
 const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
 const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
-  lazy: true
+  lazy: true,
 })
 const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', {
-  lazy: true
+  lazy: true,
 })
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
 
@@ -69,7 +69,7 @@ const schema = z
     leadTimeDays: z.number().int().min(0).default(7),
     defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
     defaultAssigneeId: z.string().uuid().optional(),
-    isActive: z.boolean().default(true)
+    isActive: z.boolean().default(true),
   })
   .refine(
     (data) => {
@@ -79,8 +79,8 @@ const schema = z
     },
     {
       message: 'Please select either an asset or a category',
-      path: ['assetId']
-    }
+      path: ['assetId'],
+    },
   )
   .refine(
     (data) => {
@@ -91,8 +91,8 @@ const schema = z
     },
     {
       message: 'Interval type and start date are required for time-based schedules',
-      path: ['intervalType']
-    }
+      path: ['intervalType'],
+    },
   )
   .refine(
     (data) => {
@@ -104,8 +104,8 @@ const schema = z
     {
       message:
         'At least one of interval mileage or interval hours is required for usage-based schedules',
-      path: ['intervalMileage']
-    }
+      path: ['intervalMileage'],
+    },
   )
 
 type Schema = z.output<typeof schema>
@@ -134,7 +134,7 @@ const state = reactive<Partial<Schema>>({
   leadTimeDays: 7,
   defaultPriority: 'medium',
   defaultAssigneeId: undefined,
-  isActive: true
+  isActive: true,
 })
 
 const loading = ref(false)
@@ -147,13 +147,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       body: {
         ...event.data,
         startDate: event.data.startDate ? new Date(event.data.startDate).toISOString() : undefined,
-        endDate: event.data.endDate ? new Date(event.data.endDate).toISOString() : undefined
-      }
+        endDate: event.data.endDate ? new Date(event.data.endDate).toISOString() : undefined,
+      },
     })
     toast.add({
       title: 'Schedule created',
       description: 'The maintenance schedule has been created successfully.',
-      color: 'success'
+      color: 'success',
     })
     router.push('/settings/maintenance-schedules')
   } catch (error: unknown) {
@@ -161,7 +161,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: err.data?.message || 'Failed to create maintenance schedule.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false
@@ -174,14 +174,14 @@ const intervalTypeOptions = [
   { label: 'Monthly', value: 'monthly' },
   { label: 'Quarterly', value: 'quarterly' },
   { label: 'Annually', value: 'annually' },
-  { label: 'Custom (days)', value: 'custom' }
+  { label: 'Custom (days)', value: 'custom' },
 ]
 
 const priorityOptions = [
   { label: 'Low', value: 'low' },
   { label: 'Medium', value: 'medium' },
   { label: 'High', value: 'high' },
-  { label: 'Critical', value: 'critical' }
+  { label: 'Critical', value: 'critical' },
 ]
 
 const dayOfWeekOptions = [
@@ -191,7 +191,7 @@ const dayOfWeekOptions = [
   { label: 'Wednesday', value: 3 },
   { label: 'Thursday', value: 4 },
   { label: 'Friday', value: 5 },
-  { label: 'Saturday', value: 6 }
+  { label: 'Saturday', value: 6 },
 ]
 
 const monthOptions = [
@@ -206,65 +206,65 @@ const monthOptions = [
   { label: 'September', value: 9 },
   { label: 'October', value: 10 },
   { label: 'November', value: 11 },
-  { label: 'December', value: 12 }
+  { label: 'December', value: 12 },
 ]
 
 const assetOptions = computed(() => {
   return (
-    assets.value?.map(a => ({
+    assets.value?.map((a) => ({
       label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
-      value: a.id
+      value: a.id,
     })) || []
   )
 })
 
 const categoryOptions = computed(() => {
   return (
-    categories.value?.map(c => ({
+    categories.value?.map((c) => ({
       label: c.name,
-      value: c.id
+      value: c.id,
     })) || []
   )
 })
 
 const templateOptions = computed(() => {
   return (
-    templates.value?.map(t => ({
+    templates.value?.map((t) => ({
       label: t.name,
-      value: t.id
+      value: t.id,
     })) || []
   )
 })
 
 const technicianOptions = computed(() => {
   return (
-    technicians.value?.map(t => ({
+    technicians.value?.map((t) => ({
       label: `${t.firstName} ${t.lastName}`,
-      value: t.id
+      value: t.id,
     })) || []
   )
 })
 
 // Show/hide fields based on schedule type
 const showTimeBasedFields = computed(
-  () => state.scheduleType === 'time_based' || state.scheduleType === 'combined'
+  () => state.scheduleType === 'time_based' || state.scheduleType === 'combined',
 )
 const showUsageBasedFields = computed(
-  () => state.scheduleType === 'usage_based' || state.scheduleType === 'combined'
+  () => state.scheduleType === 'usage_based' || state.scheduleType === 'combined',
 )
 
 // Show/hide conditional fields based on interval type (for time-based)
 const showDayOfWeek = computed(() => state.intervalType === 'weekly' && showTimeBasedFields.value)
 const showDayOfMonth = computed(
   () =>
-    showTimeBasedFields.value
-    && ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
+    showTimeBasedFields.value &&
+    ['monthly', 'quarterly', 'annually'].includes(state.intervalType || ''),
 )
 const showMonthOfYear = computed(
-  () => state.intervalType === 'annually' && showTimeBasedFields.value
+  () => state.intervalType === 'annually' && showTimeBasedFields.value,
 )
 const showCustomInterval = computed(
-  () => state.intervalType === 'custom' && showTimeBasedFields.value
+  () => state.intervalType === 'custom' && showTimeBasedFields.value,
 )
 
 // Reset conditional fields when interval type changes
@@ -275,7 +275,7 @@ watch(
     if (!showDayOfMonth.value) state.dayOfMonth = undefined
     if (!showMonthOfYear.value) state.monthOfYear = undefined
     if (!showCustomInterval.value) state.intervalValue = 1
-  }
+  },
 )
 
 // Reset fields when schedule type changes
@@ -297,7 +297,7 @@ watch(
       state.intervalHours = undefined
     }
     // For 'combined', don't clear anything
-  }
+  },
 )
 
 // Clear asset/category when switching assignment type
@@ -309,7 +309,7 @@ watch(
     } else {
       state.assetId = undefined
     }
-  }
+  },
 )
 </script>
 

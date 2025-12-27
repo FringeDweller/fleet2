@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, format } from 'date-fns'
-import { VisXYContainer, VisLine, VisAxis, VisArea, VisCrosshair, VisTooltip } from '@unovis/vue'
+import { VisArea, VisAxis, VisCrosshair, VisLine, VisTooltip, VisXYContainer } from '@unovis/vue'
+import { eachDayOfInterval, eachMonthOfInterval, eachWeekOfInterval, format } from 'date-fns'
 import type { Period, Range } from '~/types'
 
 const cardRef = useTemplateRef<HTMLElement | null>('cardRef')
@@ -26,19 +26,19 @@ watch(
       {
         daily: eachDayOfInterval,
         weekly: eachWeekOfInterval,
-        monthly: eachMonthOfInterval
+        monthly: eachMonthOfInterval,
       } as Record<Period, typeof eachDayOfInterval>
     )[props.period](props.range)
 
     const min = 1000
     const max = 10000
 
-    data.value = dates.map(date => ({
+    data.value = dates.map((date) => ({
       date,
-      amount: Math.floor(Math.random() * (max - min + 1)) + min
+      amount: Math.floor(Math.random() * (max - min + 1)) + min,
     }))
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const x = (_: DataRecord, i: number) => i
@@ -49,14 +49,14 @@ const total = computed(() => data.value.reduce((acc: number, { amount }) => acc 
 const formatNumber = new Intl.NumberFormat('en', {
   style: 'currency',
   currency: 'USD',
-  maximumFractionDigits: 0
+  maximumFractionDigits: 0,
 }).format
 
 const formatDate = (date: Date): string => {
   return {
     daily: format(date, 'd MMM'),
     weekly: format(date, 'd MMM'),
-    monthly: format(date, 'MMM yyy')
+    monthly: format(date, 'MMM yyy'),
   }[props.period]
 }
 

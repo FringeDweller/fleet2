@@ -33,7 +33,7 @@ const createScheduleSchema = z
     leadTimeDays: z.number().int().min(0).default(7),
     defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
     defaultAssigneeId: z.string().uuid().optional().nullable(),
-    isActive: z.boolean().default(true)
+    isActive: z.boolean().default(true),
   })
   .refine(
     (data) => {
@@ -44,8 +44,8 @@ const createScheduleSchema = z
     },
     {
       message: 'Either assetId or categoryId must be provided, but not both',
-      path: ['assetId']
-    }
+      path: ['assetId'],
+    },
   )
   .refine(
     (data) => {
@@ -57,8 +57,8 @@ const createScheduleSchema = z
     },
     {
       message: 'intervalType and startDate are required for time_based and combined schedules',
-      path: ['intervalType']
-    }
+      path: ['intervalType'],
+    },
   )
   .refine(
     (data) => {
@@ -71,8 +71,8 @@ const createScheduleSchema = z
     {
       message:
         'At least one of intervalMileage or intervalHours is required for usage_based and combined schedules',
-      path: ['intervalMileage']
-    }
+      path: ['intervalMileage'],
+    },
   )
 
 export default defineEventHandler(async (event) => {
@@ -81,7 +81,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -92,7 +92,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -108,7 +108,7 @@ export default defineEventHandler(async (event) => {
         new Date(data.startDate),
         data.dayOfWeek,
         data.dayOfMonth,
-        data.monthOfYear
+        data.monthOfYear,
       )
     }
   }
@@ -139,14 +139,14 @@ export default defineEventHandler(async (event) => {
       defaultPriority: data.defaultPriority,
       defaultAssigneeId: data.defaultAssigneeId,
       isActive: data.isActive,
-      createdById: session.user.id
+      createdById: session.user.id,
     })
     .returning()
 
   if (!schedule) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Failed to create maintenance schedule'
+      statusMessage: 'Failed to create maintenance schedule',
     })
   }
 
@@ -157,7 +157,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'maintenance_schedule',
     entityId: schedule.id,
-    newValues: schedule
+    newValues: schedule,
   })
 
   return schedule

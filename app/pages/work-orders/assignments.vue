@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface TechnicianWorkload {
@@ -23,8 +23,8 @@ const router = useRouter()
 const { data: technicians, status } = await useFetch<TechnicianWorkload[]>(
   '/api/technicians/workload',
   {
-    lazy: true
-  }
+    lazy: true,
+  },
 )
 
 function getWorkloadColor(total: number): 'success' | 'warning' | 'error' | 'info' {

@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Part ID is required'
+      statusMessage: 'Part ID is required',
     })
   }
 
@@ -24,14 +24,14 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.parts.findFirst({
     where: and(
       eq(schema.parts.id, id),
-      eq(schema.parts.organisationId, session.user.organisationId)
-    )
+      eq(schema.parts.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Part not found'
+      statusMessage: 'Part not found',
     })
   }
 
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.parts)
     .set({
       isActive: false,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.parts.id, id))
 
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
     action: 'delete',
     entityType: 'part',
     entityId: id,
-    oldValues: { sku: existing.sku, name: existing.name }
+    oldValues: { sku: existing.sku, name: existing.name },
   })
 
   return { success: true }

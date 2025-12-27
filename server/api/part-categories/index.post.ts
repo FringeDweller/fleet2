@@ -1,11 +1,11 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
   description: z.string().optional(),
-  parentId: z.string().uuid().optional().nullable()
+  parentId: z.string().uuid().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -25,7 +25,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -34,14 +34,14 @@ export default defineEventHandler(async (event) => {
     const parent = await db.query.partCategories.findFirst({
       where: and(
         eq(schema.partCategories.id, result.data.parentId),
-        eq(schema.partCategories.organisationId, session.user.organisationId)
-      )
+        eq(schema.partCategories.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!parent) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Parent category not found'
+        statusMessage: 'Parent category not found',
       })
     }
   }
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
       organisationId: session.user.organisationId,
       name: result.data.name,
       description: result.data.description,
-      parentId: result.data.parentId
+      parentId: result.data.parentId,
     })
     .returning()
 
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     action: 'create',
     entityType: 'part_category',
     entityId: category!.id,
-    newValues: { name: result.data.name, parentId: result.data.parentId }
+    newValues: { name: result.data.name, parentId: result.data.parentId },
   })
 
   return category

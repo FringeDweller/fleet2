@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
-import { upperFirst } from 'scule'
 import type { Row } from '@tanstack/table-core'
+import { upperFirst } from 'scule'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Asset {
@@ -22,7 +22,7 @@ interface Asset {
   imageUrl: string | null
   isArchived: boolean
   categoryId: string | null
-  category: { id: string, name: string } | null
+  category: { id: string; name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -73,19 +73,19 @@ const filters = ref({
   mileageMin: '',
   mileageMax: '',
   hoursMin: '',
-  hoursMax: ''
+  hoursMax: '',
 })
 
 // Pagination state
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 25
+  pageSize: 25,
 })
 
 // Sorting state
 const sorting = ref({
   sortBy: 'createdAt',
-  sortOrder: 'desc' as 'asc' | 'desc'
+  sortOrder: 'desc' as 'asc' | 'desc',
 })
 
 // Build query params for API
@@ -94,7 +94,7 @@ const queryParams = computed(() => {
     limit: pagination.value.pageSize,
     offset: pagination.value.pageIndex * pagination.value.pageSize,
     sortBy: sorting.value.sortBy,
-    sortOrder: sorting.value.sortOrder
+    sortOrder: sorting.value.sortOrder,
   }
 
   if (filters.value.search) params.search = filters.value.search
@@ -116,19 +116,19 @@ const queryParams = computed(() => {
 const {
   data: response,
   status: fetchStatus,
-  refresh
+  refresh,
 } = await useFetch<AssetsResponse>('/api/assets', {
   query: queryParams,
   lazy: true,
-  watch: [queryParams]
+  watch: [queryParams],
 })
 
 // Fetch categories for filter dropdown
-const { data: categories } = await useFetch<{ id: string, name: string }[]>(
+const { data: categories } = await useFetch<{ id: string; name: string }[]>(
   '/api/asset-categories',
   {
-    lazy: true
-  }
+    lazy: true,
+  },
 )
 
 // Fetch saved searches
@@ -136,8 +136,8 @@ const { data: savedSearches, refresh: refreshSavedSearches } = await useFetch<Sa
   '/api/saved-searches',
   {
     query: { entity: 'asset' },
-    lazy: true
-  }
+    lazy: true,
+  },
 )
 
 const assets = computed(() => response.value?.data || [])
@@ -146,14 +146,14 @@ const totalItems = computed(() => response.value?.pagination.total || 0)
 // Check if any advanced filters are active
 const hasActiveAdvancedFilters = computed(() => {
   return !!(
-    filters.value.make
-    || filters.value.model
-    || filters.value.yearMin
-    || filters.value.yearMax
-    || filters.value.mileageMin
-    || filters.value.mileageMax
-    || filters.value.hoursMin
-    || filters.value.hoursMax
+    filters.value.make ||
+    filters.value.model ||
+    filters.value.yearMin ||
+    filters.value.yearMax ||
+    filters.value.mileageMin ||
+    filters.value.mileageMax ||
+    filters.value.hoursMin ||
+    filters.value.hoursMax
   )
 })
 
@@ -163,7 +163,7 @@ watch(
   () => {
     pagination.value.pageIndex = 0
   },
-  { deep: true }
+  { deep: true },
 )
 
 // Apply saved search
@@ -180,7 +180,7 @@ function applySavedSearch(search: SavedSearch) {
     mileageMin: f.mileageMin?.toString() || '',
     mileageMax: f.mileageMax?.toString() || '',
     hoursMin: f.hoursMin?.toString() || '',
-    hoursMax: f.hoursMax?.toString() || ''
+    hoursMax: f.hoursMax?.toString() || '',
   }
   toast.add({ title: 'Search applied', description: `Applied "${search.name}"` })
 }
@@ -209,9 +209,9 @@ async function saveCurrentSearch() {
           mileageMin: filters.value.mileageMin ? parseFloat(filters.value.mileageMin) : undefined,
           mileageMax: filters.value.mileageMax ? parseFloat(filters.value.mileageMax) : undefined,
           hoursMin: filters.value.hoursMin ? parseFloat(filters.value.hoursMin) : undefined,
-          hoursMax: filters.value.hoursMax ? parseFloat(filters.value.hoursMax) : undefined
-        }
-      }
+          hoursMax: filters.value.hoursMax ? parseFloat(filters.value.hoursMax) : undefined,
+        },
+      },
     })
     toast.add({ title: 'Search saved', description: `Saved "${newSearchName.value}"` })
     newSearchName.value = ''
@@ -249,13 +249,13 @@ const savedSearchItems = computed(() => {
     items.push({
       label: s.name,
       icon: s.isShared ? 'i-lucide-users' : 'i-lucide-bookmark',
-      onSelect: () => applySavedSearch(s)
+      onSelect: () => applySavedSearch(s),
     })
     items.push({
       label: 'Delete ' + s.name,
       icon: 'i-lucide-trash-2',
       color: 'error',
-      onSelect: () => deleteSavedSearch(s.id)
+      onSelect: () => deleteSavedSearch(s.id),
     })
     items.push({ type: 'separator' })
   })
@@ -303,7 +303,7 @@ function clearFilters() {
     mileageMin: '',
     mileageMax: '',
     hoursMin: '',
-    hoursMax: ''
+    hoursMax: '',
   }
 }
 
@@ -311,21 +311,21 @@ function getRowItems(row: Row<Asset>) {
   return [
     {
       type: 'label',
-      label: 'Actions'
+      label: 'Actions',
     },
     {
       label: 'View details',
       icon: 'i-lucide-eye',
       onSelect() {
         router.push(`/assets/${row.original.id}`)
-      }
+      },
     },
     {
       label: 'Edit asset',
       icon: 'i-lucide-pencil',
       onSelect() {
         router.push(`/assets/${row.original.id}/edit`)
-      }
+      },
     },
     {
       label: 'Copy asset number',
@@ -334,12 +334,12 @@ function getRowItems(row: Row<Asset>) {
         navigator.clipboard.writeText(row.original.assetNumber)
         toast.add({
           title: 'Copied to clipboard',
-          description: 'Asset number copied to clipboard'
+          description: 'Asset number copied to clipboard',
         })
-      }
+      },
     },
     {
-      type: 'separator'
+      type: 'separator',
     },
     {
       label: 'Archive asset',
@@ -347,8 +347,8 @@ function getRowItems(row: Row<Asset>) {
       color: 'error',
       onSelect() {
         archiveAsset(row.original.id)
-      }
-    }
+      },
+    },
   ]
 }
 
@@ -356,18 +356,18 @@ async function archiveAsset(id: string) {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/assets/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Asset archived',
-      description: 'The asset has been archived successfully.'
+      description: 'The asset has been archived successfully.',
     })
     refresh()
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive asset.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -376,7 +376,7 @@ const statusColors = {
   active: 'success',
   inactive: 'neutral',
   maintenance: 'warning',
-  disposed: 'error'
+  disposed: 'error',
 } as const
 
 const columns: TableColumn<Asset>[] = [
@@ -384,19 +384,19 @@ const columns: TableColumn<Asset>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all',
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
-      })
+        ariaLabel: 'Select row',
+      }),
   },
   {
     accessorKey: 'assetNumber',
@@ -413,11 +413,11 @@ const columns: TableColumn<Asset>[] = [
             : 'i-lucide-arrow-down-wide-narrow'
           : 'i-lucide-arrow-up-down',
         class: '-mx-2.5',
-        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc')
+        onClick: () => column.toggleSorting(column.getIsSorted() === 'asc'),
       })
     },
     cell: ({ row }) =>
-      h('span', { class: 'font-medium text-highlighted' }, row.original.assetNumber)
+      h('span', { class: 'font-medium text-highlighted' }, row.original.assetNumber),
   },
   {
     accessorKey: 'make',
@@ -428,19 +428,19 @@ const columns: TableColumn<Asset>[] = [
       const year = row.original.year || ''
       return h('div', undefined, [
         h('p', { class: 'font-medium text-highlighted' }, `${make} ${model}`.trim() || '-'),
-        year ? h('p', { class: 'text-sm text-muted' }, year.toString()) : null
+        year ? h('p', { class: 'text-sm text-muted' }, year.toString()) : null,
       ])
-    }
+    },
   },
   {
     accessorKey: 'licensePlate',
     header: 'License Plate',
-    cell: ({ row }) => row.original.licensePlate || '-'
+    cell: ({ row }) => row.original.licensePlate || '-',
   },
   {
     accessorKey: 'vin',
     header: 'VIN',
-    cell: ({ row }) => row.original.vin || '-'
+    cell: ({ row }) => row.original.vin || '-',
   },
   {
     accessorKey: 'mileage',
@@ -448,7 +448,7 @@ const columns: TableColumn<Asset>[] = [
     cell: ({ row }) => {
       const mileage = row.original.mileage
       return mileage ? `${Number(mileage).toLocaleString()} km` : '-'
-    }
+    },
   },
   {
     accessorKey: 'operationalHours',
@@ -456,12 +456,12 @@ const columns: TableColumn<Asset>[] = [
     cell: ({ row }) => {
       const hours = row.original.operationalHours
       return hours ? `${Number(hours).toLocaleString()} hrs` : '-'
-    }
+    },
   },
   {
     accessorKey: 'category',
     header: 'Category',
-    cell: ({ row }) => row.original.category?.name || '-'
+    cell: ({ row }) => row.original.category?.name || '-',
   },
   {
     accessorKey: 'status',
@@ -470,7 +470,7 @@ const columns: TableColumn<Asset>[] = [
     cell: ({ row }) => {
       const color = statusColors[row.original.status]
       return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () => row.original.status)
-    }
+    },
   },
   {
     id: 'actions',
@@ -482,21 +482,21 @@ const columns: TableColumn<Asset>[] = [
           UDropdownMenu,
           {
             content: {
-              align: 'end'
+              align: 'end',
             },
-            items: getRowItems(row)
+            items: getRowItems(row),
           },
           () =>
             h(UButton, {
               icon: 'i-lucide-ellipsis-vertical',
               color: 'neutral',
               variant: 'ghost',
-              class: 'ml-auto'
-            })
-        )
+              class: 'ml-auto',
+            }),
+        ),
       )
-    }
-  }
+    },
+  },
 ]
 </script>
 

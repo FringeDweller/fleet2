@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Missing category ID'
+      statusMessage: 'Missing category ID',
     })
   }
 
@@ -24,28 +24,28 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.assetCategories.findFirst({
     where: and(
       eq(schema.assetCategories.id, id),
-      eq(schema.assetCategories.organisationId, session.user.organisationId)
-    )
+      eq(schema.assetCategories.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Category not found'
+      statusMessage: 'Category not found',
     })
   }
 
   // Check if category has children
   const children = await db.query.assetCategories.findMany({
     where: and(eq(schema.assetCategories.parentId, id), eq(schema.assetCategories.isActive, true)),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (children.length > 0) {
     throw createError({
       statusCode: 400,
       statusMessage:
-        'Cannot delete category with active subcategories. Please delete or reassign subcategories first.'
+        'Cannot delete category with active subcategories. Please delete or reassign subcategories first.',
     })
   }
 
@@ -53,13 +53,13 @@ export default defineEventHandler(async (event) => {
   const assets = await db.query.assets.findMany({
     where: and(eq(schema.assets.categoryId, id), eq(schema.assets.isArchived, false)),
     columns: { id: true },
-    limit: 1
+    limit: 1,
   })
 
   if (assets.length > 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Cannot delete category with assigned assets. Please reassign assets first.'
+      statusMessage: 'Cannot delete category with assigned assets. Please reassign assets first.',
     })
   }
 
@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
     action: 'delete',
     entityType: 'asset_category',
     entityId: id,
-    oldValues: { name: existing.name, isActive: true }
+    oldValues: { name: existing.name, isActive: true },
   })
 
   return { success: true, category: updated }

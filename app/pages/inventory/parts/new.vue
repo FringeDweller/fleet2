@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface PartCategory {
@@ -15,7 +15,7 @@ const router = useRouter()
 const toast = useToast()
 
 const { data: categories } = await useFetch<PartCategory[]>('/api/part-categories', {
-  lazy: true
+  lazy: true,
 })
 
 const schema = z.object({
@@ -33,20 +33,20 @@ const schema = z.object({
   unitCost: z.number().min(0).optional(),
   supplier: z.string().max(200).optional(),
   supplierPartNumber: z.string().max(100).optional(),
-  location: z.string().max(100).optional()
+  location: z.string().max(100).optional(),
 })
 
 type Schema = z.output<typeof schema>
 
 const state = reactive<Partial<Schema>>({
   unit: 'each',
-  quantityInStock: 0
+  quantityInStock: 0,
 })
 
 const loading = ref(false)
 
 const categoryOptions = computed(() => {
-  return categories.value?.map(c => ({ label: c.name, value: c.id })) || []
+  return categories.value?.map((c) => ({ label: c.name, value: c.id })) || []
 })
 
 const unitOptions = [
@@ -59,7 +59,7 @@ const unitOptions = [
   { label: 'Feet', value: 'feet' },
   { label: 'Box', value: 'box' },
   { label: 'Set', value: 'set' },
-  { label: 'Pair', value: 'pair' }
+  { label: 'Pair', value: 'pair' },
 ]
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
@@ -67,12 +67,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   try {
     const part = await $fetch('/api/parts', {
       method: 'POST',
-      body: event.data
+      body: event.data,
     })
     toast.add({
       title: 'Part created',
       description: 'The part has been added to the catalog.',
-      color: 'success'
+      color: 'success',
     })
     router.push(`/inventory/parts/${(part as { id: string }).id}`)
   } catch (err: unknown) {
@@ -80,7 +80,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to create part.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false

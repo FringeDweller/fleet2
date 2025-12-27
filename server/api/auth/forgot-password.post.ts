@@ -3,7 +3,7 @@ import { generatePasswordResetToken } from '../../utils/auth'
 import { jobs } from '../../utils/queue'
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email('Invalid email format')
+  email: z.string().email('Invalid email format'),
 })
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -33,12 +33,12 @@ export default defineEventHandler(async (event) => {
       to: email,
       subject: 'Reset your Fleet password',
       template: 'password-reset',
-      data: { resetUrl }
+      data: { resetUrl },
     })
   }
 
   return {
     success: true,
-    message: 'If an account with that email exists, a password reset link has been sent'
+    message: 'If an account with that email exists, a password reset link has been sent',
   }
 })

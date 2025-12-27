@@ -1,25 +1,25 @@
 import {
+  boolean,
+  index,
+  integer,
+  pgEnum,
   pgTable,
-  uuid,
-  varchar,
   text,
   timestamp,
-  boolean,
-  integer,
-  index,
-  pgEnum,
-  unique
+  unique,
+  uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import { organisations } from './organisations'
 import { assets } from './assets'
-import { users } from './users'
+import { organisations } from './organisations'
 import { taskTemplates } from './task-templates'
+import { users } from './users'
 
 export const workOrderPriorityEnum = pgEnum('work_order_priority', [
   'low',
   'medium',
   'high',
-  'critical'
+  'critical',
 ])
 export const workOrderStatusEnum = pgEnum('work_order_status', [
   'draft',
@@ -27,7 +27,7 @@ export const workOrderStatusEnum = pgEnum('work_order_status', [
   'in_progress',
   'pending_parts',
   'completed',
-  'closed'
+  'closed',
 ])
 
 export const workOrders = pgTable(
@@ -62,9 +62,9 @@ export const workOrders = pgTable(
     isArchived: boolean('is_archived').default(false).notNull(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull()
+    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   },
-  table => [
+  (table) => [
     index('work_orders_organisation_id_idx').on(table.organisationId),
     index('work_orders_asset_id_idx').on(table.assetId),
     index('work_orders_assigned_to_id_idx').on(table.assignedToId),
@@ -74,9 +74,9 @@ export const workOrders = pgTable(
     index('work_orders_is_archived_idx').on(table.isArchived),
     unique('work_orders_org_work_order_number_unique').on(
       table.organisationId,
-      table.workOrderNumber
-    )
-  ]
+      table.workOrderNumber,
+    ),
+  ],
 )
 
 export type WorkOrder = typeof workOrders.$inferSelect

@@ -1,14 +1,14 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 import {
   generateScheduledWorkOrders,
-  generateWorkOrderFromSchedule
+  generateWorkOrderFromSchedule,
 } from '../../utils/work-order-generator'
 
 const generateSchema = z
   .object({
-    scheduleId: z.string().uuid().optional()
+    scheduleId: z.string().uuid().optional(),
   })
   .optional()
 
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: validation.error.flatten()
+      data: validation.error.flatten(),
     })
   }
 
@@ -54,21 +54,21 @@ export default defineEventHandler(async (event) => {
       const schedule = await db.query.maintenanceSchedules.findFirst({
         where: and(
           eq(schema.maintenanceSchedules.id, validation.data.scheduleId),
-          eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)
-        )
+          eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
+        ),
       })
 
       if (!schedule) {
         throw createError({
           statusCode: 404,
-          statusMessage: 'Schedule not found'
+          statusMessage: 'Schedule not found',
         })
       }
 
       if (!schedule.isActive || schedule.isArchived) {
         throw createError({
           statusCode: 400,
-          statusMessage: 'Schedule is not active'
+          statusMessage: 'Schedule is not active',
         })
       }
 
@@ -79,8 +79,8 @@ export default defineEventHandler(async (event) => {
           where: and(
             eq(schema.assets.id, schedule.assetId),
             eq(schema.assets.organisationId, session.user.organisationId),
-            eq(schema.assets.isArchived, false)
-          )
+            eq(schema.assets.isArchived, false),
+          ),
         })
         if (asset) assets.push(asset)
       } else if (schedule.categoryId) {
@@ -88,15 +88,15 @@ export default defineEventHandler(async (event) => {
           where: and(
             eq(schema.assets.categoryId, schedule.categoryId),
             eq(schema.assets.organisationId, session.user.organisationId),
-            eq(schema.assets.isArchived, false)
-          )
+            eq(schema.assets.isArchived, false),
+          ),
         })
       }
 
       if (assets.length === 0) {
         throw createError({
           statusCode: 400,
-          statusMessage: 'No eligible assets found for this schedule'
+          statusMessage: 'No eligible assets found for this schedule',
         })
       }
 
@@ -113,11 +113,11 @@ export default defineEventHandler(async (event) => {
       // Get all schedules for this org to filter results
       const orgSchedules = await db.query.maintenanceSchedules.findMany({
         where: eq(schema.maintenanceSchedules.organisationId, session.user.organisationId),
-        columns: { id: true }
+        columns: { id: true },
       })
 
-      const orgScheduleIds = new Set(orgSchedules.map(s => s.id))
-      results = allResults.filter(r => orgScheduleIds.has(r.scheduleId))
+      const orgScheduleIds = new Set(orgSchedules.map((s) => s.id))
+      results = allResults.filter((r) => orgScheduleIds.has(r.scheduleId))
     }
 
     // Log the manual generation in audit log
@@ -130,18 +130,18 @@ export default defineEventHandler(async (event) => {
       newValues: {
         action: 'manual_work_order_generation',
         resultsCount: results.length,
-        createdCount: results.filter(r => r.status === 'created').length
-      }
+        createdCount: results.filter((r) => r.status === 'created').length,
+      },
     })
 
     return {
       results,
       summary: {
         total: results.length,
-        created: results.filter(r => r.status === 'created').length,
-        skipped: results.filter(r => r.status === 'skipped').length,
-        errors: results.filter(r => r.status === 'error').length
-      }
+        created: results.filter((r) => r.status === 'created').length,
+        skipped: results.filter((r) => r.status === 'skipped').length,
+        errors: results.filter((r) => r.status === 'error').length,
+      },
     }
   } catch (error) {
     // If it's already a createError, re-throw it
@@ -154,7 +154,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 500,
       statusMessage: 'Failed to generate work orders',
-      data: { error: error instanceof Error ? error.message : 'Unknown error' }
+      data: { error: error instanceof Error ? error.message : 'Unknown error' },
     })
   }
 })

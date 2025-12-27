@@ -1,10 +1,10 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const statusSchema = z.object({
   status: z.enum(['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed']),
-  notes: z.string().optional()
+  notes: z.string().optional(),
 })
 
 // Valid status transitions
@@ -14,7 +14,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   in_progress: ['pending_parts', 'completed', 'open'],
   pending_parts: ['in_progress', 'open'],
   completed: ['closed', 'in_progress'],
-  closed: [] // Terminal state
+  closed: [], // Terminal state
 }
 
 function isValidTransition(fromStatus: string, toStatus: string): boolean {
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -55,14 +55,14 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
-    )
+      eq(schema.workOrders.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -70,14 +70,14 @@ export default defineEventHandler(async (event) => {
   if (!isValidTransition(existing.status, result.data.status)) {
     throw createError({
       statusCode: 400,
-      statusMessage: `Invalid status transition from '${existing.status}' to '${result.data.status}'`
+      statusMessage: `Invalid status transition from '${existing.status}' to '${result.data.status}'`,
     })
   }
 
   const now = new Date()
   const updateData: Record<string, unknown> = {
     status: result.data.status,
-    updatedAt: now
+    updatedAt: now,
   }
 
   // Set timestamps based on new status
@@ -98,8 +98,8 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(schema.workOrders.id, id),
-        eq(schema.workOrders.organisationId, session.user.organisationId)
-      )
+        eq(schema.workOrders.organisationId, session.user.organisationId),
+      ),
     )
     .returning()
 
@@ -109,7 +109,7 @@ export default defineEventHandler(async (event) => {
     fromStatus: existing.status,
     toStatus: result.data.status,
     changedById: session.user.id,
-    notes: result.data.notes
+    notes: result.data.notes,
   })
 
   // Log in audit log
@@ -120,7 +120,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'work_order',
     entityId: id,
     oldValues: { status: existing.status },
-    newValues: { status: result.data.status }
+    newValues: { status: result.data.status },
   })
 
   return workOrder

@@ -1,5 +1,5 @@
+import { and, eq, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, sql } from 'drizzle-orm'
 
 interface CategoryNode {
   id: string
@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -36,25 +36,25 @@ export default defineEventHandler(async (event) => {
 
   const allCategories = await db.query.assetCategories.findMany({
     where: and(...conditions),
-    orderBy: (categories, { asc }) => [asc(categories.name)]
+    orderBy: (categories, { asc }) => [asc(categories.name)],
   })
 
   // Get asset counts per category
   const assetCounts = await db
     .select({
       categoryId: schema.assets.categoryId,
-      count: sql<number>`count(*)::int`
+      count: sql<number>`count(*)::int`,
     })
     .from(schema.assets)
     .where(
       and(
         eq(schema.assets.organisationId, session.user.organisationId),
-        eq(schema.assets.isArchived, false)
-      )
+        eq(schema.assets.isArchived, false),
+      ),
     )
     .groupBy(schema.assets.categoryId)
 
-  const countMap = new Map(assetCounts.map(c => [c.categoryId, c.count]))
+  const countMap = new Map(assetCounts.map((c) => [c.categoryId, c.count]))
 
   // Build tree structure
   const categoryMap = new Map<string, CategoryNode>()
@@ -72,7 +72,7 @@ export default defineEventHandler(async (event) => {
       createdAt: cat.createdAt,
       updatedAt: cat.updatedAt,
       assetCount: countMap.get(cat.id) || 0,
-      children: []
+      children: [],
     })
   }
 

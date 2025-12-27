@@ -1,8 +1,8 @@
+import { and, eq, gte, isNull, or, sql } from 'drizzle-orm'
+import type { Asset, MaintenanceSchedule } from '../db/schema'
 import { db, schema } from './db'
-import { eq, and, gte, or, isNull, sql } from 'drizzle-orm'
-import type { MaintenanceSchedule, Asset } from '../db/schema'
-import { calculateNextDueDate } from './schedule-calculator'
 import { createScheduledMaintenanceNotification } from './notifications'
+import { calculateNextDueDate } from './schedule-calculator'
 
 export interface GenerationResult {
   scheduleId: string
@@ -36,8 +36,8 @@ async function wasWorkOrderGenerated(scheduleId: string, scheduledDate: Date): P
   const existing = await db.query.maintenanceScheduleWorkOrders.findFirst({
     where: and(
       eq(schema.maintenanceScheduleWorkOrders.scheduleId, scheduleId),
-      eq(schema.maintenanceScheduleWorkOrders.scheduledDate, scheduledDate)
-    )
+      eq(schema.maintenanceScheduleWorkOrders.scheduledDate, scheduledDate),
+    ),
   })
   return !!existing
 }
@@ -47,14 +47,14 @@ async function wasWorkOrderGenerated(scheduleId: string, scheduledDate: Date): P
  */
 export async function generateWorkOrderFromSchedule(
   schedule: MaintenanceSchedule,
-  asset: Asset
+  asset: Asset,
 ): Promise<GenerationResult> {
   const result: GenerationResult = {
     scheduleId: schedule.id,
     scheduleName: schedule.name,
     assetId: asset.id,
     assetNumber: asset.assetNumber,
-    status: 'skipped'
+    status: 'skipped',
   }
 
   try {
@@ -134,7 +134,7 @@ export async function generateWorkOrderFromSchedule(
       priority: schedule.defaultPriority as 'low' | 'medium' | 'high' | 'critical',
       status: 'open' as const,
       dueDate,
-      notes: `Auto-generated from maintenance schedule: ${schedule.name}\nTrigger: ${triggerReason}`
+      notes: `Auto-generated from maintenance schedule: ${schedule.name}\nTrigger: ${triggerReason}`,
     }
 
     // Create work order
@@ -149,17 +149,17 @@ export async function generateWorkOrderFromSchedule(
     // Copy checklist items from template if available
     if (schedule.templateId) {
       const template = await db.query.taskTemplates.findFirst({
-        where: eq(schema.taskTemplates.id, schedule.templateId)
+        where: eq(schema.taskTemplates.id, schedule.templateId),
       })
 
       if (template?.checklistItems && template.checklistItems.length > 0) {
-        const checklistItems = template.checklistItems.map(item => ({
+        const checklistItems = template.checklistItems.map((item) => ({
           workOrderId: workOrder.id,
           templateItemId: item.id,
           title: item.title,
           description: item.description || null,
           isRequired: item.isRequired,
-          order: item.order
+          order: item.order,
         }))
 
         await db.insert(schema.workOrderChecklistItems).values(checklistItems)
@@ -170,7 +170,7 @@ export async function generateWorkOrderFromSchedule(
     await db.insert(schema.maintenanceScheduleWorkOrders).values({
       scheduleId: schedule.id,
       workOrderId: workOrder.id,
-      scheduledDate: dueDate
+      scheduledDate: dueDate,
     })
 
     // Create status history entry
@@ -179,13 +179,13 @@ export async function generateWorkOrderFromSchedule(
       fromStatus: null,
       toStatus: 'open',
       changedById: schedule.createdById,
-      notes: `Auto-generated from maintenance schedule: ${schedule.name}`
+      notes: `Auto-generated from maintenance schedule: ${schedule.name}`,
     })
 
     // Update schedule tracking fields
     const updates: Partial<typeof schema.maintenanceSchedules.$inferInsert> = {
       lastGeneratedAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     }
 
     // Update time-based tracking
@@ -197,7 +197,7 @@ export async function generateWorkOrderFromSchedule(
           schedule.nextDueDate,
           schedule.dayOfWeek,
           schedule.dayOfMonth,
-          schedule.monthOfYear
+          schedule.monthOfYear,
         )
       }
     }
@@ -230,15 +230,15 @@ export async function generateWorkOrderFromSchedule(
           source: 'maintenance_schedule',
           scheduleId: schedule.id,
           scheduleName: schedule.name,
-          trigger: triggerReason
-        }
-      }
+          trigger: triggerReason,
+        },
+      },
     })
 
     // Notify assignee if work order was assigned
     if (workOrder.assignedToId) {
       const assignee = await db.query.users.findFirst({
-        where: eq(schema.users.id, workOrder.assignedToId)
+        where: eq(schema.users.id, workOrder.assignedToId),
       })
 
       if (assignee) {
@@ -248,7 +248,7 @@ export async function generateWorkOrderFromSchedule(
           scheduleName: schedule.name,
           assetNumber: asset.assetNumber,
           workOrderNumber: workOrder.workOrderNumber,
-          workOrderId: workOrder.id
+          workOrderId: workOrder.id,
         })
       }
     }
@@ -279,9 +279,9 @@ export async function generateScheduledWorkOrders(): Promise<GenerationResult[]>
       eq(schema.maintenanceSchedules.isArchived, false),
       or(
         isNull(schema.maintenanceSchedules.endDate),
-        gte(schema.maintenanceSchedules.endDate, new Date())
-      )
-    )
+        gte(schema.maintenanceSchedules.endDate, new Date()),
+      ),
+    ),
   })
 
   for (const schedule of schedules) {
@@ -291,7 +291,7 @@ export async function generateScheduledWorkOrders(): Promise<GenerationResult[]>
     if (schedule.assetId) {
       // Schedule is for specific asset
       const asset = await db.query.assets.findFirst({
-        where: and(eq(schema.assets.id, schedule.assetId), eq(schema.assets.isArchived, false))
+        where: and(eq(schema.assets.id, schedule.assetId), eq(schema.assets.isArchived, false)),
       })
       if (asset) assets = [asset]
     } else if (schedule.categoryId) {
@@ -299,8 +299,8 @@ export async function generateScheduledWorkOrders(): Promise<GenerationResult[]>
       assets = await db.query.assets.findMany({
         where: and(
           eq(schema.assets.categoryId, schedule.categoryId),
-          eq(schema.assets.isArchived, false)
-        )
+          eq(schema.assets.isArchived, false),
+        ),
       })
     }
 

@@ -1,5 +1,5 @@
+import { and, desc, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and, desc } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,14 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Part ID is required'
+      statusMessage: 'Part ID is required',
     })
   }
 
   const part = await db.query.parts.findFirst({
     where: and(
       eq(schema.parts.id, id),
-      eq(schema.parts.organisationId, session.user.organisationId)
+      eq(schema.parts.organisationId, session.user.organisationId),
     ),
     with: {
       category: true,
@@ -35,25 +35,25 @@ export default defineEventHandler(async (event) => {
             columns: {
               id: true,
               firstName: true,
-              lastName: true
-            }
+              lastName: true,
+            },
           },
           workOrder: {
             columns: {
               id: true,
               workOrderNumber: true,
-              title: true
-            }
-          }
-        }
-      }
-    }
+              title: true,
+            },
+          },
+        },
+      },
+    },
   })
 
   if (!part) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Part not found'
+      statusMessage: 'Part not found',
     })
   }
 

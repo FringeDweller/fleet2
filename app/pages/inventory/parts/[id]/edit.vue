@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import * as z from 'zod'
 
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Part {
@@ -35,13 +35,13 @@ const toast = useToast()
 const {
   data: part,
   status: fetchStatus,
-  error
+  error,
 } = await useFetch<Part>(`/api/parts/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 const { data: categories } = await useFetch<PartCategory[]>('/api/part-categories', {
-  lazy: true
+  lazy: true,
 })
 
 const schema = z.object({
@@ -56,7 +56,7 @@ const schema = z.object({
   unitCost: z.number().min(0).optional().nullable(),
   supplier: z.string().max(200).optional().nullable(),
   supplierPartNumber: z.string().max(100).optional().nullable(),
-  location: z.string().max(100).optional().nullable()
+  location: z.string().max(100).optional().nullable(),
 })
 
 type Schema = z.output<typeof schema>
@@ -85,13 +85,13 @@ watch(
       state.location = newPart.location
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const loading = ref(false)
 
 const categoryOptions = computed(() => {
-  return categories.value?.map(c => ({ label: c.name, value: c.id })) || []
+  return categories.value?.map((c) => ({ label: c.name, value: c.id })) || []
 })
 
 const unitOptions = [
@@ -104,7 +104,7 @@ const unitOptions = [
   { label: 'Feet', value: 'feet' },
   { label: 'Box', value: 'box' },
   { label: 'Set', value: 'set' },
-  { label: 'Pair', value: 'pair' }
+  { label: 'Pair', value: 'pair' },
 ]
 
 async function onSubmit(event: FormSubmitEvent<Schema>) {
@@ -113,12 +113,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/parts/${route.params.id}`, {
       method: 'PUT',
-      body: event.data
+      body: event.data,
     })
     toast.add({
       title: 'Part updated',
       description: 'The part has been updated successfully.',
-      color: 'success'
+      color: 'success',
     })
     router.push(`/inventory/parts/${route.params.id}`)
   } catch (err: unknown) {
@@ -126,7 +126,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     toast.add({
       title: 'Error',
       description: error.data?.message || 'Failed to update part.',
-      color: 'error'
+      color: 'error',
     })
   } finally {
     loading.value = false

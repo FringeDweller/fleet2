@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!id || !itemId) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID and item ID are required'
+      statusMessage: 'Work order ID and item ID are required',
     })
   }
 
@@ -25,15 +25,15 @@ export default defineEventHandler(async (event) => {
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
-    columns: { id: true }
+    columns: { id: true },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 
@@ -43,15 +43,15 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(schema.workOrderChecklistItems.id, itemId),
-        eq(schema.workOrderChecklistItems.workOrderId, id)
-      )
+        eq(schema.workOrderChecklistItems.workOrderId, id),
+      ),
     )
     .returning({ id: schema.workOrderChecklistItems.id })
 
   if (!deleted) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Checklist item not found'
+      statusMessage: 'Checklist item not found',
     })
   }
 

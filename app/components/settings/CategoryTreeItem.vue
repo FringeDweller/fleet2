@@ -36,8 +36,8 @@ const props = defineProps<{
   level: number
   expandedCategories: Set<string>
   getRowActions: (
-    category: CategoryNode
-  ) => Array<Array<{ label: string, icon: string, color?: string, onSelect: () => void }>>
+    category: CategoryNode,
+  ) => Array<Array<{ label: string; icon: string; color?: string; onSelect: () => void }>>
 }>()
 
 const emit = defineEmits<{

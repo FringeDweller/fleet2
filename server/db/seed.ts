@@ -1,6 +1,6 @@
-import { db, schema } from '../utils/db'
 import { hash } from '@node-rs/argon2'
-import { ROLES, DEFAULT_ROLE_PERMISSIONS, type RoleName } from './schema/roles'
+import { db, schema } from '../utils/db'
+import { DEFAULT_ROLE_PERMISSIONS, ROLES, type RoleName } from './schema/roles'
 
 async function seed() {
   console.log('🌱 Starting database seed...')
@@ -12,13 +12,13 @@ async function seed() {
       name,
       displayName: key
         .split('_')
-        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
         .join(' '),
       description: `${key
         .split('_')
-        .map(word => word.charAt(0) + word.slice(1).toLowerCase())
+        .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
         .join(' ')} role`,
-      permissions: DEFAULT_ROLE_PERMISSIONS[name as RoleName]
+      permissions: DEFAULT_ROLE_PERMISSIONS[name as RoleName],
     }))
 
     const insertedRoles = await db
@@ -31,7 +31,7 @@ async function seed() {
 
     // Get admin role for the demo user
     const adminRole = await db.query.roles.findFirst({
-      where: (roles, { eq }) => eq(roles.name, ROLES.ADMIN)
+      where: (roles, { eq }) => eq(roles.name, ROLES.ADMIN),
     })
 
     if (!adminRole) {
@@ -46,7 +46,7 @@ async function seed() {
         name: 'Demo Fleet Company',
         slug: 'demo-fleet',
         description: 'A demo organisation for testing Fleet',
-        primaryColor: '#0066cc'
+        primaryColor: '#0066cc',
       })
       .onConflictDoNothing()
       .returning()
@@ -60,7 +60,7 @@ async function seed() {
         memoryCost: 19456,
         timeCost: 2,
         outputLen: 32,
-        parallelism: 1
+        parallelism: 1,
       })
 
       const [demoUser] = await db
@@ -73,7 +73,7 @@ async function seed() {
           firstName: 'Admin',
           lastName: 'User',
           emailVerified: true,
-          isActive: true
+          isActive: true,
         })
         .onConflictDoNothing()
         .returning()
@@ -89,12 +89,12 @@ async function seed() {
         { name: 'Trucks', description: 'Heavy duty trucks and semi-trailers' },
         { name: 'Vans', description: 'Delivery vans and cargo vehicles' },
         { name: 'Cars', description: 'Passenger vehicles' },
-        { name: 'Equipment', description: 'Machinery and equipment' }
+        { name: 'Equipment', description: 'Machinery and equipment' },
       ]
 
       const insertedCategories = await db
         .insert(schema.assetCategories)
-        .values(categoryData.map(c => ({ ...c, organisationId: demoOrg.id })))
+        .values(categoryData.map((c) => ({ ...c, organisationId: demoOrg.id })))
         .onConflictDoNothing()
         .returning()
 
@@ -102,9 +102,9 @@ async function seed() {
 
       // Create sample assets
       console.log('Creating sample assets...')
-      const trucksCategory = insertedCategories.find(c => c.name === 'Trucks')
-      const vansCategory = insertedCategories.find(c => c.name === 'Vans')
-      const carsCategory = insertedCategories.find(c => c.name === 'Cars')
+      const trucksCategory = insertedCategories.find((c) => c.name === 'Trucks')
+      const vansCategory = insertedCategories.find((c) => c.name === 'Vans')
+      const carsCategory = insertedCategories.find((c) => c.name === 'Cars')
 
       const assetData = [
         {
@@ -118,7 +118,7 @@ async function seed() {
           operationalHours: '1200',
           status: 'active' as const,
           categoryId: trucksCategory?.id,
-          description: 'Primary delivery truck'
+          description: 'Primary delivery truck',
         },
         {
           assetNumber: 'FLT-0002',
@@ -131,7 +131,7 @@ async function seed() {
           operationalHours: '1800',
           status: 'active' as const,
           categoryId: vansCategory?.id,
-          description: 'Cargo van for city deliveries'
+          description: 'Cargo van for city deliveries',
         },
         {
           assetNumber: 'FLT-0003',
@@ -144,7 +144,7 @@ async function seed() {
           operationalHours: '2100',
           status: 'maintenance' as const,
           categoryId: vansCategory?.id,
-          description: 'Large capacity delivery van - scheduled for service'
+          description: 'Large capacity delivery van - scheduled for service',
         },
         {
           assetNumber: 'FLT-0004',
@@ -157,7 +157,7 @@ async function seed() {
           operationalHours: '350',
           status: 'active' as const,
           categoryId: trucksCategory?.id,
-          description: 'New fleet addition'
+          description: 'New fleet addition',
         },
         {
           assetNumber: 'FLT-0005',
@@ -170,13 +170,13 @@ async function seed() {
           operationalHours: '800',
           status: 'active' as const,
           categoryId: carsCategory?.id,
-          description: 'Executive vehicle'
-        }
+          description: 'Executive vehicle',
+        },
       ]
 
       const insertedAssets = await db
         .insert(schema.assets)
-        .values(assetData.map(a => ({ ...a, organisationId: demoOrg.id })))
+        .values(assetData.map((a) => ({ ...a, organisationId: demoOrg.id })))
         .onConflictDoNothing()
         .returning()
 

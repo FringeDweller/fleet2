@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Asset ID is required'
+      statusMessage: 'Asset ID is required',
     })
   }
 
@@ -24,14 +24,14 @@ export default defineEventHandler(async (event) => {
   const existingAsset = await db.query.assets.findFirst({
     where: and(
       eq(schema.assets.id, id),
-      eq(schema.assets.organisationId, session.user.organisationId)
-    )
+      eq(schema.assets.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existingAsset) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Asset not found'
+      statusMessage: 'Asset not found',
     })
   }
 
@@ -41,10 +41,10 @@ export default defineEventHandler(async (event) => {
     .set({
       isArchived: true,
       archivedAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(
-      and(eq(schema.assets.id, id), eq(schema.assets.organisationId, session.user.organisationId))
+      and(eq(schema.assets.id, id), eq(schema.assets.organisationId, session.user.organisationId)),
     )
     .returning()
 
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'asset',
     entityId: id,
     oldValues: existingAsset,
-    newValues: archivedAsset
+    newValues: archivedAsset,
   })
 
   return { success: true, message: 'Asset archived successfully' }

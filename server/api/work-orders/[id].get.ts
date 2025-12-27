@@ -1,5 +1,5 @@
+import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -16,14 +16,14 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Work order ID is required'
+      statusMessage: 'Work order ID is required',
     })
   }
 
   const workOrder = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId)
+      eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
     with: {
       asset: true,
@@ -35,24 +35,24 @@ export default defineEventHandler(async (event) => {
           lastName: true,
           email: true,
           avatarUrl: true,
-          phone: true
-        }
+          phone: true,
+        },
       },
       createdBy: {
         columns: {
           id: true,
           firstName: true,
-          lastName: true
-        }
+          lastName: true,
+        },
       },
       checklistItems: {
-        orderBy: (items, { asc }) => [asc(items.order)]
+        orderBy: (items, { asc }) => [asc(items.order)],
       },
       parts: {
-        orderBy: (parts, { desc }) => [desc(parts.createdAt)]
+        orderBy: (parts, { desc }) => [desc(parts.createdAt)],
       },
       photos: {
-        orderBy: (photos, { desc }) => [desc(photos.createdAt)]
+        orderBy: (photos, { desc }) => [desc(photos.createdAt)],
       },
       statusHistory: {
         orderBy: (history, { desc }) => [desc(history.createdAt)],
@@ -61,18 +61,18 @@ export default defineEventHandler(async (event) => {
             columns: {
               id: true,
               firstName: true,
-              lastName: true
-            }
-          }
-        }
-      }
-    }
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
   })
 
   if (!workOrder) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Work order not found'
+      statusMessage: 'Work order not found',
     })
   }
 

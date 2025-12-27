@@ -1,12 +1,12 @@
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
-import { eq, and } from 'drizzle-orm'
 
 const updateCategorySchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional().nullable(),
   parentId: z.string().uuid().optional().nullable(),
-  isActive: z.boolean().optional()
+  isActive: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Unauthorized'
+      statusMessage: 'Unauthorized',
     })
   }
 
@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Category ID is required'
+      statusMessage: 'Category ID is required',
     })
   }
 
@@ -35,7 +35,7 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       statusMessage: 'Validation error',
-      data: result.error.flatten()
+      data: result.error.flatten(),
     })
   }
 
@@ -43,14 +43,14 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.partCategories.findFirst({
     where: and(
       eq(schema.partCategories.id, id),
-      eq(schema.partCategories.organisationId, session.user.organisationId)
-    )
+      eq(schema.partCategories.organisationId, session.user.organisationId),
+    ),
   })
 
   if (!existing) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Category not found'
+      statusMessage: 'Category not found',
     })
   }
 
@@ -60,21 +60,21 @@ export default defineEventHandler(async (event) => {
     if (result.data.parentId === id) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Category cannot be its own parent'
+        statusMessage: 'Category cannot be its own parent',
       })
     }
 
     const parent = await db.query.partCategories.findFirst({
       where: and(
         eq(schema.partCategories.id, result.data.parentId),
-        eq(schema.partCategories.organisationId, session.user.organisationId)
-      )
+        eq(schema.partCategories.organisationId, session.user.organisationId),
+      ),
     })
 
     if (!parent) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Parent category not found'
+        statusMessage: 'Parent category not found',
       })
     }
   }
@@ -83,7 +83,7 @@ export default defineEventHandler(async (event) => {
     .update(schema.partCategories)
     .set({
       ...result.data,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(schema.partCategories.id, id))
     .returning()
@@ -96,7 +96,7 @@ export default defineEventHandler(async (event) => {
     entityType: 'part_category',
     entityId: id,
     oldValues: { name: existing.name, parentId: existing.parentId },
-    newValues: result.data
+    newValues: result.data,
   })
 
   return updated

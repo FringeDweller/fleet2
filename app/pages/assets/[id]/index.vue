@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
 })
 
 interface Asset {
@@ -18,7 +18,7 @@ interface Asset {
   imageUrl: string | null
   isArchived: boolean
   categoryId: string | null
-  category: { id: string, name: string } | null
+  category: { id: string; name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -31,9 +31,9 @@ const { cacheAsset, getCachedAsset, isOnline } = useAssetCache()
 const {
   data: asset,
   status,
-  error
+  error,
 } = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
-  lazy: true
+  lazy: true,
 })
 
 // Cache asset for offline access when loaded
@@ -44,7 +44,7 @@ watch(
       cacheAsset(newAsset)
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 // Try to load from cache if offline and no data
@@ -57,7 +57,7 @@ if (import.meta.client) {
         cachedAsset.value = getCachedAsset(route.params.id as string)
       }
     },
-    { immediate: true }
+    { immediate: true },
   )
 }
 
@@ -65,25 +65,25 @@ const statusColors = {
   active: 'success',
   inactive: 'neutral',
   maintenance: 'warning',
-  disposed: 'error'
+  disposed: 'error',
 } as const
 
 async function archiveAsset() {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await ($fetch as any)(`/api/assets/${route.params.id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     })
     toast.add({
       title: 'Asset archived',
-      description: 'The asset has been archived successfully.'
+      description: 'The asset has been archived successfully.',
     })
     router.push('/assets')
   } catch {
     toast.add({
       title: 'Error',
       description: 'Failed to archive asset.',
-      color: 'error'
+      color: 'error',
     })
   }
 }
@@ -94,7 +94,7 @@ const formatDate = (date: string) => {
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 </script>

@@ -6,9 +6,9 @@ echo ""
 # Track if any check fails
 FAILED=0
 
-# 1. Run ESLint
-echo "📝 Running lint..."
-pnpm run lint
+# 1. Run Biome lint
+echo "📝 Running lint (biome)..."
+bun run lint
 if [ $? -ne 0 ]; then
     echo "❌ Lint failed!"
     FAILED=1
@@ -19,7 +19,7 @@ echo ""
 
 # 2. Run TypeScript check
 echo "🔷 Running TypeScript check..."
-pnpm run typecheck
+bun run typecheck
 if [ $? -ne 0 ]; then
     echo "❌ TypeScript check failed!"
     FAILED=1
@@ -30,7 +30,7 @@ echo ""
 
 # 3. Run unit tests
 echo "🧪 Running unit tests..."
-pnpm run test
+bun run test
 if [ $? -ne 0 ]; then
     echo "❌ Unit tests failed!"
     FAILED=1
@@ -41,7 +41,7 @@ echo ""
 
 # 4. Run build
 echo "🏗️  Running build..."
-pnpm run build
+bun run build
 if [ $? -ne 0 ]; then
     echo "❌ Build failed!"
     FAILED=1

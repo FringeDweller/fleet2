@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Mock $fetch
 const mockFetch = vi.fn()
@@ -15,10 +15,10 @@ describe('WorkOrderChecklist Logic', () => {
         { id: '1', title: 'Item 1', isCompleted: true, isRequired: true },
         { id: '2', title: 'Item 2', isCompleted: false, isRequired: true },
         { id: '3', title: 'Item 3', isCompleted: true, isRequired: false },
-        { id: '4', title: 'Item 4', isCompleted: false, isRequired: false }
+        { id: '4', title: 'Item 4', isCompleted: false, isRequired: false },
       ]
 
-      const completed = items.filter(i => i.isCompleted).length
+      const completed = items.filter((i) => i.isCompleted).length
       const total = items.length
       const percentage = Math.round((completed / total) * 100)
 
@@ -36,10 +36,10 @@ describe('WorkOrderChecklist Logic', () => {
     it('should show 100% when all items completed', () => {
       const items = [
         { id: '1', title: 'Item 1', isCompleted: true },
-        { id: '2', title: 'Item 2', isCompleted: true }
+        { id: '2', title: 'Item 2', isCompleted: true },
       ]
 
-      const completed = items.filter(i => i.isCompleted).length
+      const completed = items.filter((i) => i.isCompleted).length
       const total = items.length
       const percentage = Math.round((completed / total) * 100)
 
@@ -56,15 +56,15 @@ describe('WorkOrderChecklist Logic', () => {
 
       await mockFetch(`/api/work-orders/${workOrderId}/checklist/${item.id}`, {
         method: 'PUT',
-        body: { isCompleted: !item.isCompleted }
+        body: { isCompleted: !item.isCompleted },
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
         `/api/work-orders/${workOrderId}/checklist/${item.id}`,
         {
           method: 'PUT',
-          body: { isCompleted: true }
-        }
+          body: { isCompleted: true },
+        },
       )
     })
   })
@@ -75,19 +75,19 @@ describe('WorkOrderChecklist Logic', () => {
       const newItem = {
         title: 'New Task',
         description: 'Task description',
-        isRequired: true
+        isRequired: true,
       }
 
       mockFetch.mockResolvedValueOnce({ id: 'new-id', ...newItem })
 
       await mockFetch(`/api/work-orders/${workOrderId}/checklist`, {
         method: 'POST',
-        body: newItem
+        body: newItem,
       })
 
       expect(mockFetch).toHaveBeenCalledWith(`/api/work-orders/${workOrderId}/checklist`, {
         method: 'POST',
-        body: newItem
+        body: newItem,
       })
     })
 
@@ -106,12 +106,12 @@ describe('WorkOrderChecklist Logic', () => {
       mockFetch.mockResolvedValueOnce({ success: true })
 
       await mockFetch(`/api/work-orders/${workOrderId}/checklist/${itemId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       expect(mockFetch).toHaveBeenCalledWith(
         `/api/work-orders/${workOrderId}/checklist/${itemId}`,
-        { method: 'DELETE' }
+        { method: 'DELETE' },
       )
     })
   })
@@ -127,7 +127,7 @@ describe('WorkOrderParts Logic', () => {
       const parts = [
         { id: '1', partName: 'Part 1', totalCost: '10.00' },
         { id: '2', partName: 'Part 2', totalCost: '25.50' },
-        { id: '3', partName: 'Part 3', totalCost: null }
+        { id: '3', partName: 'Part 3', totalCost: null },
       ]
 
       const total = parts.reduce((sum, p) => {
@@ -154,7 +154,7 @@ describe('WorkOrderParts Logic', () => {
         partName: 'Oil Filter',
         partNumber: 'OF-123',
         quantity: 2,
-        unitCost: 15.99
+        unitCost: 15.99,
       }
 
       const expectedTotalCost = (part.unitCost * part.quantity).toFixed(2)
@@ -164,7 +164,7 @@ describe('WorkOrderParts Logic', () => {
 
       await mockFetch(`/api/work-orders/${workOrderId}/parts`, {
         method: 'POST',
-        body: part
+        body: part,
       })
 
       expect(mockFetch).toHaveBeenCalled()
@@ -183,7 +183,7 @@ describe('WorkOrderPhotos Logic', () => {
         { id: '1', photoUrl: 'url1', photoType: 'before' },
         { id: '2', photoUrl: 'url2', photoType: 'before' },
         { id: '3', photoUrl: 'url3', photoType: 'during' },
-        { id: '4', photoUrl: 'url4', photoType: 'after' }
+        { id: '4', photoUrl: 'url4', photoType: 'after' },
       ]
 
       const groups: Record<string, typeof photos> = {
@@ -191,7 +191,7 @@ describe('WorkOrderPhotos Logic', () => {
         during: [],
         after: [],
         issue: [],
-        other: []
+        other: [],
       }
 
       for (const photo of photos) {
@@ -215,19 +215,19 @@ describe('WorkOrderPhotos Logic', () => {
       const photo = {
         photoUrl: 'https://example.com/photo.jpg',
         photoType: 'before',
-        caption: 'Before starting work'
+        caption: 'Before starting work',
       }
 
       mockFetch.mockResolvedValueOnce({ id: 'new-id', ...photo })
 
       await mockFetch(`/api/work-orders/${workOrderId}/photos`, {
         method: 'POST',
-        body: photo
+        body: photo,
       })
 
       expect(mockFetch).toHaveBeenCalledWith(`/api/work-orders/${workOrderId}/photos`, {
         method: 'POST',
-        body: photo
+        body: photo,
       })
     })
   })
@@ -241,7 +241,7 @@ describe('WorkOrderStatusHistory Logic', () => {
       in_progress: 'warning',
       pending_parts: 'warning',
       completed: 'success',
-      closed: 'neutral'
+      closed: 'neutral',
     }
 
     it('should return correct colors for each status', () => {
@@ -261,7 +261,7 @@ describe('WorkOrderStatusHistory Logic', () => {
       in_progress: 'In Progress',
       pending_parts: 'Pending Parts',
       completed: 'Completed',
-      closed: 'Closed'
+      closed: 'Closed',
     }
 
     it('should return correct labels for each status', () => {
