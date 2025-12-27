@@ -42,3 +42,22 @@ export async function createWorkOrderUnassignedNotification(params: {
     isRead: false
   })
 }
+
+export async function createScheduledMaintenanceNotification(params: {
+  organisationId: string
+  userId: string
+  scheduleName: string
+  assetNumber: string
+  workOrderNumber: string
+  workOrderId: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'work_order_assigned',
+    title: 'Scheduled Maintenance Work Order',
+    body: `Auto-generated work order ${params.workOrderNumber} for ${params.assetNumber} - ${params.scheduleName}`,
+    link: `/work-orders/${params.workOrderId}`,
+    isRead: false
+  })
+}
