@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, inArray, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
   const categoryId = query.categoryId as string | undefined
   const includeInactive = query.includeInactive === 'true'
   const lowStock = query.lowStock === 'true'
+
+  // Asset compatibility filter
+  const compatibleWithAsset = query.assetId as string | undefined
 
   // Advanced filters
   const supplier = query.supplier as string | undefined
@@ -58,6 +61,53 @@ export default defineEventHandler(async (event) => {
     conditions.push(
       sql`CAST(${schema.parts.quantityInStock} AS NUMERIC) <= COALESCE(CAST(${schema.parts.reorderThreshold} AS NUMERIC), 0)`,
     )
+  }
+
+  // Asset compatibility filter - get parts compatible with a specific asset
+  if (compatibleWithAsset) {
+    // Get the asset to check its category
+    const asset = await db.query.assets.findFirst({
+      where: and(
+        eq(schema.assets.id, compatibleWithAsset),
+        eq(schema.assets.organisationId, session.user.organisationId),
+      ),
+    })
+
+    if (asset) {
+      // Get part IDs directly assigned to this asset
+      const assetParts = await db.query.assetParts.findMany({
+        where: eq(schema.assetParts.assetId, compatibleWithAsset),
+        columns: { partId: true },
+      })
+      const assetPartIds = assetParts.map((ap) => ap.partId)
+
+      // Get part IDs assigned to the asset's category (if any)
+      let categoryPartIds: string[] = []
+      if (asset.categoryId) {
+        const categoryParts = await db.query.assetCategoryParts.findMany({
+          where: eq(schema.assetCategoryParts.categoryId, asset.categoryId),
+          columns: { partId: true },
+        })
+        categoryPartIds = categoryParts.map((cp) => cp.partId)
+      }
+
+      // Combine and filter by these part IDs
+      const compatiblePartIds = [...new Set([...assetPartIds, ...categoryPartIds])]
+      if (compatiblePartIds.length > 0) {
+        conditions.push(inArray(schema.parts.id, compatiblePartIds))
+      } else {
+        // No compatible parts found, return empty result
+        return {
+          data: [],
+          pagination: {
+            total: 0,
+            limit,
+            offset,
+            hasMore: false,
+          },
+        }
+      }
+    }
   }
 
   // Global search across multiple fields

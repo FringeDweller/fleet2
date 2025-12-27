@@ -1,5 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { assetCategories } from './asset-categories'
+import { assetCategoryParts } from './asset-category-parts'
+import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
@@ -88,6 +90,7 @@ export const assetCategoriesRelations = relations(assetCategories, ({ one, many 
   }),
   assets: many(assets),
   maintenanceSchedules: many(maintenanceSchedules),
+  compatibleParts: many(assetCategoryParts),
 }))
 
 export const assetsRelations = relations(assets, ({ one, many }) => ({
@@ -101,6 +104,7 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   }),
   workOrders: many(workOrders),
   maintenanceSchedules: many(maintenanceSchedules),
+  compatibleParts: many(assetParts),
 }))
 
 // Task Templates Relations
@@ -308,6 +312,8 @@ export const partsRelations = relations(parts, ({ one, many }) => ({
   usageHistory: many(partUsageHistory),
   templateParts: many(taskTemplateParts),
   workOrderParts: many(workOrderParts),
+  assetCategoryCompatibility: many(assetCategoryParts),
+  assetCompatibility: many(assetParts),
 }))
 
 // Part Usage History Relations
@@ -323,5 +329,29 @@ export const partUsageHistoryRelations = relations(partUsageHistory, ({ one }) =
   user: one(users, {
     fields: [partUsageHistory.userId],
     references: [users.id],
+  }),
+}))
+
+// Asset Category Parts Relations (part-category compatibility)
+export const assetCategoryPartsRelations = relations(assetCategoryParts, ({ one }) => ({
+  category: one(assetCategories, {
+    fields: [assetCategoryParts.categoryId],
+    references: [assetCategories.id],
+  }),
+  part: one(parts, {
+    fields: [assetCategoryParts.partId],
+    references: [parts.id],
+  }),
+}))
+
+// Asset Parts Relations (part-asset compatibility)
+export const assetPartsRelations = relations(assetParts, ({ one }) => ({
+  asset: one(assets, {
+    fields: [assetParts.assetId],
+    references: [assets.id],
+  }),
+  part: one(parts, {
+    fields: [assetParts.partId],
+    references: [parts.id],
   }),
 }))

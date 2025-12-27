@@ -59,12 +59,14 @@ const rowSelection = ref({})
 // Filter state - initialize from URL query params
 const categoryFilter = ref((route.query.categoryId as string) || '')
 const lowStockFilter = ref(route.query.lowStock === 'true')
+const assetFilter = ref((route.query.assetId as string) || '')
 
 // Computed query params for API
 const queryParams = computed(() => {
   const params: Record<string, string> = {}
   if (categoryFilter.value) params.categoryId = categoryFilter.value
   if (lowStockFilter.value) params.lowStock = 'true'
+  if (assetFilter.value) params.assetId = assetFilter.value
   return params
 })
 
@@ -80,10 +82,25 @@ const { data: categories } = await useFetch<{ id: string; name: string }[]>(
   },
 )
 
+// Fetch assets for the compatibility filter
+const { data: assetsData } = await useFetch<{
+  data: { id: string; assetNumber: string; make: string | null; model: string | null }[]
+}>('/api/assets', { lazy: true })
+
 const categoryOptions = computed(() => {
   return [
     { label: 'All Categories', value: '' },
     ...(categories.value?.map((c) => ({ label: c.name, value: c.id })) || []),
+  ]
+})
+
+const assetOptions = computed(() => {
+  return [
+    { label: 'All Assets', value: '' },
+    ...(assetsData.value?.data?.map((a) => ({
+      label: `${a.assetNumber}${a.make || a.model ? ` - ${[a.make, a.model].filter(Boolean).join(' ')}` : ''}`,
+      value: a.id,
+    })) || []),
   ]
 })
 
@@ -347,6 +364,13 @@ const pagination = ref({
             @click="lowStockFilter = !lowStockFilter"
           />
           <UButton
+            label="Stock Movements"
+            icon="i-lucide-arrow-right-left"
+            color="neutral"
+            variant="outline"
+            @click="router.push('/inventory/movements')"
+          />
+          <UButton
             label="Categories"
             icon="i-lucide-folder-tree"
             color="neutral"
@@ -378,6 +402,12 @@ const pagination = ref({
             :items="categoryOptions"
             placeholder="Filter category"
             class="min-w-40"
+          />
+          <USelect
+            v-model="assetFilter"
+            :items="assetOptions"
+            placeholder="Compatible with asset"
+            class="min-w-48"
           />
           <UDropdownMenu
             :items="

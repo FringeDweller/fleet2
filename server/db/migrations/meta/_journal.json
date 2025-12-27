@@ -57,6 +57,13 @@
       "when": 1766820057488,
       "tag": "0007_add-part-id-to-work-order-parts",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1766834516709,
+      "tag": "0008_sturdy_clea",
+      "breakpoints": true
     }
   ]
 }

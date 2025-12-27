@@ -23,10 +23,35 @@ interface Asset {
   updatedAt: string
 }
 
+interface CompatiblePart {
+  id: string
+  partId: string
+  part: {
+    id: string
+    sku: string
+    name: string
+    unit: string
+    quantityInStock: string
+    unitCost: string | null
+    category: { id: string; name: string } | null
+  }
+  notes: string | null
+  source: 'asset' | 'category'
+  createdAt: string
+}
+
+interface CompatiblePartsResponse {
+  data: CompatiblePart[]
+  asset: { id: string; assetNumber: string }
+}
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { cacheAsset, getCachedAsset, isOnline } = useAssetCache()
+
+// Tab state
+const activeTab = ref((route.query.tab as string) || 'details')
 
 const {
   data: asset,
@@ -35,6 +60,82 @@ const {
 } = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
   lazy: true,
 })
+
+// Fetch compatible parts
+const {
+  data: compatiblePartsData,
+  status: compatiblePartsStatus,
+  refresh: refreshCompatibleParts,
+} = await useFetch<CompatiblePartsResponse>(`/api/assets/${route.params.id}/compatible-parts`, {
+  lazy: true,
+})
+
+// Fetch all parts for the add dropdown
+const { data: allPartsData } = await useFetch<{
+  data: { id: string; sku: string; name: string }[]
+}>('/api/parts', { lazy: true })
+
+// Add part modal state
+const showAddPartModal = ref(false)
+const addingPart = ref(false)
+const selectedPartId = ref('')
+const partNotes = ref('')
+
+const availableParts = computed(() => {
+  if (!allPartsData.value?.data) return []
+  const assignedIds = new Set(compatiblePartsData.value?.data?.map((cp) => cp.partId) || [])
+  return allPartsData.value.data
+    .filter((p) => !assignedIds.has(p.id))
+    .map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id }))
+})
+
+async function addPart() {
+  if (!selectedPartId.value) return
+  addingPart.value = true
+  try {
+    await $fetch(`/api/assets/${route.params.id}/compatible-parts`, {
+      method: 'POST',
+      body: { partId: selectedPartId.value, notes: partNotes.value || undefined },
+    })
+    toast.add({
+      title: 'Part added',
+      description: 'The part has been assigned to this asset.',
+      color: 'success',
+    })
+    showAddPartModal.value = false
+    selectedPartId.value = ''
+    partNotes.value = ''
+    refreshCompatibleParts()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Error',
+      description: error.data?.statusMessage || 'Failed to add part.',
+      color: 'error',
+    })
+  } finally {
+    addingPart.value = false
+  }
+}
+
+async function removePart(partId: string) {
+  try {
+    await $fetch(`/api/assets/${route.params.id}/compatible-parts/${partId}`, {
+      method: 'DELETE',
+    })
+    toast.add({
+      title: 'Part removed',
+      description: 'The part has been removed from this asset.',
+    })
+    refreshCompatibleParts()
+  } catch {
+    toast.add({
+      title: 'Error',
+      description: 'Failed to remove part.',
+      color: 'error',
+    })
+  }
+}
 
 // Cache asset for offline access when loaded
 watch(
@@ -274,7 +375,17 @@ const formatDate = (date: string) => {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Tabs -->
+        <UTabs
+          v-model="activeTab"
+          :items="[
+            { label: 'Details', value: 'details', icon: 'i-lucide-info' },
+            { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' }
+          ]"
+        />
+
+        <!-- Details Tab -->
+        <div v-if="activeTab === 'details'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <UCard>
             <template #header>
               <h3 class="font-medium">
@@ -382,7 +493,7 @@ const formatDate = (date: string) => {
           </UCard>
         </div>
 
-        <UCard v-if="asset.description">
+        <UCard v-if="activeTab === 'details' && asset.description">
           <template #header>
             <h3 class="font-medium">
               Description
@@ -394,7 +505,7 @@ const formatDate = (date: string) => {
         </UCard>
 
         <!-- QR Code Card for mobile (hidden on desktop) -->
-        <UCard class="md:hidden">
+        <UCard v-if="activeTab === 'details'" class="md:hidden">
           <template #header>
             <h3 class="font-medium">
               Asset QR Code
@@ -407,7 +518,137 @@ const formatDate = (date: string) => {
             Scan this code to quickly access this asset
           </p>
         </UCard>
+
+        <!-- Compatible Parts Tab -->
+        <div v-if="activeTab === 'parts'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium">
+              Compatible Parts
+            </h3>
+            <UButton
+              label="Add Part"
+              icon="i-lucide-plus"
+              color="primary"
+              @click="showAddPartModal = true"
+            />
+          </div>
+
+          <div v-if="compatiblePartsStatus === 'pending'" class="flex items-center justify-center py-8">
+            <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-muted" />
+          </div>
+
+          <div v-else-if="!compatiblePartsData?.data?.length" class="text-center py-8">
+            <UIcon name="i-lucide-package-x" class="w-12 h-12 text-muted mx-auto mb-4" />
+            <p class="text-muted">
+              No compatible parts assigned yet.
+            </p>
+            <p class="text-sm text-muted mt-1">
+              Add parts that are compatible with this asset.
+            </p>
+          </div>
+
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <UCard
+              v-for="cp in compatiblePartsData.data"
+              :key="cp.id"
+              class="relative"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <NuxtLink
+                      :to="`/inventory/parts/${cp.part.id}`"
+                      class="font-medium text-primary hover:underline"
+                    >
+                      {{ cp.part.name }}
+                    </NuxtLink>
+                    <UBadge
+                      :color="cp.source === 'asset' ? 'primary' : 'neutral'"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      {{ cp.source === 'asset' ? 'Direct' : 'Category' }}
+                    </UBadge>
+                  </div>
+                  <p class="text-sm text-muted font-mono">
+                    {{ cp.part.sku }}
+                  </p>
+                  <div class="flex items-center gap-4 mt-2 text-sm">
+                    <span>
+                      Stock: {{ parseFloat(cp.part.quantityInStock).toLocaleString() }} {{ cp.part.unit }}
+                    </span>
+                    <span v-if="cp.part.unitCost">
+                      ${{ parseFloat(cp.part.unitCost).toFixed(2) }}/{{ cp.part.unit }}
+                    </span>
+                  </div>
+                  <p v-if="cp.notes" class="text-sm text-muted mt-2">
+                    {{ cp.notes }}
+                  </p>
+                </div>
+                <UButton
+                  v-if="cp.source === 'asset'"
+                  icon="i-lucide-x"
+                  color="error"
+                  variant="ghost"
+                  size="xs"
+                  @click="removePart(cp.partId)"
+                />
+                <UTooltip v-else text="Inherited from category - cannot remove here">
+                  <UIcon name="i-lucide-lock" class="w-4 h-4 text-muted" />
+                </UTooltip>
+              </div>
+            </UCard>
+          </div>
+        </div>
       </div>
+
+      <!-- Add Part Modal -->
+      <UModal v-model:open="showAddPartModal">
+        <template #content>
+          <UCard>
+            <template #header>
+              <h3 class="font-medium">
+                Add Compatible Part
+              </h3>
+            </template>
+            <div class="space-y-4">
+              <UFormField label="Part">
+                <USelect
+                  v-model="selectedPartId"
+                  :items="availableParts"
+                  placeholder="Select a part..."
+                  class="w-full"
+                  searchable
+                />
+              </UFormField>
+              <UFormField label="Notes (optional)">
+                <UTextarea
+                  v-model="partNotes"
+                  placeholder="Notes about this part's compatibility..."
+                  :rows="2"
+                />
+              </UFormField>
+            </div>
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton
+                  label="Cancel"
+                  color="neutral"
+                  variant="subtle"
+                  @click="showAddPartModal = false"
+                />
+                <UButton
+                  label="Add Part"
+                  color="primary"
+                  :loading="addingPart"
+                  :disabled="!selectedPartId"
+                  @click="addPart"
+                />
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

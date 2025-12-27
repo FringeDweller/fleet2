@@ -1,4 +1,6 @@
 export * from './asset-categories'
+export * from './asset-category-parts'
+export * from './asset-parts'
 export * from './assets'
 export * from './audit-log'
 export * from './maintenance-schedules'
