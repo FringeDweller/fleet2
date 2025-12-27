@@ -39,6 +39,12 @@ export const assets = pgTable(
     status: assetStatusEnum('status').default('active').notNull(),
     description: text('description'),
     imageUrl: varchar('image_url', { length: 500 }),
+    // Location tracking fields
+    latitude: decimal('latitude', { precision: 10, scale: 7 }),
+    longitude: decimal('longitude', { precision: 10, scale: 7 }),
+    locationName: varchar('location_name', { length: 255 }),
+    locationAddress: text('location_address'),
+    lastLocationUpdate: timestamp('last_location_update', { withTimezone: true }),
     isArchived: boolean('is_archived').default(false).notNull(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

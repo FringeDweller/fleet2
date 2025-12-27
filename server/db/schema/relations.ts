@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { assetCategories } from './asset-categories'
 import { assetCategoryParts } from './asset-category-parts'
+import { assetLocationHistory } from './asset-location-history'
 import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
@@ -105,6 +106,19 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   workOrders: many(workOrders),
   maintenanceSchedules: many(maintenanceSchedules),
   compatibleParts: many(assetParts),
+  locationHistory: many(assetLocationHistory),
+}))
+
+// Asset Location History Relations
+export const assetLocationHistoryRelations = relations(assetLocationHistory, ({ one }) => ({
+  asset: one(assets, {
+    fields: [assetLocationHistory.assetId],
+    references: [assets.id],
+  }),
+  updatedBy: one(users, {
+    fields: [assetLocationHistory.updatedById],
+    references: [users.id],
+  }),
 }))
 
 // Task Templates Relations

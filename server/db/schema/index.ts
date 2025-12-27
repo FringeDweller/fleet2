@@ -1,5 +1,6 @@
 export * from './asset-categories'
 export * from './asset-category-parts'
+export * from './asset-location-history'
 export * from './asset-parts'
 export * from './assets'
 export * from './audit-log'

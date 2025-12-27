@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, ilike, lte, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
   const status = query.status as string | undefined
   const categoryId = query.categoryId as string | undefined
   const includeArchived = query.includeArchived === 'true'
+
+  // Location filter
+  const hasLocation = query.hasLocation as string | undefined
 
   // Advanced filters
   const make = query.make as string | undefined
@@ -44,6 +47,8 @@ export default defineEventHandler(async (event) => {
     'status',
     'mileage',
     'operationalHours',
+    'locationName',
+    'lastLocationUpdate',
     'createdAt',
     'updatedAt',
   ]
@@ -64,6 +69,14 @@ export default defineEventHandler(async (event) => {
     conditions.push(eq(schema.assets.categoryId, categoryId))
   }
 
+  // Location filter
+  if (hasLocation === 'true') {
+    conditions.push(isNotNull(schema.assets.latitude))
+    conditions.push(isNotNull(schema.assets.longitude))
+  } else if (hasLocation === 'false') {
+    conditions.push(or(isNull(schema.assets.latitude), isNull(schema.assets.longitude))!)
+  }
+
   // Global search across multiple fields
   if (search) {
     conditions.push(
@@ -74,6 +87,8 @@ export default defineEventHandler(async (event) => {
         ilike(schema.assets.model, `%${search}%`),
         ilike(schema.assets.licensePlate, `%${search}%`),
         ilike(schema.assets.description, `%${search}%`),
+        ilike(schema.assets.locationName, `%${search}%`),
+        ilike(schema.assets.locationAddress, `%${search}%`),
       )!,
     )
   }

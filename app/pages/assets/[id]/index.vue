@@ -16,6 +16,11 @@ interface Asset {
   status: 'active' | 'inactive' | 'maintenance' | 'disposed'
   description: string | null
   imageUrl: string | null
+  latitude: string | null
+  longitude: string | null
+  locationName: string | null
+  locationAddress: string | null
+  lastLocationUpdate: string | null
   isArchived: boolean
   categoryId: string | null
   category: { id: string; name: string } | null
@@ -72,6 +77,33 @@ interface CostsResponse {
   recentWorkOrders: CostWorkOrder[]
 }
 
+interface LocationHistoryEntry {
+  id: string
+  latitude: string
+  longitude: string
+  locationName: string | null
+  locationAddress: string | null
+  notes: string | null
+  source: string
+  recordedAt: string
+  updatedBy: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+}
+
+interface LocationResponse {
+  current: {
+    latitude: string | null
+    longitude: string | null
+    locationName: string | null
+    locationAddress: string | null
+    lastUpdate: string | null
+  }
+  history: LocationHistoryEntry[]
+}
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -111,11 +143,119 @@ const { data: costsData, status: costsStatus } = await useFetch<CostsResponse>(
   },
 )
 
+// Fetch location data
+const {
+  data: locationData,
+  status: locationStatus,
+  refresh: refreshLocation,
+} = await useFetch<LocationResponse>(`/api/assets/${route.params.id}/location`, {
+  lazy: true,
+})
+
 // Add part modal state
 const showAddPartModal = ref(false)
 const addingPart = ref(false)
 const selectedPartId = ref('')
 const partNotes = ref('')
+
+// Update location modal state
+const showLocationModal = ref(false)
+const updatingLocation = ref(false)
+const locationForm = ref({
+  latitude: '',
+  longitude: '',
+  locationName: '',
+  locationAddress: '',
+  notes: '',
+})
+
+function openLocationModal() {
+  // Pre-fill with current location if available
+  if (locationData.value?.current) {
+    locationForm.value = {
+      latitude: locationData.value.current.latitude || '',
+      longitude: locationData.value.current.longitude || '',
+      locationName: locationData.value.current.locationName || '',
+      locationAddress: locationData.value.current.locationAddress || '',
+      notes: '',
+    }
+  } else {
+    locationForm.value = {
+      latitude: '',
+      longitude: '',
+      locationName: '',
+      locationAddress: '',
+      notes: '',
+    }
+  }
+  showLocationModal.value = true
+}
+
+async function updateLocation() {
+  if (!locationForm.value.latitude || !locationForm.value.longitude) return
+
+  updatingLocation.value = true
+  try {
+    await $fetch(`/api/assets/${route.params.id}/location`, {
+      method: 'POST',
+      body: {
+        latitude: Number.parseFloat(locationForm.value.latitude),
+        longitude: Number.parseFloat(locationForm.value.longitude),
+        locationName: locationForm.value.locationName || undefined,
+        locationAddress: locationForm.value.locationAddress || undefined,
+        notes: locationForm.value.notes || undefined,
+        source: 'manual',
+      },
+    })
+    toast.add({
+      title: 'Location updated',
+      description: 'The asset location has been updated.',
+      color: 'success',
+    })
+    showLocationModal.value = false
+    refreshLocation()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Error',
+      description: error.data?.statusMessage || 'Failed to update location.',
+      color: 'error',
+    })
+  } finally {
+    updatingLocation.value = false
+  }
+}
+
+async function getCurrentPosition() {
+  if (!navigator.geolocation) {
+    toast.add({
+      title: 'Not supported',
+      description: 'Geolocation is not supported by your browser.',
+      color: 'warning',
+    })
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      locationForm.value.latitude = position.coords.latitude.toFixed(7)
+      locationForm.value.longitude = position.coords.longitude.toFixed(7)
+      toast.add({
+        title: 'Location captured',
+        description: 'Your current position has been captured.',
+        color: 'success',
+      })
+    },
+    (error) => {
+      toast.add({
+        title: 'Location error',
+        description: error.message || 'Failed to get current position.',
+        color: 'error',
+      })
+    },
+    { enableHighAccuracy: true },
+  )
+}
 
 const availableParts = computed(() => {
   if (!allPartsData.value?.data) return []
@@ -425,6 +565,7 @@ const formatCurrency = (value: number | string | null | undefined) => {
           v-model="activeTab"
           :items="[
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
+            { label: 'Location', value: 'location', icon: 'i-lucide-map-pin' },
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
             { label: 'Costs', value: 'costs', icon: 'i-lucide-dollar-sign' }
           ]"
@@ -564,6 +705,150 @@ const formatCurrency = (value: number | string | null | undefined) => {
             Scan this code to quickly access this asset
           </p>
         </UCard>
+
+        <!-- Location Tab -->
+        <div v-if="activeTab === 'location'" class="space-y-6">
+          <div v-if="locationStatus === 'pending'" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
+          </div>
+
+          <template v-else>
+            <!-- Current Location Card -->
+            <UCard>
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium">
+                    Current Location
+                  </h3>
+                  <UButton
+                    label="Update Location"
+                    icon="i-lucide-map-pin"
+                    color="primary"
+                    size="sm"
+                    @click="openLocationModal"
+                  />
+                </div>
+              </template>
+              <div v-if="locationData?.current?.latitude && locationData?.current?.longitude">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <dl class="space-y-3">
+                      <div v-if="locationData.current.locationName">
+                        <dt class="text-sm text-muted">
+                          Location Name
+                        </dt>
+                        <dd class="font-medium">
+                          {{ locationData.current.locationName }}
+                        </dd>
+                      </div>
+                      <div v-if="locationData.current.locationAddress">
+                        <dt class="text-sm text-muted">
+                          Address
+                        </dt>
+                        <dd class="font-medium">
+                          {{ locationData.current.locationAddress }}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt class="text-sm text-muted">
+                          Coordinates
+                        </dt>
+                        <dd class="font-medium font-mono text-sm">
+                          {{ locationData.current.latitude }}, {{ locationData.current.longitude }}
+                        </dd>
+                      </div>
+                      <div v-if="locationData.current.lastUpdate">
+                        <dt class="text-sm text-muted">
+                          Last Updated
+                        </dt>
+                        <dd class="font-medium">
+                          {{ formatDate(locationData.current.lastUpdate) }}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <div>
+                    <!-- Map placeholder - will show coordinates on external map -->
+                    <a
+                      :href="`https://www.google.com/maps?q=${locationData.current.latitude},${locationData.current.longitude}`"
+                      target="_blank"
+                      class="block bg-muted rounded-lg p-8 text-center hover:bg-muted/80 transition-colors"
+                    >
+                      <UIcon name="i-lucide-map" class="w-12 h-12 text-muted mx-auto mb-2" />
+                      <p class="text-sm text-muted">
+                        View on Google Maps
+                      </p>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-8">
+                <UIcon name="i-lucide-map-pin-off" class="w-12 h-12 text-muted mx-auto mb-4" />
+                <p class="text-muted">
+                  No location set for this asset.
+                </p>
+                <p class="text-sm text-muted mt-1">
+                  Click "Update Location" to set the asset's current location.
+                </p>
+              </div>
+            </UCard>
+
+            <!-- Location History -->
+            <UCard>
+              <template #header>
+                <h3 class="font-medium">
+                  Location History
+                </h3>
+              </template>
+              <div v-if="!locationData?.history?.length" class="text-center py-8">
+                <UIcon name="i-lucide-history" class="w-12 h-12 text-muted mx-auto mb-4" />
+                <p class="text-muted">
+                  No location history yet.
+                </p>
+              </div>
+              <div v-else class="divide-y">
+                <div
+                  v-for="entry in locationData.history"
+                  :key="entry.id"
+                  class="py-3 first:pt-0 last:pb-0"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <p v-if="entry.locationName" class="font-medium">
+                        {{ entry.locationName }}
+                      </p>
+                      <p v-else class="font-medium font-mono text-sm">
+                        {{ entry.latitude }}, {{ entry.longitude }}
+                      </p>
+                      <p v-if="entry.locationAddress" class="text-sm text-muted mt-0.5">
+                        {{ entry.locationAddress }}
+                      </p>
+                      <div class="flex items-center gap-3 mt-1 text-xs text-muted">
+                        <span>{{ formatDate(entry.recordedAt) }}</span>
+                        <UBadge variant="subtle" size="xs" class="capitalize">
+                          {{ entry.source }}
+                        </UBadge>
+                        <span v-if="entry.updatedBy">
+                          by {{ entry.updatedBy.firstName }} {{ entry.updatedBy.lastName }}
+                        </span>
+                      </div>
+                      <p v-if="entry.notes" class="text-sm text-muted mt-1">
+                        {{ entry.notes }}
+                      </p>
+                    </div>
+                    <a
+                      :href="`https://www.google.com/maps?q=${entry.latitude},${entry.longitude}`"
+                      target="_blank"
+                      class="text-primary hover:underline text-sm"
+                    >
+                      View
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+          </template>
+        </div>
 
         <!-- Compatible Parts Tab -->
         <div v-if="activeTab === 'parts'" class="space-y-4">
@@ -799,6 +1084,91 @@ const formatCurrency = (value: number | string | null | undefined) => {
                   :loading="addingPart"
                   :disabled="!selectedPartId"
                   @click="addPart"
+                />
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
+
+      <!-- Update Location Modal -->
+      <UModal v-model:open="showLocationModal">
+        <template #content>
+          <UCard>
+            <template #header>
+              <h3 class="font-medium">
+                Update Location
+              </h3>
+            </template>
+            <div class="space-y-4">
+              <div class="flex gap-2">
+                <UButton
+                  label="Use Current Position"
+                  icon="i-lucide-locate"
+                  color="neutral"
+                  variant="outline"
+                  size="sm"
+                  class="flex-1"
+                  @click="getCurrentPosition"
+                />
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <UFormField label="Latitude">
+                  <UInput
+                    v-model="locationForm.latitude"
+                    type="number"
+                    step="0.0000001"
+                    min="-90"
+                    max="90"
+                    placeholder="-33.8688"
+                  />
+                </UFormField>
+                <UFormField label="Longitude">
+                  <UInput
+                    v-model="locationForm.longitude"
+                    type="number"
+                    step="0.0000001"
+                    min="-180"
+                    max="180"
+                    placeholder="151.2093"
+                  />
+                </UFormField>
+              </div>
+              <UFormField label="Location Name (optional)">
+                <UInput
+                  v-model="locationForm.locationName"
+                  placeholder="e.g. Sydney Depot"
+                />
+              </UFormField>
+              <UFormField label="Address (optional)">
+                <UTextarea
+                  v-model="locationForm.locationAddress"
+                  placeholder="e.g. 123 Main St, Sydney NSW 2000"
+                  :rows="2"
+                />
+              </UFormField>
+              <UFormField label="Notes (optional)">
+                <UTextarea
+                  v-model="locationForm.notes"
+                  placeholder="Any notes about this location update..."
+                  :rows="2"
+                />
+              </UFormField>
+            </div>
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton
+                  label="Cancel"
+                  color="neutral"
+                  variant="subtle"
+                  @click="showLocationModal = false"
+                />
+                <UButton
+                  label="Update Location"
+                  color="primary"
+                  :loading="updatingLocation"
+                  :disabled="!locationForm.latitude || !locationForm.longitude"
+                  @click="updateLocation"
                 />
               </div>
             </template>

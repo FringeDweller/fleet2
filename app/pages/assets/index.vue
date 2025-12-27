@@ -66,6 +66,7 @@ const filters = ref({
   search: '',
   status: 'all',
   categoryId: '',
+  hasLocation: 'all', // 'all', 'true', 'false'
   make: '',
   model: '',
   yearMin: '',
@@ -100,6 +101,8 @@ const queryParams = computed(() => {
   if (filters.value.search) params.search = filters.value.search
   if (filters.value.status && filters.value.status !== 'all') params.status = filters.value.status
   if (filters.value.categoryId) params.categoryId = filters.value.categoryId
+  if (filters.value.hasLocation && filters.value.hasLocation !== 'all')
+    params.hasLocation = filters.value.hasLocation
   if (filters.value.make) params.make = filters.value.make
   if (filters.value.model) params.model = filters.value.model
   if (filters.value.yearMin) params.yearMin = parseInt(filters.value.yearMin, 10)
@@ -173,6 +176,7 @@ function applySavedSearch(search: SavedSearch) {
     search: f.search || '',
     status: f.status || 'all',
     categoryId: f.categoryId || '',
+    hasLocation: f.hasLocation || 'all',
     make: f.make || '',
     model: f.model || '',
     yearMin: f.yearMin?.toString() || '',
@@ -296,6 +300,7 @@ function clearFilters() {
     search: '',
     status: 'all',
     categoryId: '',
+    hasLocation: 'all',
     make: '',
     model: '',
     yearMin: '',
@@ -566,6 +571,19 @@ const columns: TableColumn<Asset>[] = [
             class="min-w-36"
           />
 
+          <USelect
+            v-model="filters.hasLocation"
+            :items="[
+              { label: 'All Locations', value: 'all' },
+              { label: 'Has Location', value: 'true' },
+              { label: 'No Location', value: 'false' }
+            ]"
+            :ui="{
+              trailingIcon: 'group-data-[state=open]:rotate-180 transition-transform duration-200'
+            }"
+            class="min-w-32"
+          />
+
           <UButton
             :label="showAdvancedFilters ? 'Hide Filters' : 'More Filters'"
             :icon="hasActiveAdvancedFilters ? 'i-lucide-filter-x' : 'i-lucide-filter'"
@@ -580,6 +598,7 @@ const columns: TableColumn<Asset>[] = [
                 || filters.search
                 || filters.status !== 'all'
                 || filters.categoryId
+                || filters.hasLocation !== 'all'
             "
             label="Clear"
             icon="i-lucide-x"
