@@ -1,4 +1,13 @@
-import { boolean, index, integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  decimal,
+  index,
+  integer,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { roles } from './roles'
 
@@ -18,6 +27,7 @@ export const users = pgTable(
     lastName: varchar('last_name', { length: 100 }).notNull(),
     phone: varchar('phone', { length: 50 }),
     avatarUrl: varchar('avatar_url', { length: 500 }),
+    hourlyRate: decimal('hourly_rate', { precision: 10, scale: 2 }),
     isActive: boolean('is_active').default(true).notNull(),
     emailVerified: boolean('email_verified').default(false).notNull(),
     failedLoginAttempts: integer('failed_login_attempts').default(0).notNull(),

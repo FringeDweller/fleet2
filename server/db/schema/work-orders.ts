@@ -1,5 +1,6 @@
 import {
   boolean,
+  decimal,
   index,
   integer,
   pgEnum,
@@ -56,6 +57,9 @@ export const workOrders = pgTable(
     closedAt: timestamp('closed_at', { withTimezone: true }),
     estimatedDuration: integer('estimated_duration'),
     actualDuration: integer('actual_duration'),
+    laborCost: decimal('labor_cost', { precision: 12, scale: 2 }),
+    partsCost: decimal('parts_cost', { precision: 12, scale: 2 }),
+    totalCost: decimal('total_cost', { precision: 12, scale: 2 }),
     notes: text('notes'),
     completionNotes: text('completion_notes'),
     signatureUrl: varchar('signature_url', { length: 500 }),

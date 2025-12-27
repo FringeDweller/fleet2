@@ -61,6 +61,9 @@ interface WorkOrder {
   closedAt: string | null
   estimatedDuration: number | null
   actualDuration: number | null
+  laborCost: string | null
+  partsCost: string | null
+  totalCost: string | null
   notes: string | null
   completionNotes: string | null
   asset: {
@@ -76,6 +79,7 @@ interface WorkOrder {
     email: string
     avatarUrl: string | null
     phone: string | null
+    hourlyRate: string | null
   } | null
   createdBy: {
     id: string
@@ -200,6 +204,16 @@ function formatDate(date: string) {
 
 function formatShortDate(date: string) {
   return format(parseISO(date), 'PP')
+}
+
+function formatCurrency(value: string | null): string {
+  if (!value) return '$0.00'
+  const num = Number.parseFloat(value)
+  return num.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+  })
 }
 
 function isOverdue(dueDate: string | null, status: string): boolean {
@@ -455,6 +469,40 @@ const tabs = computed(() => [
                 </dt>
                 <dd class="font-medium">
                   {{ formatDate(workOrder.closedAt) }}
+                </dd>
+              </div>
+            </dl>
+          </UCard>
+
+          <UCard v-if="workOrder.totalCost">
+            <template #header>
+              <h3 class="font-medium">
+                Costs
+              </h3>
+            </template>
+            <dl class="space-y-3">
+              <div>
+                <dt class="text-sm text-muted">
+                  Labor Cost
+                </dt>
+                <dd class="font-medium">
+                  {{ formatCurrency(workOrder.laborCost) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-sm text-muted">
+                  Parts Cost
+                </dt>
+                <dd class="font-medium">
+                  {{ formatCurrency(workOrder.partsCost) }}
+                </dd>
+              </div>
+              <div class="pt-2 border-t border-default">
+                <dt class="text-sm font-medium">
+                  Total Cost
+                </dt>
+                <dd class="text-lg font-bold text-primary">
+                  {{ formatCurrency(workOrder.totalCost) }}
                 </dd>
               </div>
             </dl>

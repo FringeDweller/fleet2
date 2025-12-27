@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
           email: true,
           avatarUrl: true,
           phone: true,
+          hourlyRate: true,
         },
       },
       createdBy: {

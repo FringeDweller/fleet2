@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from 'drizzle-orm'
+import { and, eq, isNotNull, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
 
@@ -240,6 +240,13 @@ export default defineEventHandler(async (event) => {
     )
     .returning()
 
+  if (!workOrder) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to update work order',
+    })
+  }
+
   // Create status history entry
   await db.insert(schema.workOrderStatusHistory).values({
     workOrderId: id,
@@ -284,6 +291,46 @@ export default defineEventHandler(async (event) => {
     }
 
     stockWarnings = deductionResult.warnings
+
+    // Calculate and update costs when completing
+    const partsResult = await db
+      .select({
+        total: sum(schema.workOrderParts.totalCost),
+      })
+      .from(schema.workOrderParts)
+      .where(eq(schema.workOrderParts.workOrderId, id))
+
+    const partsCost = Number.parseFloat(partsResult[0]?.total || '0')
+
+    // Get assignee hourly rate for labor cost calculation
+    let laborCost = 0
+    if (workOrder.actualDuration && workOrder.assignedToId) {
+      const assignee = await db.query.users.findFirst({
+        where: eq(schema.users.id, workOrder.assignedToId),
+        columns: { hourlyRate: true },
+      })
+      if (assignee?.hourlyRate) {
+        const hours = workOrder.actualDuration / 60
+        laborCost = hours * Number.parseFloat(assignee.hourlyRate)
+      }
+    }
+
+    const totalCost = partsCost + laborCost
+
+    // Update work order with costs
+    await db
+      .update(schema.workOrders)
+      .set({
+        partsCost: partsCost.toFixed(2),
+        laborCost: laborCost.toFixed(2),
+        totalCost: totalCost.toFixed(2),
+      })
+      .where(eq(schema.workOrders.id, id))
+
+    // Update return value with costs
+    workOrder.partsCost = partsCost.toFixed(2)
+    workOrder.laborCost = laborCost.toFixed(2)
+    workOrder.totalCost = totalCost.toFixed(2)
   }
 
   return {
