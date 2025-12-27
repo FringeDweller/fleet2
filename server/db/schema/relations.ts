@@ -5,6 +5,7 @@ import { assetLocationHistory } from './asset-location-history'
 import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
+import { defects } from './defects'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
 import { organisations } from './organisations'
@@ -35,6 +36,7 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   savedSearches: many(savedSearches),
   partCategories: many(partCategories),
   parts: many(parts),
+  defects: many(defects),
 }))
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -107,6 +109,7 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   maintenanceSchedules: many(maintenanceSchedules),
   compatibleParts: many(assetParts),
   locationHistory: many(assetLocationHistory),
+  defects: many(defects),
 }))
 
 // Asset Location History Relations
@@ -171,6 +174,7 @@ export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
   checklistItems: many(workOrderChecklistItems),
   parts: many(workOrderParts),
   photos: many(workOrderPhotos),
+  defects: many(defects),
 }))
 
 // Work Order Status History Relations
@@ -367,5 +371,31 @@ export const assetPartsRelations = relations(assetParts, ({ one }) => ({
   part: one(parts, {
     fields: [assetParts.partId],
     references: [parts.id],
+  }),
+}))
+
+// Defects Relations
+export const defectsRelations = relations(defects, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [defects.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [defects.assetId],
+    references: [assets.id],
+  }),
+  workOrder: one(workOrders, {
+    fields: [defects.workOrderId],
+    references: [workOrders.id],
+  }),
+  reportedBy: one(users, {
+    fields: [defects.reportedById],
+    references: [users.id],
+    relationName: 'defectReportedBy',
+  }),
+  resolvedBy: one(users, {
+    fields: [defects.resolvedById],
+    references: [users.id],
+    relationName: 'defectResolvedBy',
   }),
 }))

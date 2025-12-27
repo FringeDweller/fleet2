@@ -104,6 +104,45 @@ interface LocationResponse {
   history: LocationHistoryEntry[]
 }
 
+interface Defect {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  severity: 'minor' | 'major' | 'critical'
+  status: 'open' | 'in_progress' | 'resolved' | 'closed'
+  location: string | null
+  photos: string | null
+  reportedAt: string
+  resolvedAt: string | null
+  resolutionNotes: string | null
+  workOrder: {
+    id: string
+    workOrderNumber: string
+    status: string
+  } | null
+  reportedBy: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+  resolvedBy: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+}
+
+interface DefectsResponse {
+  data: Defect[]
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+}
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -152,6 +191,16 @@ const {
   lazy: true,
 })
 
+// Fetch defects for this asset
+const {
+  data: defectsData,
+  status: defectsStatus,
+  refresh: refreshDefects,
+} = await useFetch<DefectsResponse>(`/api/defects`, {
+  query: { assetId: route.params.id },
+  lazy: true,
+})
+
 // Add part modal state
 const showAddPartModal = ref(false)
 const addingPart = ref(false)
@@ -168,6 +217,97 @@ const locationForm = ref({
   locationAddress: '',
   notes: '',
 })
+
+// Report defect modal state
+const showDefectModal = ref(false)
+const reportingDefect = ref(false)
+const defectForm = ref({
+  title: '',
+  description: '',
+  category: '',
+  severity: 'minor' as 'minor' | 'major' | 'critical',
+  location: '',
+  autoCreateWorkOrder: true,
+})
+
+const severityOptions = [
+  { label: 'Minor', value: 'minor', description: 'Low priority issue' },
+  { label: 'Major', value: 'major', description: 'Creates work order automatically' },
+  {
+    label: 'Critical',
+    value: 'critical',
+    description: 'Urgent - Creates high priority work order',
+  },
+]
+
+const defectCategoryOptions = [
+  { label: 'Mechanical', value: 'mechanical' },
+  { label: 'Electrical', value: 'electrical' },
+  { label: 'Body/Exterior', value: 'body' },
+  { label: 'Interior', value: 'interior' },
+  { label: 'Safety', value: 'safety' },
+  { label: 'Tires/Wheels', value: 'tires' },
+  { label: 'Fluid Leak', value: 'fluid' },
+  { label: 'Other', value: 'other' },
+]
+
+function openDefectModal() {
+  defectForm.value = {
+    title: '',
+    description: '',
+    category: '',
+    severity: 'minor',
+    location: '',
+    autoCreateWorkOrder: true,
+  }
+  showDefectModal.value = true
+}
+
+async function reportDefect() {
+  if (!defectForm.value.title.trim()) return
+
+  reportingDefect.value = true
+  try {
+    const response = await $fetch<{
+      defect: Defect
+      workOrder: { id: string; workOrderNumber: string } | null
+    }>(`/api/defects`, {
+      method: 'POST',
+      body: {
+        assetId: route.params.id,
+        title: defectForm.value.title,
+        description: defectForm.value.description || undefined,
+        category: defectForm.value.category || undefined,
+        severity: defectForm.value.severity,
+        location: defectForm.value.location || undefined,
+        autoCreateWorkOrder: defectForm.value.autoCreateWorkOrder,
+      },
+    })
+
+    let message = 'The defect has been reported.'
+    if (response.workOrder) {
+      message = `Defect reported and work order ${response.workOrder.workOrderNumber} created.`
+    }
+
+    toast.add({
+      title: 'Defect reported',
+      description: message,
+      color: 'success',
+    })
+
+    showDefectModal.value = false
+    refreshDefects()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Error',
+      description: error.data?.statusMessage || 'Failed to report defect.',
+      color: 'error',
+    })
+  } finally {
+    reportingDefect.value = false
+  }
+}
 
 function openLocationModal() {
   // Pre-fill with current location if available
@@ -567,6 +707,7 @@ const formatCurrency = (value: number | string | null | undefined) => {
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
             { label: 'Location', value: 'location', icon: 'i-lucide-map-pin' },
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
+            { label: 'Defects', value: 'defects', icon: 'i-lucide-alert-triangle' },
             { label: 'Costs', value: 'costs', icon: 'i-lucide-dollar-sign' }
           ]"
         />
@@ -932,6 +1073,107 @@ const formatCurrency = (value: number | string | null | undefined) => {
           </div>
         </div>
 
+        <!-- Defects Tab -->
+        <div v-if="activeTab === 'defects'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium">
+              Defects
+            </h3>
+            <UButton
+              label="Report Defect"
+              icon="i-lucide-alert-triangle"
+              color="error"
+              @click="openDefectModal"
+            />
+          </div>
+
+          <div v-if="defectsStatus === 'pending'" class="flex items-center justify-center py-8">
+            <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-muted" />
+          </div>
+
+          <div v-else-if="!defectsData?.data?.length" class="text-center py-8">
+            <UIcon name="i-lucide-check-circle" class="w-12 h-12 text-success mx-auto mb-4" />
+            <p class="text-muted">
+              No defects reported for this asset.
+            </p>
+            <p class="text-sm text-muted mt-1">
+              Report any issues or problems you find with this asset.
+            </p>
+          </div>
+
+          <div v-else class="space-y-3">
+            <UCard
+              v-for="defect in defectsData.data"
+              :key="defect.id"
+            >
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="font-medium">{{ defect.title }}</span>
+                    <UBadge
+                      :color="defect.severity === 'critical' ? 'error' : defect.severity === 'major' ? 'warning' : 'neutral'"
+                      variant="subtle"
+                      size="xs"
+                      class="capitalize"
+                    >
+                      {{ defect.severity }}
+                    </UBadge>
+                    <UBadge
+                      :color="defect.status === 'open' ? 'error' : defect.status === 'in_progress' ? 'warning' : 'success'"
+                      variant="subtle"
+                      size="xs"
+                      class="capitalize"
+                    >
+                      {{ defect.status.replace('_', ' ') }}
+                    </UBadge>
+                  </div>
+                  <p v-if="defect.description" class="text-sm text-muted line-clamp-2">
+                    {{ defect.description }}
+                  </p>
+                  <div class="flex items-center gap-3 mt-2 text-xs text-muted">
+                    <span v-if="defect.category" class="capitalize">
+                      {{ defect.category }}
+                    </span>
+                    <span v-if="defect.location">
+                      {{ defect.location }}
+                    </span>
+                    <span>
+                      Reported {{ formatDate(defect.reportedAt) }}
+                    </span>
+                    <span v-if="defect.reportedBy">
+                      by {{ defect.reportedBy.firstName }} {{ defect.reportedBy.lastName }}
+                    </span>
+                  </div>
+                  <div v-if="defect.resolvedAt" class="flex items-center gap-2 mt-1 text-xs text-success">
+                    <UIcon name="i-lucide-check-circle" class="w-3 h-3" />
+                    <span>
+                      Resolved {{ formatDate(defect.resolvedAt) }}
+                      <span v-if="defect.resolvedBy">
+                        by {{ defect.resolvedBy.firstName }} {{ defect.resolvedBy.lastName }}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+                <div v-if="defect.workOrder" class="text-right">
+                  <NuxtLink
+                    :to="`/work-orders/${defect.workOrder.id}`"
+                    class="text-sm text-primary hover:underline"
+                  >
+                    {{ defect.workOrder.workOrderNumber }}
+                  </NuxtLink>
+                  <UBadge
+                    variant="subtle"
+                    size="xs"
+                    class="capitalize block mt-1"
+                  >
+                    {{ defect.workOrder.status }}
+                  </UBadge>
+                </div>
+              </div>
+            </UCard>
+          </div>
+        </div>
+
         <!-- Costs Tab -->
         <div v-if="activeTab === 'costs'" class="space-y-6">
           <div v-if="costsStatus === 'pending'" class="flex items-center justify-center py-12">
@@ -1169,6 +1411,90 @@ const formatCurrency = (value: number | string | null | undefined) => {
                   :loading="updatingLocation"
                   :disabled="!locationForm.latitude || !locationForm.longitude"
                   @click="updateLocation"
+                />
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
+
+      <!-- Report Defect Modal -->
+      <UModal v-model:open="showDefectModal">
+        <template #content>
+          <UCard>
+            <template #header>
+              <h3 class="font-medium">
+                Report Defect
+              </h3>
+            </template>
+            <div class="space-y-4">
+              <UFormField label="Defect Title" required>
+                <UInput
+                  v-model="defectForm.title"
+                  placeholder="Brief description of the issue..."
+                />
+              </UFormField>
+              <UFormField label="Description">
+                <UTextarea
+                  v-model="defectForm.description"
+                  placeholder="Detailed description of the defect..."
+                  :rows="3"
+                />
+              </UFormField>
+              <div class="grid grid-cols-2 gap-4">
+                <UFormField label="Category">
+                  <USelect
+                    v-model="defectForm.category"
+                    :items="defectCategoryOptions"
+                    placeholder="Select category..."
+                  />
+                </UFormField>
+                <UFormField label="Severity" required>
+                  <USelect
+                    v-model="defectForm.severity"
+                    :items="severityOptions"
+                  />
+                </UFormField>
+              </div>
+              <UFormField label="Location on Asset">
+                <UInput
+                  v-model="defectForm.location"
+                  placeholder="e.g. Front left tire, Engine compartment..."
+                />
+              </UFormField>
+              <div class="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
+                <UCheckbox
+                  v-model="defectForm.autoCreateWorkOrder"
+                  :disabled="defectForm.severity === 'minor'"
+                />
+                <div class="flex-1">
+                  <p class="font-medium text-sm">
+                    Auto-create work order
+                  </p>
+                  <p class="text-xs text-muted mt-0.5">
+                    {{ defectForm.severity === 'minor'
+                      ? 'Work orders are only auto-created for major and critical defects.'
+                      : 'A work order will be created automatically with the appropriate priority.'
+                    }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton
+                  label="Cancel"
+                  color="neutral"
+                  variant="subtle"
+                  @click="showDefectModal = false"
+                />
+                <UButton
+                  label="Report Defect"
+                  color="error"
+                  icon="i-lucide-alert-triangle"
+                  :loading="reportingDefect"
+                  :disabled="!defectForm.title.trim()"
+                  @click="reportDefect"
                 />
               </div>
             </template>
