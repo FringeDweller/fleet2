@@ -9,13 +9,24 @@ const updateScheduleSchema = z.object({
   assetId: z.string().uuid().optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),
   templateId: z.string().uuid().optional().nullable(),
-  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']).optional(),
+
+  // Schedule type
+  scheduleType: z.enum(['time_based', 'usage_based', 'combined']).optional(),
+
+  // Time-based fields
+  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']).optional().nullable(),
   intervalValue: z.number().int().positive().optional(),
   dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
   dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
   monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
-  startDate: z.string().datetime().optional(),
+  startDate: z.string().datetime().optional().nullable(),
   endDate: z.string().datetime().optional().nullable(),
+
+  // Usage-based fields
+  intervalMileage: z.number().int().positive().optional().nullable(),
+  intervalHours: z.number().int().positive().optional().nullable(),
+  thresholdAlertPercent: z.number().int().min(1).max(100).optional(),
+
   leadTimeDays: z.number().int().min(0).optional(),
   defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   defaultAssigneeId: z.string().uuid().optional().nullable(),
@@ -84,10 +95,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Determine if we need to recalculate nextDueDate
+  // Determine if we need to recalculate nextDueDate (only for time-based schedules)
   let nextDueDate = existing.nextDueDate
   const scheduleTimingChanged
-    = data.intervalType !== undefined
+    = data.scheduleType !== undefined
+      || data.intervalType !== undefined
       || data.intervalValue !== undefined
       || data.dayOfWeek !== undefined
       || data.dayOfMonth !== undefined
@@ -96,21 +108,28 @@ export default defineEventHandler(async (event) => {
 
   if (scheduleTimingChanged) {
     // Use updated or existing values
-    const intervalType = data.intervalType ?? existing.intervalType
+    const scheduleType = data.scheduleType ?? existing.scheduleType
+    const intervalType = data.intervalType !== undefined ? data.intervalType : existing.intervalType
     const intervalValue = data.intervalValue ?? existing.intervalValue
-    const startDate = data.startDate ? new Date(data.startDate) : existing.startDate
+    const startDate = data.startDate !== undefined ? (data.startDate ? new Date(data.startDate) : null) : existing.startDate
     const dayOfWeek = data.dayOfWeek !== undefined ? data.dayOfWeek : existing.dayOfWeek
     const dayOfMonth = data.dayOfMonth !== undefined ? data.dayOfMonth : existing.dayOfMonth
     const monthOfYear = data.monthOfYear !== undefined ? data.monthOfYear : existing.monthOfYear
 
-    nextDueDate = calculateNextDueDate(
-      intervalType,
-      intervalValue,
-      startDate,
-      dayOfWeek,
-      dayOfMonth,
-      monthOfYear
-    )
+    // Only calculate nextDueDate for time-based schedules
+    if ((scheduleType === 'time_based' || scheduleType === 'combined') && intervalType && startDate) {
+      nextDueDate = calculateNextDueDate(
+        intervalType,
+        intervalValue,
+        startDate,
+        dayOfWeek,
+        dayOfMonth,
+        monthOfYear
+      )
+    } else if (scheduleType === 'usage_based') {
+      // Usage-based schedules don't use nextDueDate
+      nextDueDate = null
+    }
   }
 
   // Update the schedule

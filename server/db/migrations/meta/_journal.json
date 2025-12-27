@@ -29,6 +29,13 @@
       "when": 1766791298635,
       "tag": "0003_fancy_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1766792700036,
+      "tag": "0004_organic_salo",
+      "breakpoints": true
     }
   ]
 }

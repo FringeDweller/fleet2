@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const assetId = query.assetId as string | undefined
   const categoryId = query.categoryId as string | undefined
   const intervalType = query.intervalType as string | undefined
+  const scheduleType = query.scheduleType as string | undefined
   const isActive = query.isActive === 'true' ? true : query.isActive === 'false' ? false : undefined
 
   const conditions = [eq(schema.maintenanceSchedules.organisationId, session.user.organisationId)]
@@ -45,6 +46,12 @@ export default defineEventHandler(async (event) => {
   const validIntervalTypes = ['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom'] as const
   if (intervalType && validIntervalTypes.includes(intervalType as typeof validIntervalTypes[number])) {
     conditions.push(eq(schema.maintenanceSchedules.intervalType, intervalType as typeof validIntervalTypes[number]))
+  }
+
+  // Filter by schedule type
+  const validScheduleTypes = ['time_based', 'usage_based', 'combined'] as const
+  if (scheduleType && validScheduleTypes.includes(scheduleType as typeof validScheduleTypes[number])) {
+    conditions.push(eq(schema.maintenanceSchedules.scheduleType, scheduleType as typeof validScheduleTypes[number]))
   }
 
   // Search by name or description

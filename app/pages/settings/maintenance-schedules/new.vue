@@ -45,13 +45,20 @@ const schema = z.object({
   assignmentType: z.enum(['asset', 'category']),
   assetId: z.string().uuid().optional(),
   categoryId: z.string().uuid().optional(),
-  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']),
-  intervalValue: z.number().int().positive(),
+  scheduleType: z.enum(['time_based', 'usage_based', 'combined']).default('time_based'),
+  // Time-based fields
+  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']).optional(),
+  intervalValue: z.number().int().positive().optional(),
   dayOfWeek: z.number().int().min(0).max(6).optional(),
   dayOfMonth: z.number().int().min(1).max(31).optional(),
   monthOfYear: z.number().int().min(1).max(12).optional(),
-  startDate: z.string().min(1, 'Start date is required'),
+  startDate: z.string().optional(),
   endDate: z.string().optional(),
+  // Usage-based fields
+  intervalMileage: z.number().int().positive().optional(),
+  intervalHours: z.number().int().positive().optional(),
+  thresholdAlertPercent: z.number().int().min(1).max(100).default(90),
+  // Work order settings
   leadTimeDays: z.number().int().min(0).default(7),
   defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   defaultAssigneeId: z.string().uuid().optional(),
@@ -66,6 +73,28 @@ const schema = z.object({
     message: 'Please select either an asset or a category',
     path: ['assetId']
   }
+).refine(
+  (data) => {
+    if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
+      return !!data.intervalType && !!data.startDate
+    }
+    return true
+  },
+  {
+    message: 'Interval type and start date are required for time-based schedules',
+    path: ['intervalType']
+  }
+).refine(
+  (data) => {
+    if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
+      return !!data.intervalMileage || !!data.intervalHours
+    }
+    return true
+  },
+  {
+    message: 'At least one of interval mileage or interval hours is required for usage-based schedules',
+    path: ['intervalMileage']
+  }
 )
 
 type Schema = z.output<typeof schema>
@@ -77,6 +106,8 @@ const state = reactive<Partial<Schema>>({
   assignmentType: 'asset',
   assetId: undefined,
   categoryId: undefined,
+  scheduleType: 'time_based',
+  // Time-based defaults
   intervalType: 'monthly',
   intervalValue: 1,
   dayOfWeek: undefined,
@@ -84,6 +115,11 @@ const state = reactive<Partial<Schema>>({
   monthOfYear: 1,
   startDate: new Date().toISOString().split('T')[0],
   endDate: undefined,
+  // Usage-based defaults
+  intervalMileage: undefined,
+  intervalHours: undefined,
+  thresholdAlertPercent: 90,
+  // Work order settings
   leadTimeDays: 7,
   defaultPriority: 'medium',
   defaultAssigneeId: undefined,
@@ -99,7 +135,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       method: 'POST',
       body: {
         ...event.data,
-        startDate: new Date(event.data.startDate).toISOString(),
+        startDate: event.data.startDate ? new Date(event.data.startDate).toISOString() : undefined,
         endDate: event.data.endDate ? new Date(event.data.endDate).toISOString() : undefined
       }
     })
@@ -190,11 +226,21 @@ const technicianOptions = computed(() => {
   })) || []
 })
 
-// Show/hide conditional fields based on interval type
-const showDayOfWeek = computed(() => state.intervalType === 'weekly')
-const showDayOfMonth = computed(() => ['monthly', 'quarterly', 'annually'].includes(state.intervalType || ''))
-const showMonthOfYear = computed(() => state.intervalType === 'annually')
-const showCustomInterval = computed(() => state.intervalType === 'custom')
+// Show/hide fields based on schedule type
+const showTimeBasedFields = computed(() =>
+  state.scheduleType === 'time_based' || state.scheduleType === 'combined'
+)
+const showUsageBasedFields = computed(() =>
+  state.scheduleType === 'usage_based' || state.scheduleType === 'combined'
+)
+
+// Show/hide conditional fields based on interval type (for time-based)
+const showDayOfWeek = computed(() => state.intervalType === 'weekly' && showTimeBasedFields.value)
+const showDayOfMonth = computed(() =>
+  showTimeBasedFields.value && ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
+)
+const showMonthOfYear = computed(() => state.intervalType === 'annually' && showTimeBasedFields.value)
+const showCustomInterval = computed(() => state.intervalType === 'custom' && showTimeBasedFields.value)
 
 // Reset conditional fields when interval type changes
 watch(() => state.intervalType, () => {
@@ -202,6 +248,25 @@ watch(() => state.intervalType, () => {
   if (!showDayOfMonth.value) state.dayOfMonth = undefined
   if (!showMonthOfYear.value) state.monthOfYear = undefined
   if (!showCustomInterval.value) state.intervalValue = 1
+})
+
+// Reset fields when schedule type changes
+watch(() => state.scheduleType, (newType) => {
+  if (newType === 'usage_based') {
+    // Clear time-based fields
+    state.intervalType = undefined
+    state.dayOfWeek = undefined
+    state.dayOfMonth = undefined
+    state.monthOfYear = undefined
+    state.intervalValue = undefined
+    state.startDate = undefined
+    state.endDate = undefined
+  } else if (newType === 'time_based') {
+    // Clear usage-based fields
+    state.intervalMileage = undefined
+    state.intervalHours = undefined
+  }
+  // For 'combined', don't clear anything
 })
 
 // Clear asset/category when switching assignment type
@@ -343,7 +408,40 @@ watch(() => state.assignmentType, (newType) => {
             </template>
 
             <div class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <UFormField label="Schedule Type" name="scheduleType" required>
+                <div class="flex gap-4">
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="state.scheduleType"
+                      type="radio"
+                      value="time_based"
+                      class="form-radio"
+                    >
+                    <span>Time-Based</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="state.scheduleType"
+                      type="radio"
+                      value="usage_based"
+                      class="form-radio"
+                    >
+                    <span>Usage-Based</span>
+                  </label>
+                  <label class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      v-model="state.scheduleType"
+                      type="radio"
+                      value="combined"
+                      class="form-radio"
+                    >
+                    <span>Combined</span>
+                  </label>
+                </div>
+              </UFormField>
+
+              <!-- Time-based fields -->
+              <div v-if="showTimeBasedFields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Interval Type" name="intervalType" required>
                   <USelect
                     v-model="state.intervalType"
@@ -412,7 +510,7 @@ watch(() => state.assignmentType, (newType) => {
                 />
               </UFormField>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-if="showTimeBasedFields" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <UFormField label="Start Date" name="startDate" required>
                   <UInput
                     v-model="state.startDate"
@@ -426,6 +524,58 @@ watch(() => state.assignmentType, (newType) => {
                     v-model="state.endDate"
                     type="date"
                     class="w-full"
+                  />
+                </UFormField>
+              </div>
+
+              <!-- Usage-based fields -->
+              <div v-if="showUsageBasedFields" class="space-y-4 pt-4 border-t border-default">
+                <p class="text-sm text-muted">
+                  Triggers are based on asset usage metrics. At least one interval is required.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <UFormField
+                    label="Interval Mileage (km)"
+                    name="intervalMileage"
+                    hint="Trigger every X km"
+                  >
+                    <UInput
+                      v-model.number="state.intervalMileage"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 5000"
+                      class="w-full"
+                    />
+                  </UFormField>
+
+                  <UFormField
+                    label="Interval Hours"
+                    name="intervalHours"
+                    hint="Trigger every X operational hours"
+                  >
+                    <UInput
+                      v-model.number="state.intervalHours"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 250"
+                      class="w-full"
+                    />
+                  </UFormField>
+                </div>
+
+                <UFormField
+                  label="Alert Threshold (%)"
+                  name="thresholdAlertPercent"
+                  hint="Alert when this percentage of interval is reached"
+                >
+                  <UInput
+                    v-model.number="state.thresholdAlertPercent"
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="90"
+                    class="w-full max-w-xs"
                   />
                 </UFormField>
               </div>

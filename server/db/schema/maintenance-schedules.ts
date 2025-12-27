@@ -1,10 +1,16 @@
-import { pgTable, uuid, varchar, text, timestamp, boolean, integer, index, pgEnum } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, text, timestamp, boolean, integer, decimal, index, pgEnum } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
 import { assets } from './assets'
 import { assetCategories } from './asset-categories'
 import { taskTemplates } from './task-templates'
 import { users } from './users'
 import { workOrders } from './work-orders'
+
+export const scheduleTypeEnum = pgEnum('schedule_type', [
+  'time_based',
+  'usage_based',
+  'combined'
+])
 
 export const scheduleIntervalTypeEnum = pgEnum('schedule_interval_type', [
   'daily',
@@ -27,6 +33,9 @@ export const maintenanceSchedules = pgTable(
     name: varchar('name', { length: 200 }).notNull(),
     description: text('description'),
 
+    // Schedule type: time_based, usage_based, or combined
+    scheduleType: scheduleTypeEnum('schedule_type').default('time_based').notNull(),
+
     // Assignment - either to specific asset OR to category (not both)
     assetId: uuid('asset_id')
       .references(() => assets.id, { onDelete: 'cascade' }),
@@ -37,8 +46,8 @@ export const maintenanceSchedules = pgTable(
     templateId: uuid('template_id')
       .references(() => taskTemplates.id, { onDelete: 'set null' }),
 
-    // Time-based scheduling
-    intervalType: scheduleIntervalTypeEnum('interval_type').notNull(),
+    // Time-based scheduling (used when scheduleType is 'time_based' or 'combined')
+    intervalType: scheduleIntervalTypeEnum('interval_type'),
     intervalValue: integer('interval_value').default(1).notNull(), // e.g., every 2 weeks
 
     // For weekly schedules: day of week (0=Sunday, 6=Saturday)
@@ -48,8 +57,15 @@ export const maintenanceSchedules = pgTable(
     // For annually: month (1-12)
     monthOfYear: integer('month_of_year'),
 
+    // Usage-based scheduling (used when scheduleType is 'usage_based' or 'combined')
+    intervalMileage: integer('interval_mileage'), // Trigger every X km/miles
+    intervalHours: integer('interval_hours'), // Trigger every X operational hours
+    lastTriggeredMileage: decimal('last_triggered_mileage', { precision: 12, scale: 2 }), // Mileage when last WO generated
+    lastTriggeredHours: decimal('last_triggered_hours', { precision: 12, scale: 2 }), // Hours when last WO generated
+    thresholdAlertPercent: integer('threshold_alert_percent').default(90), // Alert when this % of interval reached
+
     // Schedule timing
-    startDate: timestamp('start_date', { withTimezone: true }).notNull(),
+    startDate: timestamp('start_date', { withTimezone: true }),
     endDate: timestamp('end_date', { withTimezone: true }), // null = no end date
 
     // Tracking
@@ -77,6 +93,7 @@ export const maintenanceSchedules = pgTable(
     index('maintenance_schedules_organisation_id_idx').on(table.organisationId),
     index('maintenance_schedules_asset_id_idx').on(table.assetId),
     index('maintenance_schedules_category_id_idx').on(table.categoryId),
+    index('maintenance_schedules_schedule_type_idx').on(table.scheduleType),
     index('maintenance_schedules_next_due_date_idx').on(table.nextDueDate),
     index('maintenance_schedules_is_active_idx').on(table.isActive),
     index('maintenance_schedules_is_archived_idx').on(table.isArchived)

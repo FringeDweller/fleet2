@@ -8,13 +8,24 @@ const createScheduleSchema = z.object({
   assetId: z.string().uuid().optional().nullable(),
   categoryId: z.string().uuid().optional().nullable(),
   templateId: z.string().uuid().optional().nullable(),
-  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']),
+
+  // Schedule type
+  scheduleType: z.enum(['time_based', 'usage_based', 'combined']).default('time_based'),
+
+  // Time-based fields (now optional)
+  intervalType: z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annually', 'custom']).optional().nullable(),
   intervalValue: z.number().int().positive().default(1),
   dayOfWeek: z.number().int().min(0).max(6).optional().nullable(),
   dayOfMonth: z.number().int().min(1).max(31).optional().nullable(),
   monthOfYear: z.number().int().min(1).max(12).optional().nullable(),
-  startDate: z.string().datetime(),
+  startDate: z.string().datetime().optional().nullable(),
   endDate: z.string().datetime().optional().nullable(),
+
+  // Usage-based fields
+  intervalMileage: z.number().int().positive().optional().nullable(),
+  intervalHours: z.number().int().positive().optional().nullable(),
+  thresholdAlertPercent: z.number().int().min(1).max(100).default(90),
+
   leadTimeDays: z.number().int().min(0).default(7),
   defaultPriority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   defaultAssigneeId: z.string().uuid().optional().nullable(),
@@ -29,6 +40,30 @@ const createScheduleSchema = z.object({
   {
     message: 'Either assetId or categoryId must be provided, but not both',
     path: ['assetId']
+  }
+).refine(
+  (data) => {
+    // For time_based schedules, intervalType and startDate are required
+    if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
+      return !!data.intervalType && !!data.startDate
+    }
+    return true
+  },
+  {
+    message: 'intervalType and startDate are required for time_based and combined schedules',
+    path: ['intervalType']
+  }
+).refine(
+  (data) => {
+    // For usage_based schedules, at least one of intervalMileage or intervalHours is required
+    if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
+      return !!data.intervalMileage || !!data.intervalHours
+    }
+    return true
+  },
+  {
+    message: 'At least one of intervalMileage or intervalHours is required for usage_based and combined schedules',
+    path: ['intervalMileage']
   }
 )
 
@@ -55,15 +90,20 @@ export default defineEventHandler(async (event) => {
 
   const data = result.data
 
-  // Calculate the first nextDueDate from startDate
-  const nextDueDate = calculateNextDueDate(
-    data.intervalType,
-    data.intervalValue,
-    new Date(data.startDate),
-    data.dayOfWeek,
-    data.dayOfMonth,
-    data.monthOfYear
-  )
+  // Calculate the first nextDueDate from startDate (only for time-based schedules)
+  let nextDueDate: Date | null = null
+  if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
+    if (data.intervalType && data.startDate) {
+      nextDueDate = calculateNextDueDate(
+        data.intervalType,
+        data.intervalValue,
+        new Date(data.startDate),
+        data.dayOfWeek,
+        data.dayOfMonth,
+        data.monthOfYear
+      )
+    }
+  }
 
   // Create the schedule
   const [schedule] = await db
@@ -72,6 +112,7 @@ export default defineEventHandler(async (event) => {
       organisationId: session.user.organisationId,
       name: data.name,
       description: data.description,
+      scheduleType: data.scheduleType,
       assetId: data.assetId,
       categoryId: data.categoryId,
       templateId: data.templateId,
@@ -80,7 +121,10 @@ export default defineEventHandler(async (event) => {
       dayOfWeek: data.dayOfWeek,
       dayOfMonth: data.dayOfMonth,
       monthOfYear: data.monthOfYear,
-      startDate: new Date(data.startDate),
+      intervalMileage: data.intervalMileage,
+      intervalHours: data.intervalHours,
+      thresholdAlertPercent: data.thresholdAlertPercent,
+      startDate: data.startDate ? new Date(data.startDate) : null,
       endDate: data.endDate ? new Date(data.endDate) : null,
       nextDueDate,
       leadTimeDays: data.leadTimeDays,

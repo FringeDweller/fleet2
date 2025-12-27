@@ -13,8 +13,11 @@ interface MaintenanceScheduleRow {
   id: string
   name: string
   description: string | null
+  scheduleType: 'time_based' | 'usage_based' | 'combined'
   intervalType: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually' | 'custom'
   intervalValue: number
+  intervalMileage: number | null
+  intervalHours: number | null
   nextDueDate: string | null
   isActive: boolean
   asset: { id: string, assetNumber: string, make: string | null, model: string | null } | null
@@ -41,13 +44,13 @@ const columnVisibility = ref()
 const rowSelection = ref({})
 
 // Filter state - initialize from URL query params
-const intervalTypeFilter = ref((route.query.intervalType as string) || 'all')
+const scheduleTypeFilter = ref((route.query.scheduleType as string) || 'all')
 const isActiveFilter = ref((route.query.isActive as string) || 'all')
 
 // Computed query params for API
 const queryParams = computed(() => {
   const params: Record<string, string> = {}
-  if (intervalTypeFilter.value !== 'all') params.intervalType = intervalTypeFilter.value
+  if (scheduleTypeFilter.value !== 'all') params.scheduleType = scheduleTypeFilter.value
   if (isActiveFilter.value !== 'all') params.isActive = isActiveFilter.value
   return params
 })
@@ -108,7 +111,7 @@ function getRowItems(row: Row<MaintenanceScheduleRow>) {
 async function toggleActive(id: string, currentStatus: boolean) {
   try {
     await $fetch(`/api/maintenance-schedules/${id}`, {
-      method: 'PUT',
+      method: 'PUT' as const,
       body: { isActive: !currentStatus }
     })
     toast.add({
@@ -127,7 +130,7 @@ async function toggleActive(id: string, currentStatus: boolean) {
 
 async function archiveSchedule(id: string) {
   try {
-    await $fetch(`/api/maintenance-schedules/${id}`, { method: 'DELETE' })
+    await $fetch(`/api/maintenance-schedules/${id}`, { method: 'DELETE' as const })
     toast.add({
       title: 'Schedule archived',
       description: 'The maintenance schedule has been archived successfully.'
@@ -142,13 +145,16 @@ async function archiveSchedule(id: string) {
   }
 }
 
-const intervalTypeColors = {
-  daily: 'info',
-  weekly: 'success',
-  monthly: 'warning',
-  quarterly: 'primary',
-  annually: 'secondary',
-  custom: 'neutral'
+const scheduleTypeColors = {
+  time_based: 'info',
+  usage_based: 'warning',
+  combined: 'primary'
+} as const
+
+const scheduleTypeLabels = {
+  time_based: 'Time-Based',
+  usage_based: 'Usage-Based',
+  combined: 'Combined'
 } as const
 
 const intervalTypeLabels = {
@@ -202,16 +208,25 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     ])
   },
   {
-    accessorKey: 'intervalType',
+    accessorKey: 'scheduleType',
     header: 'Type',
     filterFn: 'equals',
     cell: ({ row }) => {
-      const color = intervalTypeColors[row.original.intervalType]
-      const label = intervalTypeLabels[row.original.intervalType]
-      const displayValue = row.original.intervalType === 'custom'
-        ? `Every ${row.original.intervalValue} days`
-        : label
-      return h(UBadge, { variant: 'subtle', color }, () => displayValue)
+      const scheduleType = row.original.scheduleType
+      const color = scheduleTypeColors[scheduleType]
+
+      // Determine display label
+      let displayLabel: string
+      if (scheduleType === 'time_based') {
+        const intervalLabel = intervalTypeLabels[row.original.intervalType]
+        displayLabel = row.original.intervalType === 'custom'
+          ? `Every ${row.original.intervalValue} days`
+          : intervalLabel
+      } else {
+        displayLabel = scheduleTypeLabels[scheduleType]
+      }
+
+      return h(UBadge, { variant: 'subtle', color }, () => displayLabel)
     }
   },
   {
@@ -247,6 +262,13 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     accessorKey: 'nextDueDate',
     header: 'Next Due',
     cell: ({ row }) => {
+      const scheduleType = row.original.scheduleType
+
+      // For usage-based schedules, show "N/A - Usage Tracked"
+      if (scheduleType === 'usage_based') {
+        return h('span', { class: 'text-sm text-muted' }, 'N/A - Usage Tracked')
+      }
+
       const nextDue = row.original.nextDueDate
       if (!nextDue) return h('span', { class: 'text-muted' }, '-')
       return h('span', { class: 'text-sm' },
@@ -331,6 +353,17 @@ const pagination = ref({
     </template>
 
     <template #body>
+      <!-- Maintenance Alerts -->
+      <UCard class="mb-4">
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-bell-ring" class="size-5 text-warning" />
+            <span class="font-medium">Maintenance Approaching</span>
+          </div>
+        </template>
+        <MaintenanceAlerts />
+      </UCard>
+
       <div class="flex flex-wrap items-center justify-between gap-1.5">
         <UInput
           v-model="search"
@@ -341,15 +374,12 @@ const pagination = ref({
 
         <div class="flex flex-wrap items-center gap-1.5">
           <USelect
-            v-model="intervalTypeFilter"
+            v-model="scheduleTypeFilter"
             :items="[
               { label: 'All Types', value: 'all' },
-              { label: 'Daily', value: 'daily' },
-              { label: 'Weekly', value: 'weekly' },
-              { label: 'Monthly', value: 'monthly' },
-              { label: 'Quarterly', value: 'quarterly' },
-              { label: 'Annually', value: 'annually' },
-              { label: 'Custom', value: 'custom' }
+              { label: 'Time-Based', value: 'time_based' },
+              { label: 'Usage-Based', value: 'usage_based' },
+              { label: 'Combined', value: 'combined' }
             ]"
             placeholder="Filter type"
             class="min-w-40"
