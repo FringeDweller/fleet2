@@ -1,6 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
+import { requirePermission } from '../../utils/permissions'
 
 const createAssetSchema = z.object({
   assetNumber: z.string().min(1, 'Asset number is required').max(50).optional(),
@@ -29,14 +30,8 @@ async function generateAssetNumber(organisationId: string): Promise<string> {
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require assets:write permission to create assets
+  const user = await requirePermission(event, 'assets:write')
 
   const body = await readBody(event)
   const result = createAssetSchema.safeParse(body)
@@ -49,13 +44,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const assetNumber =
-    result.data.assetNumber || (await generateAssetNumber(session.user.organisationId))
+  const assetNumber = result.data.assetNumber || (await generateAssetNumber(user.organisationId))
 
   const [asset] = await db
     .insert(schema.assets)
     .values({
-      organisationId: session.user.organisationId,
+      organisationId: user.organisationId,
       assetNumber,
       vin: result.data.vin,
       make: result.data.make,
@@ -80,8 +74,8 @@ export default defineEventHandler(async (event) => {
 
   // Log the creation in audit log
   await db.insert(schema.auditLog).values({
-    organisationId: session.user.organisationId,
-    userId: session.user.id,
+    organisationId: user.organisationId,
+    userId: user.id,
     action: 'create',
     entityType: 'asset',
     entityId: asset.id,

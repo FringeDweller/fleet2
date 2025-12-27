@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { createWorkOrderAssignedNotification } from '../../utils/notifications'
+import { requirePermission } from '../../utils/permissions'
 
 const createWorkOrderSchema = z.object({
   assetId: z.string().uuid('Asset is required'),
@@ -28,14 +29,8 @@ async function generateWorkOrderNumber(organisationId: string): Promise<string> 
 }
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require work_orders:write permission to create work orders
+  const user = await requirePermission(event, 'work_orders:write')
 
   const body = await readBody(event)
   const result = createWorkOrderSchema.safeParse(body)
@@ -48,7 +43,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const workOrderNumber = await generateWorkOrderNumber(session.user.organisationId)
+  const workOrderNumber = await generateWorkOrderNumber(user.organisationId)
 
   // If a template is selected, copy its checklist items and parts
   let checklistItemsToCreate: Array<{
@@ -76,7 +71,7 @@ export default defineEventHandler(async (event) => {
     const template = await db.query.taskTemplates.findFirst({
       where: and(
         eq(schema.taskTemplates.id, result.data.templateId),
-        eq(schema.taskTemplates.organisationId, session.user.organisationId),
+        eq(schema.taskTemplates.organisationId, user.organisationId),
       ),
       with: {
         // Get normalized template parts with full part details
@@ -123,7 +118,7 @@ export default defineEventHandler(async (event) => {
           unitCost: unitCost?.toFixed(2) || null,
           totalCost,
           notes: tp.notes ? `From template: ${tp.notes}` : `From template: ${template.name}`,
-          addedById: session.user!.id,
+          addedById: user!.id,
         }
       })
     } else if (template?.requiredParts && template.requiredParts.length > 0) {
@@ -142,7 +137,7 @@ export default defineEventHandler(async (event) => {
           unitCost: unitCost?.toFixed(2) || null,
           totalCost,
           notes: rp.notes ? `From template: ${rp.notes}` : `From template: ${template.name}`,
-          addedById: session.user!.id,
+          addedById: user!.id,
         }
       })
     }
@@ -151,12 +146,12 @@ export default defineEventHandler(async (event) => {
   const [workOrder] = await db
     .insert(schema.workOrders)
     .values({
-      organisationId: session.user.organisationId,
+      organisationId: user.organisationId,
       workOrderNumber,
       assetId: result.data.assetId,
       templateId: result.data.templateId,
       assignedToId: result.data.assignedToId,
-      createdById: session.user.id,
+      createdById: user.id,
       title: result.data.title,
       description: result.data.description,
       priority: result.data.priority,
@@ -199,14 +194,14 @@ export default defineEventHandler(async (event) => {
     workOrderId: workOrder.id,
     fromStatus: null,
     toStatus: result.data.status,
-    changedById: session.user.id,
+    changedById: user.id,
     notes: 'Work order created',
   })
 
   // Log the creation in audit log
   await db.insert(schema.auditLog).values({
-    organisationId: session.user.organisationId,
-    userId: session.user.id,
+    organisationId: user.organisationId,
+    userId: user.id,
     action: 'create',
     entityType: 'work_order',
     entityId: workOrder.id,
@@ -214,14 +209,14 @@ export default defineEventHandler(async (event) => {
   })
 
   // Notify assignee if work order was created with an assignment
-  if (workOrder.assignedToId && workOrder.assignedToId !== session.user.id) {
+  if (workOrder.assignedToId && workOrder.assignedToId !== user.id) {
     await createWorkOrderAssignedNotification({
-      organisationId: session.user.organisationId,
+      organisationId: user.organisationId,
       userId: workOrder.assignedToId,
       workOrderNumber: workOrder.workOrderNumber,
       workOrderTitle: workOrder.title,
       workOrderId: workOrder.id,
-      assignedByName: `${session.user.firstName} ${session.user.lastName}`,
+      assignedByName: `${user.firstName} ${user.lastName}`,
     })
   }
 

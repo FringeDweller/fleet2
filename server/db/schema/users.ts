@@ -57,3 +57,9 @@ export type SafeUser = Omit<
   | 'failedLoginAttempts'
   | 'lockedUntil'
 >
+
+// SafeUser with role information for authenticated sessions
+export type SafeUserWithRole = SafeUser & {
+  roleName: 'admin' | 'fleet_manager' | 'supervisor' | 'technician' | 'operator'
+  permissions: string[]
+}

@@ -22,10 +22,18 @@ export interface Mail {
 }
 
 export interface Member {
+  id: string
   name: string
-  username: string
-  role: 'member' | 'owner'
+  email: string
+  phone: string | null
+  role: string
+  roleId: string
+  roleName: string
   avatar: AvatarProps
+  isActive: boolean
+  emailVerified: boolean
+  lastLoginAt: string | null
+  createdAt: string
 }
 
 export interface Stat {

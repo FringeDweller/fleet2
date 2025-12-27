@@ -1,15 +1,10 @@
 import { and, asc, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
+import { requirePermission } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require assets:read permission
+  const user = await requirePermission(event, 'assets:read')
 
   const query = getQuery(event)
 
@@ -53,7 +48,7 @@ export default defineEventHandler(async (event) => {
     'updatedAt',
   ]
 
-  const conditions = [eq(schema.assets.organisationId, session.user.organisationId)]
+  const conditions = [eq(schema.assets.organisationId, user.organisationId)]
 
   if (!includeArchived) {
     conditions.push(eq(schema.assets.isArchived, false))

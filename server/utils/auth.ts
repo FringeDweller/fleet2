@@ -1,6 +1,7 @@
 import { hash, verify } from '@node-rs/argon2'
 import { and, eq, gt } from 'drizzle-orm'
-import type { SafeUser } from '../db/schema/users'
+import { DEFAULT_ROLE_PERMISSIONS, type RoleName } from '../db/schema/roles'
+import type { SafeUser, SafeUserWithRole } from '../db/schema/users'
 import { db, schema } from './db'
 
 // Argon2 configuration (OWASP recommended)
@@ -29,7 +30,7 @@ export async function verifyPassword(hash: string, password: string): Promise<bo
 
 export interface AuthResult {
   success: boolean
-  user?: SafeUser
+  user?: SafeUserWithRole
   error?: string
   isLocked?: boolean
   remainingAttempts?: number
@@ -110,11 +111,17 @@ export async function authenticateUser(email: string, password: string): Promise
     })
     .where(eq(schema.users.id, user.id))
 
-  // Return safe user (without sensitive fields)
-  const safeUser: SafeUser = {
+  // Get role and permissions
+  const roleName = (user.role?.name || 'operator') as RoleName
+  const permissions = user.role?.permissions || DEFAULT_ROLE_PERMISSIONS[roleName] || []
+
+  // Return safe user (without sensitive fields) with role info
+  const safeUser = {
     id: user.id,
     organisationId: user.organisationId,
     roleId: user.roleId,
+    roleName,
+    permissions,
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,

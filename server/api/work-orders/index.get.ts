@@ -1,15 +1,10 @@
 import { and, eq, ilike, inArray, isNull, lte, or } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
+import { requirePermission } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require work_orders:read permission
+  const user = await requirePermission(event, 'work_orders:read')
 
   const query = getQuery(event)
   const search = query.search as string | undefined
@@ -21,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const overdue = query.overdue === 'true'
   const includeArchived = query.includeArchived === 'true'
 
-  const conditions = [eq(schema.workOrders.organisationId, session.user.organisationId)]
+  const conditions = [eq(schema.workOrders.organisationId, user.organisationId)]
 
   if (!includeArchived) {
     conditions.push(eq(schema.workOrders.isArchived, false))

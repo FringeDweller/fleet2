@@ -1,15 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
+import { requirePermission } from '../../utils/permissions'
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require work_orders:delete permission
+  const user = await requirePermission(event, 'work_orders:delete')
 
   const id = getRouterParam(event, 'id')
 
@@ -24,7 +19,7 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.workOrders.findFirst({
     where: and(
       eq(schema.workOrders.id, id),
-      eq(schema.workOrders.organisationId, session.user.organisationId),
+      eq(schema.workOrders.organisationId, user.organisationId),
     ),
   })
 
@@ -44,16 +39,13 @@ export default defineEventHandler(async (event) => {
       updatedAt: new Date(),
     })
     .where(
-      and(
-        eq(schema.workOrders.id, id),
-        eq(schema.workOrders.organisationId, session.user.organisationId),
-      ),
+      and(eq(schema.workOrders.id, id), eq(schema.workOrders.organisationId, user.organisationId)),
     )
 
   // Log the archive in audit log
   await db.insert(schema.auditLog).values({
-    organisationId: session.user.organisationId,
-    userId: session.user.id,
+    organisationId: user.organisationId,
+    userId: user.id,
     action: 'archive',
     entityType: 'work_order',
     entityId: id,
