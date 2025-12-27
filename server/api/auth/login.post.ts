@@ -6,7 +6,7 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   // Validate input

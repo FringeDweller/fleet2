@@ -89,7 +89,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     </div>
 
     <UCard class="mt-8">
-      <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
+      <UForm
+        :schema="schema"
+        :state="state"
+        class="space-y-6"
+        @submit="onSubmit"
+      >
         <UFormField label="New password" name="password" required>
           <UInput
             v-model="state.password"
@@ -146,7 +151,14 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           </ul>
         </div>
 
-        <UButton type="submit" block size="lg" :loading="isLoading"> Reset password </UButton>
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          :loading="isLoading"
+        >
+          Reset password
+        </UButton>
       </UForm>
     </UCard>
   </div>

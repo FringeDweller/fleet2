@@ -72,7 +72,7 @@ const schema = z
     isActive: z.boolean().default(true)
   })
   .refine(
-    data => {
+    (data) => {
       if (data.assignmentType === 'asset') return !!data.assetId
       if (data.assignmentType === 'category') return !!data.categoryId
       return false
@@ -83,7 +83,7 @@ const schema = z
     }
   )
   .refine(
-    data => {
+    (data) => {
       if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
         return !!data.intervalType && !!data.startDate
       }
@@ -95,7 +95,7 @@ const schema = z
     }
   )
   .refine(
-    data => {
+    (data) => {
       if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
         return !!data.intervalMileage || !!data.intervalHours
       }
@@ -257,8 +257,8 @@ const showUsageBasedFields = computed(
 const showDayOfWeek = computed(() => state.intervalType === 'weekly' && showTimeBasedFields.value)
 const showDayOfMonth = computed(
   () =>
-    showTimeBasedFields.value &&
-    ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
+    showTimeBasedFields.value
+    && ['monthly', 'quarterly', 'annually'].includes(state.intervalType || '')
 )
 const showMonthOfYear = computed(
   () => state.intervalType === 'annually' && showTimeBasedFields.value
@@ -281,7 +281,7 @@ watch(
 // Reset fields when schedule type changes
 watch(
   () => state.scheduleType,
-  newType => {
+  (newType) => {
     if (newType === 'usage_based') {
       // Clear time-based fields
       state.intervalType = undefined
@@ -303,7 +303,7 @@ watch(
 // Clear asset/category when switching assignment type
 watch(
   () => state.assignmentType,
-  newType => {
+  (newType) => {
     if (newType === 'asset') {
       state.categoryId = undefined
     } else {
@@ -330,10 +330,17 @@ watch(
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
+        <UForm
+          :schema="schema"
+          :state="state"
+          class="space-y-6"
+          @submit="onSubmit"
+        >
           <UCard>
             <template #header>
-              <h3 class="font-medium">Schedule Details</h3>
+              <h3 class="font-medium">
+                Schedule Details
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -371,7 +378,9 @@ watch(
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Assignment</h3>
+              <h3 class="font-medium">
+                Assignment
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -383,7 +392,7 @@ watch(
                       type="radio"
                       value="asset"
                       class="form-radio"
-                    />
+                    >
                     <span>Specific Asset</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -392,7 +401,7 @@ watch(
                       type="radio"
                       value="category"
                       class="form-radio"
-                    />
+                    >
                     <span>Asset Category</span>
                   </label>
                 </div>
@@ -431,7 +440,9 @@ watch(
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Schedule Configuration</h3>
+              <h3 class="font-medium">
+                Schedule Configuration
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -443,7 +454,7 @@ watch(
                       type="radio"
                       value="time_based"
                       class="form-radio"
-                    />
+                    >
                     <span>Time-Based</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -452,7 +463,7 @@ watch(
                       type="radio"
                       value="usage_based"
                       class="form-radio"
-                    />
+                    >
                     <span>Usage-Based</span>
                   </label>
                   <label class="flex items-center gap-2 cursor-pointer">
@@ -461,7 +472,7 @@ watch(
                       type="radio"
                       value="combined"
                       class="form-radio"
-                    />
+                    >
                     <span>Combined</span>
                   </label>
                 </div>
@@ -493,7 +504,12 @@ watch(
                 </UFormField>
               </div>
 
-              <UFormField v-if="showDayOfWeek" label="Day of Week" name="dayOfWeek" required>
+              <UFormField
+                v-if="showDayOfWeek"
+                label="Day of Week"
+                name="dayOfWeek"
+                required
+              >
                 <USelect
                   v-model.number="state.dayOfWeek"
                   :items="dayOfWeekOptions"
@@ -502,7 +518,12 @@ watch(
                 />
               </UFormField>
 
-              <UFormField v-if="showDayOfMonth" label="Day of Month" name="dayOfMonth" required>
+              <UFormField
+                v-if="showDayOfMonth"
+                label="Day of Month"
+                name="dayOfMonth"
+                required
+              >
                 <UInput
                   v-model.number="state.dayOfMonth"
                   type="number"
@@ -513,7 +534,12 @@ watch(
                 />
               </UFormField>
 
-              <UFormField v-if="showMonthOfYear" label="Month" name="monthOfYear" required>
+              <UFormField
+                v-if="showMonthOfYear"
+                label="Month"
+                name="monthOfYear"
+                required
+              >
                 <USelect
                   v-model.number="state.monthOfYear"
                   :items="monthOptions"
@@ -588,7 +614,9 @@ watch(
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Work Order Settings</h3>
+              <h3 class="font-medium">
+                Work Order Settings
+              </h3>
             </template>
 
             <div class="space-y-4">

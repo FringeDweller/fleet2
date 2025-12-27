@@ -36,7 +36,7 @@ const createScheduleSchema = z
     isActive: z.boolean().default(true)
   })
   .refine(
-    data => {
+    (data) => {
       // Either assetId or categoryId must be provided, but not both
       const hasAsset = !!data.assetId
       const hasCategory = !!data.categoryId
@@ -48,7 +48,7 @@ const createScheduleSchema = z
     }
   )
   .refine(
-    data => {
+    (data) => {
       // For time_based schedules, intervalType and startDate are required
       if (data.scheduleType === 'time_based' || data.scheduleType === 'combined') {
         return !!data.intervalType && !!data.startDate
@@ -61,7 +61,7 @@ const createScheduleSchema = z
     }
   )
   .refine(
-    data => {
+    (data) => {
       // For usage_based schedules, at least one of intervalMileage or intervalHours is required
       if (data.scheduleType === 'usage_based' || data.scheduleType === 'combined') {
         return !!data.intervalMileage || !!data.intervalHours
@@ -75,7 +75,7 @@ const createScheduleSchema = z
     }
   )
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

@@ -22,7 +22,7 @@ interface Asset {
   imageUrl: string | null
   isArchived: boolean
   categoryId: string | null
-  category: { id: string; name: string } | null
+  category: { id: string, name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -124,7 +124,7 @@ const {
 })
 
 // Fetch categories for filter dropdown
-const { data: categories } = await useFetch<{ id: string; name: string }[]>(
+const { data: categories } = await useFetch<{ id: string, name: string }[]>(
   '/api/asset-categories',
   {
     lazy: true
@@ -146,14 +146,14 @@ const totalItems = computed(() => response.value?.pagination.total || 0)
 // Check if any advanced filters are active
 const hasActiveAdvancedFilters = computed(() => {
   return !!(
-    filters.value.make ||
-    filters.value.model ||
-    filters.value.yearMin ||
-    filters.value.yearMax ||
-    filters.value.mileageMin ||
-    filters.value.mileageMax ||
-    filters.value.hoursMin ||
-    filters.value.hoursMax
+    filters.value.make
+    || filters.value.model
+    || filters.value.yearMin
+    || filters.value.yearMax
+    || filters.value.mileageMin
+    || filters.value.mileageMax
+    || filters.value.hoursMin
+    || filters.value.hoursMax
   )
 })
 
@@ -245,7 +245,7 @@ const savedSearchItems = computed(() => {
     onSelect?: () => void
   }> = [{ type: 'label', label: 'Saved Searches' }]
 
-  savedSearches.value.forEach(s => {
+  savedSearches.value.forEach((s) => {
     items.push({
       label: s.name,
       icon: s.isShared ? 'i-lucide-users' : 'i-lucide-bookmark',
@@ -381,18 +381,18 @@ const columns: TableColumn<Asset>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        modelValue: table.getIsSomePageRowsSelected()
+        'modelValue': table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        ariaLabel: 'Select all'
+        'ariaLabel': 'Select all'
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        modelValue: row.getIsSelected(),
+        'modelValue': row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        ariaLabel: 'Select row'
+        'ariaLabel': 'Select row'
       })
   },
   {
@@ -573,10 +573,10 @@ const columns: TableColumn<Asset>[] = [
 
           <UButton
             v-if="
-              hasActiveAdvancedFilters ||
-              filters.search ||
-              filters.status !== 'all' ||
-              filters.categoryId
+              hasActiveAdvancedFilters
+                || filters.search
+                || filters.status !== 'all'
+                || filters.categoryId
             "
             label="Clear"
             icon="i-lucide-x"
@@ -593,7 +593,12 @@ const columns: TableColumn<Asset>[] = [
             :items="savedSearchItems"
             :content="{ align: 'end' }"
           >
-            <UButton label="Saved" icon="i-lucide-bookmark" color="neutral" variant="outline" />
+            <UButton
+              label="Saved"
+              icon="i-lucide-bookmark"
+              color="neutral"
+              variant="outline"
+            />
           </UDropdownMenu>
 
           <UButton
@@ -648,27 +653,57 @@ const columns: TableColumn<Asset>[] = [
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Year Min</label>
-          <UInput v-model="filters.yearMin" type="number" placeholder="2020" size="sm" />
+          <UInput
+            v-model="filters.yearMin"
+            type="number"
+            placeholder="2020"
+            size="sm"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Year Max</label>
-          <UInput v-model="filters.yearMax" type="number" placeholder="2024" size="sm" />
+          <UInput
+            v-model="filters.yearMax"
+            type="number"
+            placeholder="2024"
+            size="sm"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Mileage Min</label>
-          <UInput v-model="filters.mileageMin" type="number" placeholder="0" size="sm" />
+          <UInput
+            v-model="filters.mileageMin"
+            type="number"
+            placeholder="0"
+            size="sm"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Mileage Max</label>
-          <UInput v-model="filters.mileageMax" type="number" placeholder="100000" size="sm" />
+          <UInput
+            v-model="filters.mileageMax"
+            type="number"
+            placeholder="100000"
+            size="sm"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Hours Min</label>
-          <UInput v-model="filters.hoursMin" type="number" placeholder="0" size="sm" />
+          <UInput
+            v-model="filters.hoursMin"
+            type="number"
+            placeholder="0"
+            size="sm"
+          />
         </div>
         <div>
           <label class="block text-xs font-medium text-muted mb-1">Hours Max</label>
-          <UInput v-model="filters.hoursMax" type="number" placeholder="5000" size="sm" />
+          <UInput
+            v-model="filters.hoursMax"
+            type="number"
+            placeholder="5000"
+            size="sm"
+          />
         </div>
       </div>
 
@@ -739,7 +774,9 @@ const columns: TableColumn<Asset>[] = [
       <UCard>
         <template #header>
           <div class="flex items-center justify-between">
-            <h3 class="text-lg font-semibold">Save Current Search</h3>
+            <h3 class="text-lg font-semibold">
+              Save Current Search
+            </h3>
             <UButton
               icon="i-lucide-x"
               color="neutral"
@@ -760,13 +797,25 @@ const columns: TableColumn<Asset>[] = [
           </UFormField>
 
           <div class="text-sm text-muted">
-            <p class="font-medium mb-2">Current filters:</p>
+            <p class="font-medium mb-2">
+              Current filters:
+            </p>
             <ul class="list-disc list-inside space-y-1">
-              <li v-if="filters.search">Search: "{{ filters.search }}"</li>
-              <li v-if="filters.status !== 'all'">Status: {{ filters.status }}</li>
-              <li v-if="filters.categoryId">Category selected</li>
-              <li v-if="filters.make">Make: {{ filters.make }}</li>
-              <li v-if="filters.model">Model: {{ filters.model }}</li>
+              <li v-if="filters.search">
+                Search: "{{ filters.search }}"
+              </li>
+              <li v-if="filters.status !== 'all'">
+                Status: {{ filters.status }}
+              </li>
+              <li v-if="filters.categoryId">
+                Category selected
+              </li>
+              <li v-if="filters.make">
+                Make: {{ filters.make }}
+              </li>
+              <li v-if="filters.model">
+                Model: {{ filters.model }}
+              </li>
               <li v-if="filters.yearMin || filters.yearMax">
                 Year: {{ filters.yearMin || '...' }} - {{ filters.yearMax || '...' }}
               </li>

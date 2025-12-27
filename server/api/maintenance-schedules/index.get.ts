@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, ilike, or } from 'drizzle-orm'
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -52,8 +52,8 @@ export default defineEventHandler(async event => {
     'custom'
   ] as const
   if (
-    intervalType &&
-    validIntervalTypes.includes(intervalType as (typeof validIntervalTypes)[number])
+    intervalType
+    && validIntervalTypes.includes(intervalType as (typeof validIntervalTypes)[number])
   ) {
     conditions.push(
       eq(
@@ -66,8 +66,8 @@ export default defineEventHandler(async event => {
   // Filter by schedule type
   const validScheduleTypes = ['time_based', 'usage_based', 'combined'] as const
   if (
-    scheduleType &&
-    validScheduleTypes.includes(scheduleType as (typeof validScheduleTypes)[number])
+    scheduleType
+    && validScheduleTypes.includes(scheduleType as (typeof validScheduleTypes)[number])
   ) {
     conditions.push(
       eq(

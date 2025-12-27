@@ -259,7 +259,9 @@ async function markPendingParts() {
     <!-- Error state -->
     <div v-else-if="error" class="text-center py-12 px-4">
       <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-      <h3 class="text-lg font-medium mb-2">Work order not found</h3>
+      <h3 class="text-lg font-medium mb-2">
+        Work order not found
+      </h3>
       <UButton label="Back to Work Orders" @click="router.push('/work-orders')" />
     </div>
 
@@ -268,10 +270,8 @@ async function markPendingParts() {
       <!-- Asset info -->
       <div class="flex items-center gap-2 text-muted">
         <UIcon name="i-lucide-truck" class="w-4 h-4" />
-        <span
-          >{{ workOrder.asset.assetNumber }} - {{ workOrder.asset.make }}
-          {{ workOrder.asset.model }}</span
-        >
+        <span>{{ workOrder.asset.assetNumber }} - {{ workOrder.asset.make }}
+          {{ workOrder.asset.model }}</span>
       </div>
 
       <!-- Description -->
@@ -404,7 +404,9 @@ async function markPendingParts() {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">Complete Work Order</h3>
+              <h3 class="font-medium">
+                Complete Work Order
+              </h3>
               <UButton
                 icon="i-lucide-x"
                 variant="ghost"

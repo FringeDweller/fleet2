@@ -45,7 +45,12 @@ const validate = (state: Partial<PasswordSchema>): FormError[] => {
       </UFormField>
 
       <UFormField name="new">
-        <UInput v-model="password.new" type="password" placeholder="New password" class="w-full" />
+        <UInput
+          v-model="password.new"
+          type="password"
+          placeholder="New password"
+          class="w-full"
+        />
       </UFormField>
 
       <UButton label="Update" class="w-fit" type="submit" />

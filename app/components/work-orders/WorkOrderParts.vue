@@ -10,7 +10,7 @@ interface Part {
   totalCost: string | null
   notes: string | null
   createdAt: string
-  addedBy?: { id: string; firstName: string; lastName: string }
+  addedBy?: { id: string, firstName: string, lastName: string }
 }
 
 const props = defineProps<{
@@ -109,7 +109,9 @@ async function deletePart(part: Part) {
   <UCard>
     <template #header>
       <div class="flex items-center justify-between">
-        <h3 class="font-medium">Parts Used</h3>
+        <h3 class="font-medium">
+          Parts Used
+        </h3>
         <div class="flex items-center gap-3">
           <span v-if="totalCost" class="text-sm font-medium"> Total: ${{ totalCost }} </span>
           <UButton
@@ -144,7 +146,12 @@ async function deletePart(part: Part) {
               <p class="font-medium truncate">
                 {{ part.partName }}
               </p>
-              <UBadge v-if="part.partNumber" color="neutral" variant="subtle" size="xs">
+              <UBadge
+                v-if="part.partNumber"
+                color="neutral"
+                variant="subtle"
+                size="xs"
+              >
                 {{ part.partNumber }}
               </UBadge>
             </div>
@@ -158,8 +165,12 @@ async function deletePart(part: Part) {
           </div>
           <div class="flex items-start gap-3">
             <div class="text-right">
-              <p class="font-medium">x{{ part.quantity }}</p>
-              <p v-if="part.unitCost" class="text-xs text-muted">@ ${{ part.unitCost }}/ea</p>
+              <p class="font-medium">
+                x{{ part.quantity }}
+              </p>
+              <p v-if="part.unitCost" class="text-xs text-muted">
+                @ ${{ part.unitCost }}/ea
+              </p>
               <p v-if="part.totalCost" class="text-sm font-medium text-success">
                 ${{ part.totalCost }}
               </p>
@@ -184,8 +195,15 @@ async function deletePart(part: Part) {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">Add Part</h3>
-              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="addModalOpen = false" />
+              <h3 class="font-medium">
+                Add Part
+              </h3>
+              <UButton
+                icon="i-lucide-x"
+                variant="ghost"
+                size="xs"
+                @click="addModalOpen = false"
+              />
             </div>
           </template>
 

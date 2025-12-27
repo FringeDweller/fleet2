@@ -3,7 +3,7 @@ import { eq, and } from 'drizzle-orm'
 
 const STATUSES = ['draft', 'open', 'in_progress', 'pending_parts', 'completed', 'closed'] as const
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

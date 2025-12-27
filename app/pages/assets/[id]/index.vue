@@ -18,7 +18,7 @@ interface Asset {
   imageUrl: string | null
   isArchived: boolean
   categoryId: string | null
-  category: { id: string; name: string } | null
+  category: { id: string, name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -111,7 +111,9 @@ const formatDate = (date: string) => {
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">Asset not found</h3>
+        <h3 class="text-lg font-medium mb-2">
+          Asset not found
+        </h3>
         <p class="text-muted mb-4">
           The asset you're looking for doesn't exist or has been removed.
         </p>
@@ -125,7 +127,7 @@ const formatDate = (date: string) => {
               :src="asset.imageUrl"
               :alt="asset.assetNumber"
               class="w-full h-full object-cover"
-            />
+            >
           </div>
           <div v-else class="w-48 h-32 rounded-lg bg-muted flex items-center justify-center">
             <UIcon name="i-lucide-truck" class="w-12 h-12 text-muted" />
@@ -139,7 +141,9 @@ const formatDate = (date: string) => {
               <UBadge :color="statusColors[asset.status]" variant="subtle" class="capitalize">
                 {{ asset.status }}
               </UBadge>
-              <UBadge v-if="asset.isArchived" color="error" variant="subtle"> Archived </UBadge>
+              <UBadge v-if="asset.isArchived" color="error" variant="subtle">
+                Archived
+              </UBadge>
             </div>
             <p v-if="asset.make || asset.model" class="text-lg text-muted">
               {{ [asset.year, asset.make, asset.model].filter(Boolean).join(' ') }}
@@ -153,35 +157,47 @@ const formatDate = (date: string) => {
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <UCard>
             <template #header>
-              <h3 class="font-medium">Vehicle Information</h3>
+              <h3 class="font-medium">
+                Vehicle Information
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">VIN</dt>
+                <dt class="text-sm text-muted">
+                  VIN
+                </dt>
                 <dd class="font-medium">
                   {{ asset.vin || '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">License Plate</dt>
+                <dt class="text-sm text-muted">
+                  License Plate
+                </dt>
                 <dd class="font-medium">
                   {{ asset.licensePlate || '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Year</dt>
+                <dt class="text-sm text-muted">
+                  Year
+                </dt>
                 <dd class="font-medium">
                   {{ asset.year || '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Make</dt>
+                <dt class="text-sm text-muted">
+                  Make
+                </dt>
                 <dd class="font-medium">
                   {{ asset.make || '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Model</dt>
+                <dt class="text-sm text-muted">
+                  Model
+                </dt>
                 <dd class="font-medium">
                   {{ asset.model || '-' }}
                 </dd>
@@ -191,17 +207,23 @@ const formatDate = (date: string) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Usage Metrics</h3>
+              <h3 class="font-medium">
+                Usage Metrics
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">Mileage</dt>
+                <dt class="text-sm text-muted">
+                  Mileage
+                </dt>
                 <dd class="font-medium">
                   {{ asset.mileage ? `${Number(asset.mileage).toLocaleString()} km` : '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Operational Hours</dt>
+                <dt class="text-sm text-muted">
+                  Operational Hours
+                </dt>
                 <dd class="font-medium">
                   {{
                     asset.operationalHours
@@ -215,17 +237,23 @@ const formatDate = (date: string) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Record Information</h3>
+              <h3 class="font-medium">
+                Record Information
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">Created</dt>
+                <dt class="text-sm text-muted">
+                  Created
+                </dt>
                 <dd class="font-medium">
                   {{ formatDate(asset.createdAt) }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Last Updated</dt>
+                <dt class="text-sm text-muted">
+                  Last Updated
+                </dt>
                 <dd class="font-medium">
                   {{ formatDate(asset.updatedAt) }}
                 </dd>
@@ -236,7 +264,9 @@ const formatDate = (date: string) => {
 
         <UCard v-if="asset.description">
           <template #header>
-            <h3 class="font-medium">Description</h3>
+            <h3 class="font-medium">
+              Description
+            </h3>
           </template>
           <p class="text-muted whitespace-pre-wrap">
             {{ asset.description }}

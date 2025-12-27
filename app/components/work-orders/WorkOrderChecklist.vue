@@ -8,7 +8,7 @@ interface ChecklistItem {
   isRequired: boolean
   isCompleted: boolean
   completedAt: string | null
-  completedBy: { id: string; firstName: string; lastName: string } | null
+  completedBy: { id: string, firstName: string, lastName: string } | null
   notes: string | null
   order: number
 }
@@ -114,7 +114,9 @@ async function deleteItem(item: ChecklistItem) {
   <UCard>
     <template #header>
       <div class="flex items-center justify-between">
-        <h3 class="font-medium">Checklist Items</h3>
+        <h3 class="font-medium">
+          Checklist Items
+        </h3>
         <div class="flex items-center gap-3">
           <span v-if="progress" class="text-sm text-muted">
             {{ progress.percentage }}% complete
@@ -207,8 +209,15 @@ async function deleteItem(item: ChecklistItem) {
         <UCard>
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">Add Checklist Item</h3>
-              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="addModalOpen = false" />
+              <h3 class="font-medium">
+                Add Checklist Item
+              </h3>
+              <UButton
+                icon="i-lucide-x"
+                variant="ghost"
+                size="xs"
+                @click="addModalOpen = false"
+              />
             </div>
           </template>
 

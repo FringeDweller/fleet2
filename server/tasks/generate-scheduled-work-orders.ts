@@ -48,7 +48,7 @@ export default defineTask({
         console.log('\nCreated work orders:')
         summary.results
           .filter(r => r.status === 'created')
-          .forEach(r => {
+          .forEach((r) => {
             console.log(`  - ${r.workOrderNumber} for ${r.assetNumber} (${r.scheduleName})`)
           })
       }
@@ -57,7 +57,7 @@ export default defineTask({
         console.error('\nErrors:')
         summary.results
           .filter(r => r.status === 'error')
-          .forEach(r => {
+          .forEach((r) => {
             console.error(`  - ${r.scheduleName}: ${r.reason}`)
           })
       }

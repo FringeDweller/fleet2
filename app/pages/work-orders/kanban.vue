@@ -262,7 +262,9 @@ function onDragEnd() {
                       {{ wo.assignedTo.firstName }}
                     </span>
                   </div>
-                  <div v-else class="text-xs text-muted">Unassigned</div>
+                  <div v-else class="text-xs text-muted">
+                    Unassigned
+                  </div>
 
                   <!-- Due date -->
                   <div

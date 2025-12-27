@@ -37,7 +37,7 @@ const props = defineProps<{
   expandedCategories: Set<string>
   getRowActions: (
     category: CategoryNode
-  ) => Array<Array<{ label: string; icon: string; color?: string; onSelect: () => void }>>
+  ) => Array<Array<{ label: string, icon: string, color?: string, onSelect: () => void }>>
 }>()
 
 const emit = defineEmits<{
@@ -76,10 +76,20 @@ const isExpanded = computed(() => props.expandedCategories.has(props.category.id
           <h3 class="font-medium truncate" :class="{ 'text-muted': !category.isActive }">
             {{ category.name }}
           </h3>
-          <UBadge v-if="category.assetCount > 0" color="info" variant="subtle" size="xs">
+          <UBadge
+            v-if="category.assetCount > 0"
+            color="info"
+            variant="subtle"
+            size="xs"
+          >
             {{ category.assetCount }} asset{{ category.assetCount === 1 ? '' : 's' }}
           </UBadge>
-          <UBadge v-if="!category.isActive" color="warning" variant="subtle" size="xs">
+          <UBadge
+            v-if="!category.isActive"
+            color="warning"
+            variant="subtle"
+            size="xs"
+          >
             Inactive
           </UBadge>
         </div>

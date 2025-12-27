@@ -92,9 +92,7 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
                 <span>
                   {{ alert.mileage.current.toLocaleString() }} /
                   {{ alert.mileage.nextTrigger.toLocaleString() }} km
-                  <span class="text-muted"
-                    >({{ alert.mileage.remaining.toLocaleString() }} remaining)</span
-                  >
+                  <span class="text-muted">({{ alert.mileage.remaining.toLocaleString() }} remaining)</span>
                 </span>
               </div>
               <div v-if="alert.hours" class="flex items-center gap-2">
@@ -102,9 +100,7 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
                 <span>
                   {{ alert.hours.current.toLocaleString() }} /
                   {{ alert.hours.nextTrigger.toLocaleString() }} hrs
-                  <span class="text-muted"
-                    >({{ alert.hours.remaining.toLocaleString() }} remaining)</span
-                  >
+                  <span class="text-muted">({{ alert.hours.remaining.toLocaleString() }} remaining)</span>
                 </span>
               </div>
             </div>
@@ -112,7 +108,12 @@ function getAssetLabel(asset: ThresholdAlert['asset']) {
         </div>
 
         <NuxtLink :to="`/settings/maintenance-schedules/${alert.id}`">
-          <UButton icon="i-lucide-arrow-right" color="neutral" variant="ghost" size="xs" />
+          <UButton
+            icon="i-lucide-arrow-right"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+          />
         </NuxtLink>
       </div>
     </div>
