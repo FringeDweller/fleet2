@@ -352,9 +352,7 @@ function getRowActions(template: TaskTemplate) {
 
       <div v-else-if="templates.length === 0" class="text-center py-12 text-muted">
         <UIcon name="i-lucide-clipboard-list" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p class="mb-2">
-          No task templates found
-        </p>
+        <p class="mb-2">No task templates found</p>
         <UButton label="Create your first template" variant="link" @click="openCreateModal" />
       </div>
 
@@ -372,12 +370,7 @@ function getRowActions(template: TaskTemplate) {
               >
                 {{ template.name }}
               </h3>
-              <UBadge
-                v-if="template.category"
-                color="info"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge v-if="template.category" color="info" variant="subtle" size="xs">
                 {{ template.category }}
               </UBadge>
               <UBadge
@@ -397,12 +390,7 @@ function getRowActions(template: TaskTemplate) {
               >
                 Inactive
               </UBadge>
-              <UBadge
-                v-if="template.isArchived"
-                color="neutral"
-                variant="subtle"
-                size="xs"
-              >
+              <UBadge v-if="template.isArchived" color="neutral" variant="subtle" size="xs">
                 Archived
               </UBadge>
               <span v-if="template.version > 1" class="text-xs text-muted">
@@ -448,12 +436,7 @@ function getRowActions(template: TaskTemplate) {
               <h3 class="font-medium">
                 {{ isEditing ? 'Edit Template' : 'Create Template' }}
               </h3>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                size="xs"
-                @click="modalOpen = false"
-              />
+              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="modalOpen = false" />
             </div>
           </template>
 
@@ -519,9 +502,7 @@ function getRowActions(template: TaskTemplate) {
             </div>
 
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Checklist Items
-              </h4>
+              <h4 class="font-medium mb-4">Checklist Items</h4>
 
               <div v-if="currentTemplate.checklistItems.length > 0" class="space-y-2 mb-4">
                 <div
@@ -596,9 +577,7 @@ function getRowActions(template: TaskTemplate) {
 
             <!-- Required Parts Section -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">
-                Required Parts
-              </h4>
+              <h4 class="font-medium mb-4">Required Parts</h4>
 
               <div v-if="currentTemplate.requiredParts.length > 0" class="space-y-2 mb-4">
                 <div

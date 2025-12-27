@@ -17,7 +17,7 @@ import { generateWorkOrderFromSchedule } from '../../../utils/work-order-generat
  * Returns:
  *   { results: GenerationResult[], summary: { total, created, skipped, errors } }
  */
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

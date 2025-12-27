@@ -30,7 +30,7 @@ const createCategorySchema = z.object({
   defaultParts: z.array(defaultPartSchema).optional().default([])
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

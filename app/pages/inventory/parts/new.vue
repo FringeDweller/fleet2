@@ -105,17 +105,10 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Basic Information
-              </h3>
+              <h3 class="font-medium">Basic Information</h3>
             </template>
 
             <div class="space-y-4">
@@ -168,9 +161,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Stock Management
-              </h3>
+              <h3 class="font-medium">Stock Management</h3>
             </template>
 
             <div class="space-y-4">
@@ -238,9 +229,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Supplier Information
-              </h3>
+              <h3 class="font-medium">Supplier Information</h3>
             </template>
 
             <div class="space-y-4">
@@ -261,12 +250,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               variant="subtle"
               @click="router.push('/inventory/parts')"
             />
-            <UButton
-              label="Create Part"
-              color="primary"
-              type="submit"
-              :loading="loading"
-            />
+            <UButton label="Create Part" color="primary" type="submit" :loading="loading" />
           </div>
         </UForm>
       </div>

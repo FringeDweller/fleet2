@@ -8,7 +8,7 @@ const createCategorySchema = z.object({
   parentId: z.string().uuid().optional().nullable()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

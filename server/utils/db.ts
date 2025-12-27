@@ -3,8 +3,8 @@ import postgres from 'postgres'
 import * as schema from '../db/schema'
 
 // Create PostgreSQL connection with connection pooling
-const connectionString
-  = process.env.NUXT_DATABASE_URL || 'postgresql://fleet:fleet_dev_password@localhost:54837/fleet'
+const connectionString =
+  process.env.NUXT_DATABASE_URL || 'postgresql://fleet:fleet_dev_password@localhost:54837/fleet'
 
 // Connection pool configuration
 const client = postgres(connectionString, {

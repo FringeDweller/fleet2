@@ -1,7 +1,7 @@
 import { db, schema } from '../../utils/db'
 import { eq, and, or, isNotNull } from 'drizzle-orm'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
 
   // Calculate threshold status for each schedule
   const approachingSchedules = schedules
-    .map((schedule) => {
+    .map(schedule => {
       if (!schedule.asset) {
         return null
       }
@@ -44,8 +44,8 @@ export default defineEventHandler(async (event) => {
         ? parseFloat(schedule.asset.operationalHours)
         : null
 
-      const mileageStatus
-        = schedule.intervalMileage && currentMileage !== null
+      const mileageStatus =
+        schedule.intervalMileage && currentMileage !== null
           ? calculateUsageStatus(
               currentMileage,
               schedule.lastTriggeredMileage ? parseFloat(schedule.lastTriggeredMileage) : 0,
@@ -53,8 +53,8 @@ export default defineEventHandler(async (event) => {
             )
           : null
 
-      const hoursStatus
-        = schedule.intervalHours && currentHours !== null
+      const hoursStatus =
+        schedule.intervalHours && currentHours !== null
           ? calculateUsageStatus(
               currentHours,
               schedule.lastTriggeredHours ? parseFloat(schedule.lastTriggeredHours) : 0,
@@ -63,10 +63,10 @@ export default defineEventHandler(async (event) => {
           : null
 
       // Only include schedules that have reached the threshold
-      const mileageAlert
-        = mileageStatus && mileageStatus.progress >= (schedule.thresholdAlertPercent || 90)
-      const hoursAlert
-        = hoursStatus && hoursStatus.progress >= (schedule.thresholdAlertPercent || 90)
+      const mileageAlert =
+        mileageStatus && mileageStatus.progress >= (schedule.thresholdAlertPercent || 90)
+      const hoursAlert =
+        hoursStatus && hoursStatus.progress >= (schedule.thresholdAlertPercent || 90)
 
       if (!mileageAlert && !hoursAlert) {
         return null
@@ -91,8 +91,8 @@ export default defineEventHandler(async (event) => {
         assetId: schedule.assetId,
         assetNumber: schedule.asset.assetNumber,
         assetName:
-          `${schedule.asset.make || ''} ${schedule.asset.model || ''}`.trim()
-          || schedule.asset.assetNumber,
+          `${schedule.asset.make || ''} ${schedule.asset.model || ''}`.trim() ||
+          schedule.asset.assetNumber,
         templateId: schedule.templateId,
         templateName: schedule.template?.name,
         mileage: mileageAlert

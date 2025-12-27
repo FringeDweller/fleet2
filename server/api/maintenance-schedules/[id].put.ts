@@ -36,7 +36,7 @@ const updateScheduleSchema = z.object({
   isActive: z.boolean().optional()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -100,22 +100,22 @@ export default defineEventHandler(async (event) => {
 
   // Determine if we need to recalculate nextDueDate (only for time-based schedules)
   let nextDueDate = existing.nextDueDate
-  const scheduleTimingChanged
-    = data.scheduleType !== undefined
-      || data.intervalType !== undefined
-      || data.intervalValue !== undefined
-      || data.dayOfWeek !== undefined
-      || data.dayOfMonth !== undefined
-      || data.monthOfYear !== undefined
-      || data.startDate !== undefined
+  const scheduleTimingChanged =
+    data.scheduleType !== undefined ||
+    data.intervalType !== undefined ||
+    data.intervalValue !== undefined ||
+    data.dayOfWeek !== undefined ||
+    data.dayOfMonth !== undefined ||
+    data.monthOfYear !== undefined ||
+    data.startDate !== undefined
 
   if (scheduleTimingChanged) {
     // Use updated or existing values
     const scheduleType = data.scheduleType ?? existing.scheduleType
     const intervalType = data.intervalType !== undefined ? data.intervalType : existing.intervalType
     const intervalValue = data.intervalValue ?? existing.intervalValue
-    const startDate
-      = data.startDate !== undefined
+    const startDate =
+      data.startDate !== undefined
         ? data.startDate
           ? new Date(data.startDate)
           : null
@@ -126,9 +126,9 @@ export default defineEventHandler(async (event) => {
 
     // Only calculate nextDueDate for time-based schedules
     if (
-      (scheduleType === 'time_based' || scheduleType === 'combined')
-      && intervalType
-      && startDate
+      (scheduleType === 'time_based' || scheduleType === 'combined') &&
+      intervalType &&
+      startDate
     ) {
       nextDueDate = calculateNextDueDate(
         intervalType,

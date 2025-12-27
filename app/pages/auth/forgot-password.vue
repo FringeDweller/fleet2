@@ -36,7 +36,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     isSubmitted.value = true
     toast.add({
       title: 'Check your email',
-      description: 'If an account exists, we\'ve sent password reset instructions.',
+      description: "If an account exists, we've sent password reset instructions.",
       color: 'success'
     })
   } catch {
@@ -69,9 +69,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       <template v-if="isSubmitted">
         <div class="text-center py-4">
           <UIcon name="i-lucide-mail-check" class="w-16 h-16 text-success mx-auto mb-4" />
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-            Check your inbox
-          </h3>
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Check your inbox</h3>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
             If an account with that email exists, we've sent password reset instructions.
           </p>
@@ -86,12 +84,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       </template>
 
       <template v-else>
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UFormField label="Email address" name="email" required>
             <UInput
               v-model="state.email"
@@ -103,14 +96,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
             />
           </UFormField>
 
-          <UButton
-            type="submit"
-            block
-            size="lg"
-            :loading="isLoading"
-          >
-            Send reset link
-          </UButton>
+          <UButton type="submit" block size="lg" :loading="isLoading"> Send reset link </UButton>
 
           <div class="text-center">
             <NuxtLink

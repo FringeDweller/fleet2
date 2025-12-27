@@ -30,7 +30,7 @@ const createTemplateSchema = z.object({
   isActive: z.boolean().default(true)
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

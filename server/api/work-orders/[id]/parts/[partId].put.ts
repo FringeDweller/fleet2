@@ -10,7 +10,7 @@ const updatePartSchema = z.object({
   notes: z.string().optional().nullable()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -79,8 +79,8 @@ export default defineEventHandler(async (event) => {
 
   // Handle quantity/cost updates - recalculate total
   const quantity = result.data.quantity ?? existing.quantity
-  const unitCost
-    = result.data.unitCost !== undefined
+  const unitCost =
+    result.data.unitCost !== undefined
       ? result.data.unitCost
       : existing.unitCost
         ? parseFloat(existing.unitCost)

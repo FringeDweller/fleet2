@@ -48,12 +48,7 @@ function onFileClick() {
 </script>
 
 <template>
-  <UForm
-    id="settings"
-    :schema="profileSchema"
-    :state="profile"
-    @submit="onSubmit"
-  >
+  <UForm id="settings" :schema="profileSchema" :state="profile" @submit="onSubmit">
     <UPageCard
       title="Profile"
       description="These informations will be displayed publicly."
@@ -116,7 +111,7 @@ function onFileClick() {
             class="hidden"
             accept=".jpg, .jpeg, .png, .gif"
             @change="onFileChange"
-          >
+          />
         </div>
       </UFormField>
       <USeparator />
@@ -127,12 +122,7 @@ function onFileClick() {
         class="flex max-sm:flex-col justify-between items-start gap-4"
         :ui="{ container: 'w-full' }"
       >
-        <UTextarea
-          v-model="profile.bio"
-          :rows="5"
-          autoresize
-          class="w-full"
-        />
+        <UTextarea v-model="profile.bio" :rows="5" autoresize class="w-full" />
       </UFormField>
     </UPageCard>
   </UForm>

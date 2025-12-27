@@ -16,8 +16,8 @@ useHead({
 })
 
 const title = 'Fleet - Asset Management System'
-const description
-  = 'A comprehensive enterprise platform for asset lifecycle management, maintenance operations, and fleet efficiency optimization.'
+const description =
+  'A comprehensive enterprise platform for asset lifecycle management, maintenance operations, and fleet efficiency optimization.'
 
 useSeoMeta({
   title,

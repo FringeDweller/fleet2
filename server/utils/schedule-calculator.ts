@@ -90,8 +90,8 @@ export function previewScheduleOccurrences(
     leadTimeDays: number
   },
   count: number = 10
-): Array<{ dueDate: Date, leadDate: Date }> {
-  const occurrences: Array<{ dueDate: Date, leadDate: Date }> = []
+): Array<{ dueDate: Date; leadDate: Date }> {
+  const occurrences: Array<{ dueDate: Date; leadDate: Date }> = []
   let currentDate = new Date(config.startDate)
 
   for (let i = 0; i < count; i++) {

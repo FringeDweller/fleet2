@@ -75,28 +75,16 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amo
   <UCard ref="cardRef" :ui="{ root: 'overflow-visible', body: '!px-0 !pt-0 !pb-3' }">
     <template #header>
       <div>
-        <p class="text-xs text-muted uppercase mb-1.5">
-          Revenue
-        </p>
+        <p class="text-xs text-muted uppercase mb-1.5">Revenue</p>
         <p class="text-3xl text-highlighted font-semibold">
           {{ formatNumber(total) }}
         </p>
       </div>
     </template>
 
-    <VisXYContainer
-      :data="data"
-      :padding="{ top: 40 }"
-      class="h-96"
-      :width="width"
-    >
+    <VisXYContainer :data="data" :padding="{ top: 40 }" class="h-96" :width="width">
       <VisLine :x="x" :y="y" color="var(--ui-primary)" />
-      <VisArea
-        :x="x"
-        :y="y"
-        color="var(--ui-primary)"
-        :opacity="0.1"
-      />
+      <VisArea :x="x" :y="y" color="var(--ui-primary)" :opacity="0.1" />
 
       <VisAxis type="x" :x="x" :tick-format="xTicks" />
 

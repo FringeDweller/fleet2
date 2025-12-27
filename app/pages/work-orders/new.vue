@@ -136,7 +136,7 @@ const templateOptions = computed(() => {
 // When template is selected, update estimated duration
 watch(
   () => state.templateId,
-  (templateId) => {
+  templateId => {
     if (templateId) {
       const template = templates.value?.find(t => t.id === templateId)
       if (template?.estimatedDuration) {
@@ -164,17 +164,10 @@ watch(
 
     <template #body>
       <div class="max-w-2xl">
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="space-y-6"
-          @submit="onSubmit"
-        >
+        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Work Order Details
-              </h3>
+              <h3 class="font-medium">Work Order Details</h3>
             </template>
 
             <div class="space-y-4">
@@ -222,9 +215,7 @@ watch(
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Assignment & Schedule
-              </h3>
+              <h3 class="font-medium">Assignment & Schedule</h3>
             </template>
 
             <div class="space-y-4">
@@ -267,9 +258,7 @@ watch(
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">
-                Additional Notes
-              </h3>
+              <h3 class="font-medium">Additional Notes</h3>
             </template>
 
             <UFormField label="Notes" name="notes">

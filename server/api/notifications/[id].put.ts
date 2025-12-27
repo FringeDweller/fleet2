@@ -6,7 +6,7 @@ const updateSchema = z.object({
   isRead: z.boolean()
 })
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

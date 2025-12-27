@@ -20,9 +20,9 @@ interface MaintenanceScheduleRow {
   intervalHours: number | null
   nextDueDate: string | null
   isActive: boolean
-  asset: { id: string, assetNumber: string, make: string | null, model: string | null } | null
-  category: { id: string, name: string } | null
-  template: { id: string, name: string } | null
+  asset: { id: string; assetNumber: string; make: string | null; model: string | null } | null
+  category: { id: string; name: string } | null
+  template: { id: string; name: string } | null
   createdAt: string
 }
 
@@ -176,18 +176,18 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        'modelValue': table.getIsSomePageRowsSelected()
+        modelValue: table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'ariaLabel': 'Select all'
+        ariaLabel: 'Select all'
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        'modelValue': row.getIsSelected(),
+        modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'ariaLabel': 'Select row'
+        ariaLabel: 'Select row'
       })
   },
   {
@@ -225,8 +225,8 @@ const columns: TableColumn<MaintenanceScheduleRow>[] = [
       let displayLabel: string
       if (scheduleType === 'time_based') {
         const intervalLabel = intervalTypeLabels[row.original.intervalType]
-        displayLabel
-          = row.original.intervalType === 'custom'
+        displayLabel =
+          row.original.intervalType === 'custom'
             ? `Every ${row.original.intervalValue} days`
             : intervalLabel
       } else {
