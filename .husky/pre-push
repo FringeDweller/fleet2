@@ -1,0 +1,59 @@
+#!/bin/sh
+
+echo "🚀 Running pre-push checks (this may take a minute)..."
+echo ""
+
+# Track if any check fails
+FAILED=0
+
+# 1. Run ESLint
+echo "📝 Running lint..."
+pnpm run lint
+if [ $? -ne 0 ]; then
+    echo "❌ Lint failed!"
+    FAILED=1
+else
+    echo "✅ Lint passed"
+fi
+echo ""
+
+# 2. Run TypeScript check
+echo "🔷 Running TypeScript check..."
+pnpm run typecheck
+if [ $? -ne 0 ]; then
+    echo "❌ TypeScript check failed!"
+    FAILED=1
+else
+    echo "✅ TypeScript check passed"
+fi
+echo ""
+
+# 3. Run unit tests
+echo "🧪 Running unit tests..."
+pnpm run test
+if [ $? -ne 0 ]; then
+    echo "❌ Unit tests failed!"
+    FAILED=1
+else
+    echo "✅ Unit tests passed"
+fi
+echo ""
+
+# 4. Run build
+echo "🏗️  Running build..."
+pnpm run build
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed!"
+    FAILED=1
+else
+    echo "✅ Build passed"
+fi
+echo ""
+
+# Final result
+if [ $FAILED -ne 0 ]; then
+    echo "❌ Pre-push checks failed! Please fix the issues before pushing."
+    exit 1
+fi
+
+echo "🎉 All pre-push checks passed! Pushing..."
