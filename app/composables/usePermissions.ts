@@ -20,9 +20,19 @@ export type Permission =
   | 'maintenance:read'
   | 'maintenance:write'
   | 'maintenance:delete'
-  | '*'
+  | 'organisations:read'
+  | 'organisations:write'
+  | 'organisations:delete'
+  | '*' // All permissions within organisation
+  | '**' // Super admin: cross-tenant access
 
-export type RoleName = 'admin' | 'fleet_manager' | 'supervisor' | 'technician' | 'operator'
+export type RoleName =
+  | 'super_admin'
+  | 'admin'
+  | 'fleet_manager'
+  | 'supervisor'
+  | 'technician'
+  | 'operator'
 
 const _usePermissions = () => {
   const { user } = useUserSession()
@@ -36,11 +46,18 @@ const _usePermissions = () => {
   })
 
   /**
+   * Check if user has cross-tenant (super admin) access
+   */
+  const hasCrossTenantAccess = (): boolean => {
+    return permissions.value.includes('**')
+  }
+
+  /**
    * Check if user has a specific permission
    */
   const hasPermission = (required: Permission): boolean => {
     const perms = permissions.value
-    if (perms.includes('*')) return true
+    if (perms.includes('**') || perms.includes('*')) return true
     return perms.includes(required)
   }
 
@@ -49,7 +66,7 @@ const _usePermissions = () => {
    */
   const hasAnyPermission = (required: Permission[]): boolean => {
     const perms = permissions.value
-    if (perms.includes('*')) return true
+    if (perms.includes('**') || perms.includes('*')) return true
     return required.some((p) => perms.includes(p))
   }
 
@@ -58,15 +75,22 @@ const _usePermissions = () => {
    */
   const hasAllPermissions = (required: Permission[]): boolean => {
     const perms = permissions.value
-    if (perms.includes('*')) return true
+    if (perms.includes('**') || perms.includes('*')) return true
     return required.every((p) => perms.includes(p))
   }
 
   /**
-   * Check if user has admin role
+   * Check if user has super admin role (cross-tenant access)
+   */
+  const isSuperAdmin = computed(() => {
+    return roleName.value === 'super_admin' || permissions.value.includes('**')
+  })
+
+  /**
+   * Check if user has admin role (or super admin)
    */
   const isAdmin = computed(() => {
-    return roleName.value === 'admin' || permissions.value.includes('*')
+    return isSuperAdmin.value || roleName.value === 'admin' || permissions.value.includes('*')
   })
 
   /**
@@ -137,6 +161,7 @@ const _usePermissions = () => {
     roleName,
 
     // Check functions (non-reactive)
+    hasCrossTenantAccess,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
@@ -147,6 +172,7 @@ const _usePermissions = () => {
     canAll,
 
     // Role checks
+    isSuperAdmin,
     isAdmin,
     isManager,
     isSupervisor,

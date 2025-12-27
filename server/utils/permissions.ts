@@ -23,7 +23,11 @@ export type Permission =
   | 'maintenance:read'
   | 'maintenance:write'
   | 'maintenance:delete'
-  | '*'
+  | 'organisations:read'
+  | 'organisations:write'
+  | 'organisations:delete'
+  | '*' // All permissions within organisation
+  | '**' // Super admin: cross-tenant access + all permissions
 
 export interface UserWithPermissions {
   id: string
@@ -44,10 +48,21 @@ export interface UserWithPermissions {
 }
 
 /**
+ * Check if user has super admin (cross-tenant) permission
+ */
+export function hasCrossTenantAccess(permissions: string[]): boolean {
+  return permissions.includes('**')
+}
+
+/**
  * Check if a user has a specific permission
  */
 export function hasPermission(permissions: string[], required: Permission): boolean {
-  // Admin with wildcard has all permissions
+  // Super admin has all permissions including cross-tenant
+  if (permissions.includes('**')) {
+    return true
+  }
+  // Admin with wildcard has all permissions within organisation
   if (permissions.includes('*')) {
     return true
   }
@@ -58,7 +73,7 @@ export function hasPermission(permissions: string[], required: Permission): bool
  * Check if a user has any of the specified permissions
  */
 export function hasAnyPermission(permissions: string[], required: Permission[]): boolean {
-  if (permissions.includes('*')) {
+  if (permissions.includes('**') || permissions.includes('*')) {
     return true
   }
   return required.some((p) => permissions.includes(p))
@@ -68,7 +83,7 @@ export function hasAnyPermission(permissions: string[], required: Permission[]):
  * Check if a user has all of the specified permissions
  */
 export function hasAllPermissions(permissions: string[], required: Permission[]): boolean {
-  if (permissions.includes('*')) {
+  if (permissions.includes('**') || permissions.includes('*')) {
     return true
   }
   return required.every((p) => permissions.includes(p))
@@ -188,10 +203,17 @@ export async function requireAllPermissions(
 }
 
 /**
- * Check if user has admin role
+ * Check if user has super admin role (cross-tenant access)
+ */
+export function isSuperAdmin(user: UserWithPermissions): boolean {
+  return user.roleName === ROLES.SUPER_ADMIN || user.permissions.includes('**')
+}
+
+/**
+ * Check if user has admin role (or higher)
  */
 export function isAdmin(user: UserWithPermissions): boolean {
-  return user.roleName === ROLES.ADMIN || user.permissions.includes('*')
+  return isSuperAdmin(user) || user.roleName === ROLES.ADMIN || user.permissions.includes('*')
 }
 
 /**
@@ -206,6 +228,24 @@ export function isManager(user: UserWithPermissions): boolean {
  */
 export function isSupervisor(user: UserWithPermissions): boolean {
   return isManager(user) || user.roleName === ROLES.SUPERVISOR
+}
+
+/**
+ * Require super admin access - throws 403 if not super admin
+ */
+export async function requireSuperAdmin(event: H3Event): Promise<UserWithPermissions> {
+  const user = await requireAuth(event)
+
+  if (!isSuperAdmin(user)) {
+    await logAccessDenial(event, user, 'super_admin')
+
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden: Super admin access required',
+    })
+  }
+
+  return user
 }
 
 /**

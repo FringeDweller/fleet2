@@ -60,6 +60,6 @@ export type SafeUser = Omit<
 
 // SafeUser with role information for authenticated sessions
 export type SafeUserWithRole = SafeUser & {
-  roleName: 'admin' | 'fleet_manager' | 'supervisor' | 'technician' | 'operator'
+  roleName: 'super_admin' | 'admin' | 'fleet_manager' | 'supervisor' | 'technician' | 'operator'
   permissions: string[]
 }

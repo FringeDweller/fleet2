@@ -1,7 +1,8 @@
 import { jsonb, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 
-// Predefined roles: Admin, Fleet Manager, Supervisor, Technician, Operator
+// Predefined roles: Super Admin, Admin, Fleet Manager, Supervisor, Technician, Operator
 export const ROLES = {
+  SUPER_ADMIN: 'super_admin', // Cross-tenant access
   ADMIN: 'admin',
   FLEET_MANAGER: 'fleet_manager',
   SUPERVISOR: 'supervisor',
@@ -26,7 +27,8 @@ export type NewRole = typeof roles.$inferInsert
 
 // Default permissions for each role
 export const DEFAULT_ROLE_PERMISSIONS: Record<RoleName, string[]> = {
-  [ROLES.ADMIN]: ['*'], // All permissions
+  [ROLES.SUPER_ADMIN]: ['**'], // Cross-tenant access + all permissions
+  [ROLES.ADMIN]: ['*'], // All permissions within organisation
   [ROLES.FLEET_MANAGER]: [
     'assets:read',
     'assets:write',

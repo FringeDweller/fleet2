@@ -14,6 +14,11 @@ const links = [
       exact: true,
     },
     {
+      label: 'Organisation',
+      icon: 'i-lucide-building-2',
+      to: '/settings/organisation',
+    },
+    {
       label: 'Members',
       icon: 'i-lucide-users',
       to: '/settings/members',
