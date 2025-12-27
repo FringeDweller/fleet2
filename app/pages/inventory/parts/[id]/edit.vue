@@ -65,7 +65,7 @@ const state = reactive<Partial<Schema>>({})
 
 watch(
   part,
-  newPart => {
+  (newPart) => {
     if (newPart) {
       state.sku = newPart.sku
       state.name = newPart.name
@@ -156,7 +156,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">Part not found</h3>
+        <h3 class="text-lg font-medium mb-2">
+          Part not found
+        </h3>
         <p class="text-muted mb-4">
           The part you're looking for doesn't exist or has been removed.
         </p>
@@ -164,10 +166,17 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       </div>
 
       <div v-else class="max-w-2xl">
-        <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
+        <UForm
+          :schema="schema"
+          :state="state"
+          class="space-y-6"
+          @submit="onSubmit"
+        >
           <UCard>
             <template #header>
-              <h3 class="font-medium">Basic Information</h3>
+              <h3 class="font-medium">
+                Basic Information
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -220,7 +229,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Stock Management</h3>
+              <h3 class="font-medium">
+                Stock Management
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -283,7 +294,9 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Supplier Information</h3>
+              <h3 class="font-medium">
+                Supplier Information
+              </h3>
             </template>
 
             <div class="space-y-4">
@@ -304,7 +317,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
               variant="subtle"
               @click="router.push(`/inventory/parts/${route.params.id}`)"
             />
-            <UButton label="Save Changes" color="primary" type="submit" :loading="loading" />
+            <UButton
+              label="Save Changes"
+              color="primary"
+              type="submit"
+              :loading="loading"
+            />
           </div>
         </UForm>
       </div>

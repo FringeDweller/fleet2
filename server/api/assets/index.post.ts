@@ -28,7 +28,7 @@ async function generateAssetNumber(organisationId: string): Promise<string> {
   return `FLT-${nextNumber.toString().padStart(4, '0')}`
 }
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -49,8 +49,8 @@ export default defineEventHandler(async event => {
     })
   }
 
-  const assetNumber =
-    result.data.assetNumber || (await generateAssetNumber(session.user.organisationId))
+  const assetNumber
+    = result.data.assetNumber || (await generateAssetNumber(session.user.organisationId))
 
   const [asset] = await db
     .insert(schema.assets)

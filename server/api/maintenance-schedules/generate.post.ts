@@ -24,7 +24,7 @@ const generateSchema = z
  * Returns:
  *   { results: GenerationResult[] }
  */
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

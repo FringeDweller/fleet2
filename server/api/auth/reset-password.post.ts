@@ -11,7 +11,7 @@ const resetPasswordSchema = z.object({
     .regex(/[0-9]/, 'Password must contain at least one number')
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   // Validate input

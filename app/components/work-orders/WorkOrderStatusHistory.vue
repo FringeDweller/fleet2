@@ -49,7 +49,9 @@ function getStatusLabel(status: string) {
 <template>
   <UCard>
     <template #header>
-      <h3 class="font-medium">Status History</h3>
+      <h3 class="font-medium">
+        Status History
+      </h3>
     </template>
 
     <div v-if="history.length === 0" class="text-center py-8 text-muted">

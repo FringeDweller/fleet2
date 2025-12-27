@@ -49,7 +49,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     }
   } catch (error: unknown) {
     const err = error as {
-      data?: { statusMessage?: string; data?: { remainingAttempts?: number } }
+      data?: { statusMessage?: string, data?: { remainingAttempts?: number } }
     }
     const message = err.data?.statusMessage || 'Login failed'
     const remainingAttempts = err.data?.data?.remainingAttempts
@@ -83,7 +83,12 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     </div>
 
     <UCard class="mt-8">
-      <UForm :schema="schema" :state="state" class="space-y-6" @submit="onSubmit">
+      <UForm
+        :schema="schema"
+        :state="state"
+        class="space-y-6"
+        @submit="onSubmit"
+      >
         <UFormField label="Email address" name="email" required>
           <UInput
             v-model="state.email"
@@ -128,7 +133,14 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
           </NuxtLink>
         </div>
 
-        <UButton type="submit" block size="lg" :loading="isLoading"> Sign in </UButton>
+        <UButton
+          type="submit"
+          block
+          size="lg"
+          :loading="isLoading"
+        >
+          Sign in
+        </UButton>
       </UForm>
     </UCard>
   </div>

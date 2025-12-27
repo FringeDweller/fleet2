@@ -17,8 +17,8 @@ interface PartUsageHistory {
   notes: string | null
   reference: string | null
   createdAt: string
-  user: { id: string; firstName: string; lastName: string } | null
-  workOrder: { id: string; workOrderNumber: string; title: string } | null
+  user: { id: string, firstName: string, lastName: string } | null
+  workOrder: { id: string, workOrderNumber: string, title: string } | null
 }
 
 interface Part {
@@ -36,7 +36,7 @@ interface Part {
   supplierPartNumber: string | null
   location: string | null
   isActive: boolean
-  category: { id: string; name: string } | null
+  category: { id: string, name: string } | null
   usageHistory: PartUsageHistory[]
   createdAt: string
   updatedAt: string
@@ -203,7 +203,9 @@ const formatDate = (date: string) => {
 
       <div v-else-if="error" class="text-center py-12">
         <UIcon name="i-lucide-alert-circle" class="w-12 h-12 text-error mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">Part not found</h3>
+        <h3 class="text-lg font-medium mb-2">
+          Part not found
+        </h3>
         <p class="text-muted mb-4">
           The part you're looking for doesn't exist or has been removed.
         </p>
@@ -218,8 +220,12 @@ const formatDate = (date: string) => {
               <h1 class="text-2xl font-bold">
                 {{ part.name }}
               </h1>
-              <UBadge v-if="isLowStock()" color="error" variant="subtle"> Low Stock </UBadge>
-              <UBadge v-if="!part.isActive" color="neutral" variant="subtle"> Inactive </UBadge>
+              <UBadge v-if="isLowStock()" color="error" variant="subtle">
+                Low Stock
+              </UBadge>
+              <UBadge v-if="!part.isActive" color="neutral" variant="subtle">
+                Inactive
+              </UBadge>
             </div>
             <p class="text-muted font-mono">
               {{ part.sku }}
@@ -232,7 +238,9 @@ const formatDate = (date: string) => {
             <p class="text-3xl font-bold">
               {{ parseFloat(part.quantityInStock).toLocaleString() }}
             </p>
-            <p class="text-muted">{{ part.unit }} in stock</p>
+            <p class="text-muted">
+              {{ part.unit }} in stock
+            </p>
           </div>
         </div>
 
@@ -253,23 +261,31 @@ const formatDate = (date: string) => {
         >
           <UCard>
             <template #header>
-              <h3 class="font-medium">Stock Information</h3>
+              <h3 class="font-medium">
+                Stock Information
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">Current Stock</dt>
+                <dt class="text-sm text-muted">
+                  Current Stock
+                </dt>
                 <dd class="font-medium">
                   {{ parseFloat(part.quantityInStock).toLocaleString() }} {{ part.unit }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Minimum Stock</dt>
+                <dt class="text-sm text-muted">
+                  Minimum Stock
+                </dt>
                 <dd class="font-medium">
                   {{ part.minimumStock ? parseFloat(part.minimumStock).toLocaleString() : '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Reorder Threshold</dt>
+                <dt class="text-sm text-muted">
+                  Reorder Threshold
+                </dt>
                 <dd class="font-medium">
                   {{
                     part.reorderThreshold ? parseFloat(part.reorderThreshold).toLocaleString() : '-'
@@ -277,7 +293,9 @@ const formatDate = (date: string) => {
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Reorder Quantity</dt>
+                <dt class="text-sm text-muted">
+                  Reorder Quantity
+                </dt>
                 <dd class="font-medium">
                   {{
                     part.reorderQuantity ? parseFloat(part.reorderQuantity).toLocaleString() : '-'
@@ -285,7 +303,9 @@ const formatDate = (date: string) => {
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Storage Location</dt>
+                <dt class="text-sm text-muted">
+                  Storage Location
+                </dt>
                 <dd class="font-medium">
                   {{ part.location || '-' }}
                 </dd>
@@ -295,11 +315,15 @@ const formatDate = (date: string) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Pricing</h3>
+              <h3 class="font-medium">
+                Pricing
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">Unit Cost</dt>
+                <dt class="text-sm text-muted">
+                  Unit Cost
+                </dt>
                 <dd class="font-medium">
                   {{
                     part.unitCost
@@ -309,7 +333,9 @@ const formatDate = (date: string) => {
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Total Value</dt>
+                <dt class="text-sm text-muted">
+                  Total Value
+                </dt>
                 <dd class="font-medium">
                   {{
                     part.unitCost
@@ -323,17 +349,23 @@ const formatDate = (date: string) => {
 
           <UCard>
             <template #header>
-              <h3 class="font-medium">Supplier</h3>
+              <h3 class="font-medium">
+                Supplier
+              </h3>
             </template>
             <dl class="space-y-3">
               <div>
-                <dt class="text-sm text-muted">Supplier Name</dt>
+                <dt class="text-sm text-muted">
+                  Supplier Name
+                </dt>
                 <dd class="font-medium">
                   {{ part.supplier || '-' }}
                 </dd>
               </div>
               <div>
-                <dt class="text-sm text-muted">Supplier Part Number</dt>
+                <dt class="text-sm text-muted">
+                  Supplier Part Number
+                </dt>
                 <dd class="font-medium font-mono">
                   {{ part.supplierPartNumber || '-' }}
                 </dd>
@@ -345,7 +377,9 @@ const formatDate = (date: string) => {
         <!-- Description -->
         <UCard v-if="activeTab === 'details' && part.description">
           <template #header>
-            <h3 class="font-medium">Description</h3>
+            <h3 class="font-medium">
+              Description
+            </h3>
           </template>
           <p class="text-muted whitespace-pre-wrap">
             {{ part.description }}
@@ -355,17 +389,23 @@ const formatDate = (date: string) => {
         <!-- Record Info -->
         <UCard v-if="activeTab === 'details'">
           <template #header>
-            <h3 class="font-medium">Record Information</h3>
+            <h3 class="font-medium">
+              Record Information
+            </h3>
           </template>
           <dl class="grid grid-cols-2 gap-4">
             <div>
-              <dt class="text-sm text-muted">Created</dt>
+              <dt class="text-sm text-muted">
+                Created
+              </dt>
               <dd class="font-medium">
                 {{ formatDate(part.createdAt) }}
               </dd>
             </div>
             <div>
-              <dt class="text-sm text-muted">Last Updated</dt>
+              <dt class="text-sm text-muted">
+                Last Updated
+              </dt>
               <dd class="font-medium">
                 {{ formatDate(part.updatedAt) }}
               </dd>
@@ -377,7 +417,9 @@ const formatDate = (date: string) => {
         <div v-if="activeTab === 'adjust'" class="max-w-lg">
           <UCard>
             <template #header>
-              <h3 class="font-medium">Adjust Stock Level</h3>
+              <h3 class="font-medium">
+                Adjust Stock Level
+              </h3>
             </template>
 
             <UForm
@@ -446,7 +488,9 @@ const formatDate = (date: string) => {
         <div v-if="activeTab === 'history'">
           <UCard>
             <template #header>
-              <h3 class="font-medium">Usage History</h3>
+              <h3 class="font-medium">
+                Usage History
+              </h3>
             </template>
 
             <div v-if="part.usageHistory.length === 0" class="text-center py-8 text-muted">
@@ -498,7 +542,9 @@ const formatDate = (date: string) => {
                   </div>
                   <div class="text-right text-sm text-muted">
                     <p>{{ formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }) }}</p>
-                    <p v-if="entry.user">{{ entry.user.firstName }} {{ entry.user.lastName }}</p>
+                    <p v-if="entry.user">
+                      {{ entry.user.firstName }} {{ entry.user.lastName }}
+                    </p>
                   </div>
                 </div>
               </div>

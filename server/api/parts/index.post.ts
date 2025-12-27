@@ -20,7 +20,7 @@ const createPartSchema = z.object({
   location: z.string().max(100).optional()
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

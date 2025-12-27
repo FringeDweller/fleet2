@@ -17,7 +17,7 @@ const updateAssetSchema = z.object({
   categoryId: z.string().uuid().optional().nullable()
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

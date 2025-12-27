@@ -31,7 +31,7 @@ const updateTemplateSchema = z.object({
   isActive: z.boolean().optional()
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -77,12 +77,12 @@ export default defineEventHandler(async event => {
   }
 
   // Check if checklist items changed to increment version
-  const checklistChanged =
-    result.data.checklistItems !== undefined &&
-    JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
-  const partsChanged =
-    result.data.requiredParts !== undefined &&
-    JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
+  const checklistChanged
+    = result.data.checklistItems !== undefined
+      && JSON.stringify(result.data.checklistItems) !== JSON.stringify(existing.checklistItems)
+  const partsChanged
+    = result.data.requiredParts !== undefined
+      && JSON.stringify(result.data.requiredParts) !== JSON.stringify(existing.requiredParts)
 
   const updateData: Record<string, unknown> = {
     updatedAt: new Date()

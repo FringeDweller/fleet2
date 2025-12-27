@@ -87,8 +87,8 @@ const newPart = ref({
 function flattenCategories(
   nodes: CategoryNode[],
   level = 0
-): Array<{ id: string; name: string; level: number }> {
-  const result: Array<{ id: string; name: string; level: number }> = []
+): Array<{ id: string, name: string, level: number }> {
+  const result: Array<{ id: string, name: string, level: number }> = []
   for (const node of nodes) {
     result.push({ id: node.id, name: node.name, level })
     if (node.children.length > 0) {
@@ -175,8 +175,8 @@ function addSchedule() {
 }
 
 function removeSchedule(id: string) {
-  currentCategory.value.defaultMaintenanceSchedules =
-    currentCategory.value.defaultMaintenanceSchedules.filter(s => s.id !== id)
+  currentCategory.value.defaultMaintenanceSchedules
+    = currentCategory.value.defaultMaintenanceSchedules.filter(s => s.id !== id)
 }
 
 function addPart() {
@@ -240,8 +240,8 @@ async function saveCategory() {
     toast.add({
       title: 'Error',
       description:
-        err.data?.statusMessage ||
-        (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
+        err.data?.statusMessage
+        || (isEditing.value ? 'Failed to update category.' : 'Failed to create category.'),
       color: 'error'
     })
   } finally {
@@ -359,7 +359,9 @@ function getRowActions(category: CategoryNode) {
 
       <div v-else-if="categoryTree.length === 0" class="text-center py-12 text-muted">
         <UIcon name="i-lucide-folder-tree" class="w-12 h-12 mx-auto mb-4 opacity-50" />
-        <p class="mb-2">No asset categories found</p>
+        <p class="mb-2">
+          No asset categories found
+        </p>
         <UButton label="Create your first category" variant="link" @click="openCreateModal()" />
       </div>
 
@@ -385,7 +387,12 @@ function getRowActions(category: CategoryNode) {
               <h3 class="font-medium">
                 {{ isEditing ? 'Edit Category' : 'Create Category' }}
               </h3>
-              <UButton icon="i-lucide-x" variant="ghost" size="xs" @click="modalOpen = false" />
+              <UButton
+                icon="i-lucide-x"
+                variant="ghost"
+                size="xs"
+                @click="modalOpen = false"
+              />
             </div>
           </template>
 
@@ -422,7 +429,9 @@ function getRowActions(category: CategoryNode) {
 
             <!-- Default Maintenance Schedules -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">Default Maintenance Schedules</h4>
+              <h4 class="font-medium mb-4">
+                Default Maintenance Schedules
+              </h4>
               <p class="text-sm text-muted mb-4">
                 Define maintenance schedules that will be suggested for assets in this category.
               </p>
@@ -444,21 +453,11 @@ function getRowActions(category: CategoryNode) {
                       {{ schedule.description }}
                     </p>
                     <div class="flex items-center gap-4 text-xs text-muted mt-1 flex-wrap">
-                      <span v-if="schedule.intervalDays"
-                        >Every {{ schedule.intervalDays }} days</span
-                      >
-                      <span v-if="schedule.intervalHours"
-                        >Every {{ schedule.intervalHours }} hours</span
-                      >
-                      <span v-if="schedule.intervalMileage"
-                        >Every {{ schedule.intervalMileage }} km</span
-                      >
-                      <span v-if="schedule.estimatedDuration"
-                        >~{{ schedule.estimatedDuration }} min</span
-                      >
-                      <span v-if="schedule.checklistItems?.length"
-                        >{{ schedule.checklistItems.length }} checklist items</span
-                      >
+                      <span v-if="schedule.intervalDays">Every {{ schedule.intervalDays }} days</span>
+                      <span v-if="schedule.intervalHours">Every {{ schedule.intervalHours }} hours</span>
+                      <span v-if="schedule.intervalMileage">Every {{ schedule.intervalMileage }} km</span>
+                      <span v-if="schedule.estimatedDuration">~{{ schedule.estimatedDuration }} min</span>
+                      <span v-if="schedule.checklistItems?.length">{{ schedule.checklistItems.length }} checklist items</span>
                     </div>
                   </div>
                   <UButton
@@ -536,8 +535,12 @@ function getRowActions(category: CategoryNode) {
 
             <!-- Default Parts -->
             <div class="border-t border-default pt-6">
-              <h4 class="font-medium mb-4">Default Parts</h4>
-              <p class="text-sm text-muted mb-4">Common parts used for assets in this category.</p>
+              <h4 class="font-medium mb-4">
+                Default Parts
+              </h4>
+              <p class="text-sm text-muted mb-4">
+                Common parts used for assets in this category.
+              </p>
 
               <div v-if="currentCategory.defaultParts.length > 0" class="space-y-2 mb-4">
                 <div

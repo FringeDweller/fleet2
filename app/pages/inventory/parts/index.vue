@@ -22,7 +22,7 @@ interface PartRow {
   supplier: string | null
   location: string | null
   isActive: boolean
-  category: { id: string; name: string } | null
+  category: { id: string, name: string } | null
   createdAt: string
   updatedAt: string
 }
@@ -73,7 +73,7 @@ const { data, status, refresh } = await useFetch<PartsResponse>('/api/parts', {
   query: queryParams
 })
 
-const { data: categories } = await useFetch<{ id: string; name: string }[]>(
+const { data: categories } = await useFetch<{ id: string, name: string }[]>(
   '/api/part-categories',
   {
     lazy: true
@@ -163,18 +163,18 @@ const columns: TableColumn<PartRow>[] = [
     id: 'select',
     header: ({ table }) =>
       h(UCheckbox, {
-        modelValue: table.getIsSomePageRowsSelected()
+        'modelValue': table.getIsSomePageRowsSelected()
           ? 'indeterminate'
           : table.getIsAllPageRowsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        ariaLabel: 'Select all'
+        'ariaLabel': 'Select all'
       }),
     cell: ({ row }) =>
       h(UCheckbox, {
-        modelValue: row.getIsSelected(),
+        'modelValue': row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        ariaLabel: 'Select row'
+        'ariaLabel': 'Select row'
       })
   },
   {

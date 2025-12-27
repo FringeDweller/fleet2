@@ -27,7 +27,7 @@ async function generateWorkOrderNumber(organisationId: string): Promise<string> 
   return `WO-${nextNumber.toString().padStart(4, '0')}`
 }
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {

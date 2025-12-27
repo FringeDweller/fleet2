@@ -9,7 +9,7 @@ const adjustStockSchema = z.object({
   reference: z.string().max(200).optional()
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
 
   if (!session?.user) {
@@ -64,7 +64,7 @@ export default defineEventHandler(async event => {
   }
 
   // Update part quantity and record history in a transaction
-  await db.transaction(async tx => {
+  await db.transaction(async (tx) => {
     // Update part stock
     await tx
       .update(schema.parts)

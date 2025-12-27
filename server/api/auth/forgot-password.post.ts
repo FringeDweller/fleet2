@@ -6,7 +6,7 @@ const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email format')
 })
 
-export default defineEventHandler(async event => {
+export default defineEventHandler(async (event) => {
   const body = await readBody(event)
 
   // Validate input

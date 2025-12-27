@@ -42,8 +42,8 @@ type Schema = z.output<typeof schema>
 const state = reactive<Partial<Schema>>({})
 
 const parentOptions = computed(() => {
-  const options =
-    categories.value
+  const options
+    = categories.value
       ?.filter(c => c.id !== editingCategory.value?.id)
       .map(c => ({ label: c.name, value: c.id })) || []
   return [{ label: 'None (Top-level)', value: '' }, ...options]
@@ -183,7 +183,12 @@ const flattenedCategories = computed<CategoryNode[]>(() => {
         </template>
 
         <template #right>
-          <UButton label="New Category" icon="i-lucide-plus" color="primary" @click="openCreate" />
+          <UButton
+            label="New Category"
+            icon="i-lucide-plus"
+            color="primary"
+            @click="openCreate"
+          />
         </template>
       </UDashboardNavbar>
     </template>
@@ -195,8 +200,12 @@ const flattenedCategories = computed<CategoryNode[]>(() => {
 
       <div v-else-if="flattenedCategories.length === 0" class="text-center py-12">
         <UIcon name="i-lucide-folder-tree" class="w-12 h-12 text-muted mx-auto mb-4" />
-        <h3 class="text-lg font-medium mb-2">No categories yet</h3>
-        <p class="text-muted mb-4">Create categories to organize your parts inventory.</p>
+        <h3 class="text-lg font-medium mb-2">
+          No categories yet
+        </h3>
+        <p class="text-muted mb-4">
+          Create categories to organize your parts inventory.
+        </p>
         <UButton label="Create First Category" icon="i-lucide-plus" @click="openCreate" />
       </div>
 
@@ -269,7 +278,12 @@ const flattenedCategories = computed<CategoryNode[]>(() => {
               </div>
             </template>
 
-            <UForm :schema="schema" :state="state" class="space-y-4" @submit="onSubmit">
+            <UForm
+              :schema="schema"
+              :state="state"
+              class="space-y-4"
+              @submit="onSubmit"
+            >
               <UFormField label="Name" name="name" required>
                 <UInput v-model="state.name" placeholder="Filters" class="w-full" />
               </UFormField>
