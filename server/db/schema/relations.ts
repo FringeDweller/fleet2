@@ -14,6 +14,7 @@ import { inventoryTransfers } from './inventory-transfers'
 import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
+import { operatorCertifications } from './operator-certifications'
 import { operatorSessions } from './operator-sessions'
 import { organisations } from './organisations'
 import { partCategories } from './part-categories'
@@ -52,6 +53,7 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   parts: many(parts),
   defects: many(defects),
   approvals: many(workOrderApprovals),
+  operatorCertifications: many(operatorCertifications),
 }))
 
 // Work Order Approvals Relations
@@ -484,6 +486,18 @@ export const locationRecordsRelations = relations(locationRecords, ({ one }) => 
   }),
 }))
 
+// Operator Certifications Relations
+export const operatorCertificationsRelations = relations(operatorCertifications, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [operatorCertifications.organisationId],
+    references: [organisations.id],
+  }),
+  operator: one(users, {
+    fields: [operatorCertifications.operatorId],
+    references: [users.id],
+  }),
+}))
+
 // Users Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   organisation: one(organisations, {
@@ -497,6 +511,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   workOrders: many(workOrders),
   notifications: many(notifications),
   sessions: many(sessions),
+  certifications: many(operatorCertifications),
 }))
 
 // Roles Relations

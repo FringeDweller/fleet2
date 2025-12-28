@@ -1,5 +1,10 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import {
+  type CertificationWarning,
+  getOrganisationCertificationEnforcement,
+  validateOperatorCertifications,
+} from '../../utils/certification-validator'
 import { db, schema } from '../../utils/db'
 import { requireAuth } from '../../utils/permissions'
 
@@ -47,6 +52,35 @@ export default defineEventHandler(async (event) => {
       statusCode: 404,
       statusMessage: 'Asset not found',
     })
+  }
+
+  // Validate operator certifications (US-8.3)
+  const certificationResult = await validateOperatorCertifications(
+    user.id,
+    data.assetId,
+    user.organisationId,
+  )
+
+  let certificationWarnings: CertificationWarning[] | undefined
+
+  if (!certificationResult.valid) {
+    // Get organisation's enforcement mode
+    const enforcementMode = await getOrganisationCertificationEnforcement(user.organisationId)
+
+    if (enforcementMode === 'block') {
+      // Block log-on with certification details
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Certification requirements not met',
+        data: {
+          certificationIssues: certificationResult.warnings,
+          message: 'You cannot operate this asset due to missing or expired certifications.',
+        },
+      })
+    }
+
+    // Warn mode: proceed but track warnings to include in response
+    certificationWarnings = certificationResult.warnings
   }
 
   // Check if asset already has an active session
@@ -197,8 +231,20 @@ export default defineEventHandler(async (event) => {
     },
   })
 
-  return {
+  // Build response with optional certification warnings
+  const response: {
+    session: typeof session
+    message: string
+    certificationWarnings?: CertificationWarning[]
+  } = {
     session,
     message: `Successfully logged on to asset ${asset.assetNumber}`,
   }
+
+  if (certificationWarnings && certificationWarnings.length > 0) {
+    response.certificationWarnings = certificationWarnings
+    response.message = `Logged on to asset ${asset.assetNumber} with certification warnings`
+  }
+
+  return response
 })

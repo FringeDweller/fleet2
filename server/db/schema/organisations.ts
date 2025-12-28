@@ -2,12 +2,15 @@ import {
   boolean,
   decimal,
   integer,
+  pgEnum,
   pgTable,
   text,
   timestamp,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core'
+
+export const certificationEnforcementEnum = pgEnum('certification_enforcement', ['block', 'warn'])
 
 export const organisations = pgTable('organisations', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -33,6 +36,10 @@ export const organisations = pgTable('organisations', {
   locationTrackingEnabled: boolean('location_tracking_enabled').default(true).notNull(),
   // Interval in minutes (1-60, default 5 minutes)
   locationTrackingInterval: integer('location_tracking_interval').default(5).notNull(),
+  // Certification enforcement mode: 'block' prevents log-on, 'warn' allows with warning
+  certificationEnforcement: certificationEnforcementEnum('certification_enforcement')
+    .default('warn')
+    .notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

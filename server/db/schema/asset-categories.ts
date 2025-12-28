@@ -21,6 +21,11 @@ export interface DefaultPart {
   notes?: string
 }
 
+export interface RequiredCertification {
+  certificationName: string
+  isRequired: boolean
+}
+
 export const assetCategories = pgTable(
   'asset_categories',
   {
@@ -35,6 +40,9 @@ export const assetCategories = pgTable(
       .$type<CategoryMaintenanceTemplate[]>()
       .default([]),
     defaultParts: jsonb('default_parts').$type<DefaultPart[]>().default([]),
+    requiredCertifications: jsonb('required_certifications')
+      .$type<RequiredCertification[]>()
+      .default([]),
     isActive: boolean('is_active').default(true).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
