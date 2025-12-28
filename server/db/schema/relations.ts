@@ -7,11 +7,14 @@ import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
 import { defects } from './defects'
+import { fuelTransactions } from './fuel-transactions'
 import { inventoryCountItems } from './inventory-count-items'
 import { inventoryCountSessions } from './inventory-count-sessions'
 import { inventoryTransfers } from './inventory-transfers'
+import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
+import { operatorSessions } from './operator-sessions'
 import { organisations } from './organisations'
 import { partCategories } from './part-categories'
 import { partLocationQuantities } from './part-location-quantities'
@@ -26,6 +29,7 @@ import { taskOverrides } from './task-overrides'
 import { taskTemplateParts } from './task-template-parts'
 import { taskTemplates } from './task-templates'
 import { users } from './users'
+import { workOrderApprovals } from './work-order-approvals'
 import { workOrderChecklistItems } from './work-order-checklist-items'
 import { workOrderParts } from './work-order-parts'
 import { workOrderPhotos } from './work-order-photos'
@@ -47,185 +51,34 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   partCategories: many(partCategories),
   parts: many(parts),
   defects: many(defects),
-  storageLocations: many(storageLocations),
-  partLocationQuantities: many(partLocationQuantities),
-  inventoryTransfers: many(inventoryTransfers),
+  approvals: many(workOrderApprovals),
 }))
 
-export const rolesRelations = relations(roles, ({ many }) => ({
-  users: many(users),
-}))
-
-export const usersRelations = relations(users, ({ one, many }) => ({
+// Work Order Approvals Relations
+export const workOrderApprovalsRelations = relations(workOrderApprovals, ({ one }) => ({
   organisation: one(organisations, {
-    fields: [users.organisationId],
+    fields: [workOrderApprovals.organisationId],
     references: [organisations.id],
   }),
-  role: one(roles, {
-    fields: [users.roleId],
-    references: [roles.id],
+  workOrder: one(workOrders, {
+    fields: [workOrderApprovals.workOrderId],
+    references: [workOrders.id],
   }),
-  sessions: many(sessions),
-  auditLogs: many(auditLog),
-  taskGroups: many(taskGroups),
-  assignedWorkOrders: many(workOrders, { relationName: 'assignedWorkOrders' }),
-  createdWorkOrders: many(workOrders, { relationName: 'createdWorkOrders' }),
-  notifications: many(notifications),
-  savedSearches: many(savedSearches),
-}))
-
-export const sessionsRelations = relations(sessions, ({ one }) => ({
-  user: one(users, {
-    fields: [sessions.userId],
+  requestedBy: one(users, {
+    fields: [workOrderApprovals.requestedById],
     references: [users.id],
+    relationName: 'approvalRequestedBy',
   }),
-}))
-
-export const auditLogRelations = relations(auditLog, ({ one }) => ({
-  organisation: one(organisations, {
-    fields: [auditLog.organisationId],
-    references: [organisations.id],
-  }),
-  user: one(users, {
-    fields: [auditLog.userId],
+  reviewedBy: one(users, {
+    fields: [workOrderApprovals.reviewedById],
     references: [users.id],
+    relationName: 'approvalReviewedBy',
   }),
-}))
-
-export const assetCategoriesRelations = relations(assetCategories, ({ one, many }) => ({
-  organisation: one(organisations, {
-    fields: [assetCategories.organisationId],
-    references: [organisations.id],
-  }),
-  parent: one(assetCategories, {
-    fields: [assetCategories.parentId],
-    references: [assetCategories.id],
-    relationName: 'parentChild',
-  }),
-  children: many(assetCategories, {
-    relationName: 'parentChild',
-  }),
-  assets: many(assets),
-  maintenanceSchedules: many(maintenanceSchedules),
-  compatibleParts: many(assetCategoryParts),
-  taskOverrides: many(taskOverrides),
-}))
-
-export const assetsRelations = relations(assets, ({ one, many }) => ({
-  organisation: one(organisations, {
-    fields: [assets.organisationId],
-    references: [organisations.id],
-  }),
-  category: one(assetCategories, {
-    fields: [assets.categoryId],
-    references: [assetCategories.id],
-  }),
-  workOrders: many(workOrders),
-  maintenanceSchedules: many(maintenanceSchedules),
-  compatibleParts: many(assetParts),
-  locationHistory: many(assetLocationHistory),
-  documents: many(assetDocuments),
-  defects: many(defects),
-  taskOverrides: many(taskOverrides),
-}))
-
-// Asset Location History Relations
-export const assetLocationHistoryRelations = relations(assetLocationHistory, ({ one }) => ({
-  asset: one(assets, {
-    fields: [assetLocationHistory.assetId],
-    references: [assets.id],
-  }),
-  updatedBy: one(users, {
-    fields: [assetLocationHistory.updatedById],
+  emergencyOverrideBy: one(users, {
+    fields: [workOrderApprovals.emergencyOverrideById],
     references: [users.id],
+    relationName: 'approvalEmergencyOverrideBy',
   }),
-}))
-
-// Asset Documents Relations
-export const assetDocumentsRelations = relations(assetDocuments, ({ one }) => ({
-  asset: one(assets, {
-    fields: [assetDocuments.assetId],
-    references: [assets.id],
-  }),
-  uploadedBy: one(users, {
-    fields: [assetDocuments.uploadedById],
-    references: [users.id],
-  }),
-}))
-
-// Task Groups Relations
-export const taskGroupsRelations = relations(taskGroups, ({ one, many }) => ({
-  organisation: one(organisations, {
-    fields: [taskGroups.organisationId],
-    references: [organisations.id],
-  }),
-  parent: one(taskGroups, {
-    fields: [taskGroups.parentId],
-    references: [taskGroups.id],
-    relationName: 'taskGroupParentChild',
-  }),
-  children: many(taskGroups, {
-    relationName: 'taskGroupParentChild',
-  }),
-  templates: many(taskTemplates),
-}))
-
-// Task Templates Relations
-export const taskTemplatesRelations = relations(taskTemplates, ({ one, many }) => ({
-  organisation: one(organisations, {
-    fields: [taskTemplates.organisationId],
-    references: [organisations.id],
-  }),
-  group: one(taskGroups, {
-    fields: [taskTemplates.groupId],
-    references: [taskGroups.id],
-  }),
-  workOrders: many(workOrders),
-  templateParts: many(taskTemplateParts),
-  overrides: many(taskOverrides),
-}))
-
-// Task Template Parts Relations
-export const taskTemplatePartsRelations = relations(taskTemplateParts, ({ one }) => ({
-  template: one(taskTemplates, {
-    fields: [taskTemplateParts.templateId],
-    references: [taskTemplates.id],
-  }),
-  part: one(parts, {
-    fields: [taskTemplateParts.partId],
-    references: [parts.id],
-  }),
-}))
-
-// Work Orders Relations
-export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
-  organisation: one(organisations, {
-    fields: [workOrders.organisationId],
-    references: [organisations.id],
-  }),
-  asset: one(assets, {
-    fields: [workOrders.assetId],
-    references: [assets.id],
-  }),
-  template: one(taskTemplates, {
-    fields: [workOrders.templateId],
-    references: [taskTemplates.id],
-  }),
-  assignedTo: one(users, {
-    fields: [workOrders.assignedToId],
-    references: [users.id],
-    relationName: 'assignedWorkOrders',
-  }),
-  createdBy: one(users, {
-    fields: [workOrders.createdById],
-    references: [users.id],
-    relationName: 'createdWorkOrders',
-  }),
-  statusHistory: many(workOrderStatusHistory),
-  checklistItems: many(workOrderChecklistItems),
-  parts: many(workOrderParts),
-  photos: many(workOrderPhotos),
-  defects: many(defects),
 }))
 
 // Work Order Status History Relations
@@ -574,5 +427,59 @@ export const inventoryTransfersRelations = relations(inventoryTransfers, ({ one 
   transferredBy: one(users, {
     fields: [inventoryTransfers.transferredById],
     references: [users.id],
+  }),
+}))
+
+// Operator Sessions Relations
+export const operatorSessionsRelations = relations(operatorSessions, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [operatorSessions.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [operatorSessions.assetId],
+    references: [assets.id],
+  }),
+  operator: one(users, {
+    fields: [operatorSessions.operatorId],
+    references: [users.id],
+  }),
+  fuelTransactions: many(fuelTransactions),
+  locationRecords: many(locationRecords),
+}))
+
+// Fuel Transactions Relations
+export const fuelTransactionsRelations = relations(fuelTransactions, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [fuelTransactions.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [fuelTransactions.assetId],
+    references: [assets.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [fuelTransactions.operatorSessionId],
+    references: [operatorSessions.id],
+  }),
+  user: one(users, {
+    fields: [fuelTransactions.userId],
+    references: [users.id],
+  }),
+}))
+
+// Location Records Relations
+export const locationRecordsRelations = relations(locationRecords, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [locationRecords.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [locationRecords.assetId],
+    references: [assets.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [locationRecords.operatorSessionId],
+    references: [operatorSessions.id],
   }),
 }))
