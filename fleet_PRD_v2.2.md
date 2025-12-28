@@ -1568,7 +1568,7 @@ As a developer, I want a fully configured Nuxt 4 project with TypeScript, lintin
 _Acceptance Criteria:_
 
 - **REQ-101-AC-01**: Nuxt 4 project initialised with TypeScript strict mode
-- **REQ-101-AC-02**: ESLint and Prettier configured with shared rules
+- **REQ-101-AC-02**: Biome configured for linting and formatting
 - **REQ-101-AC-03**: Vitest configured for unit testing
 - **REQ-101-AC-04**: Playwright configured for E2E testing
 - **REQ-101-AC-05**: GitHub Actions CI pipeline runs lint, type-check, and tests on PR
@@ -1634,7 +1634,7 @@ _Acceptance Criteria:_
 
 - [ ] Nuxt 4 project setup with dashboard template
 - [ ] TypeScript configuration with strict mode
-- [ ] ESLint, Prettier, and Husky setup
+- [ ] Biome and Husky setup
 - [ ] Vitest and Playwright configuration
 - [ ] GitHub Actions CI/CD pipeline
 - [ ] PostgreSQL database setup with Drizzle ORM
@@ -3385,6 +3385,205 @@ _Acceptance Criteria:_
 - [ ] Failover tested successfully
 - [ ] Backup restoration verified
 - [ ] Documentation reviewed and complete
+
+---
+
+## Testing Requirements
+
+### Testing Strategy
+
+**Requirement**: Every Acceptance Criteria item (REQ-XXX-AC-XX) must have corresponding automated tests achieving 100% pass rate before a feature is considered complete.
+
+### Test Coverage Requirements
+
+| Test Type | Scope | Tool | Target Coverage |
+|-----------|-------|------|-----------------|
+| Unit Tests | Functions, composables, utilities | Vitest | 80%+ line coverage |
+| Component Tests | Vue components in isolation | Vitest + Vue Test Utils | 100% of components |
+| Integration Tests | API endpoints, database operations | Vitest | 100% of endpoints |
+| E2E Tests | User workflows, acceptance criteria | Playwright | 100% of acceptance criteria |
+
+### Feature Test Requirements
+
+Each feature's acceptance criteria must be validated through automated tests:
+
+#### TEST-F01: Foundation & Infrastructure Testing
+- [ ] TEST-101: All REQ-101-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-102: All REQ-102-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-103: All REQ-103-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-104: All REQ-104-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-105: All REQ-105-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-106: All REQ-106-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F02: Asset Management Testing
+- [ ] TEST-201: All REQ-201-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-202: All REQ-202-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-203: All REQ-203-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-204: All REQ-204-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-205: All REQ-205-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-206: All REQ-206-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-207: All REQ-207-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-208: All REQ-208-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F03: Maintenance Tasks & Templates Testing
+- [ ] TEST-301: All REQ-301-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-302: All REQ-302-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-303: All REQ-303-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-304: All REQ-304-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F04: Work Order Management Testing
+- [ ] TEST-401: All REQ-401-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-402: All REQ-402-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-403: All REQ-403-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-404: All REQ-404-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-405: All REQ-405-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-406: All REQ-406-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-407: All REQ-407-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-408: All REQ-408-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F05: Maintenance Scheduling Testing
+- [ ] TEST-501: All REQ-501-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-502: All REQ-502-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-503: All REQ-503-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-504: All REQ-504-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-505: All REQ-505-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F06: Inventory Management Testing
+- [ ] TEST-601: All REQ-601-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-602: All REQ-602-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-603: All REQ-603-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-604: All REQ-604-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-605: All REQ-605-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-606: All REQ-606-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-607: All REQ-607-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F07: Mobile App Core Testing
+- [ ] TEST-701: All REQ-701-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-702: All REQ-702-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-703: All REQ-703-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-704: All REQ-704-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-705: All REQ-705-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-706: All REQ-706-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-707: All REQ-707-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F08: Operator Logging Testing
+- [ ] TEST-801: All REQ-801-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-802: All REQ-802-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-803: All REQ-803-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-804: All REQ-804-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-805: All REQ-805-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F09: Pre-Start Inspections Testing
+- [ ] TEST-901: All REQ-901-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-902: All REQ-902-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-903: All REQ-903-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-904: All REQ-904-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-905: All REQ-905-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-906: All REQ-906-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-907: All REQ-907-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F10: Bluetooth OBD-II Integration Testing
+- [ ] TEST-1001: All REQ-1001-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1002: All REQ-1002-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1003: All REQ-1003-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1004: All REQ-1004-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1005: All REQ-1005-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1006: All REQ-1006-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1007: All REQ-1007-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F11: Fuel Management Testing
+- [ ] TEST-1101: All REQ-1101-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1102: All REQ-1102-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1103: All REQ-1103-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1104: All REQ-1104-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1105: All REQ-1105-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F12: GPS & Geofencing Testing
+- [ ] TEST-1201: All REQ-1201-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1202: All REQ-1202-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1203: All REQ-1203-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1204: All REQ-1204-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1205: All REQ-1205-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1206: All REQ-1206-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F13: Custom Forms Testing
+- [ ] TEST-1301: All REQ-1301-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1302: All REQ-1302-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1303: All REQ-1303-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1304: All REQ-1304-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1305: All REQ-1305-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1306: All REQ-1306-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F14: Reporting & Analytics Testing
+- [ ] TEST-1401: All REQ-1401-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1402: All REQ-1402-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1403: All REQ-1403-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1404: All REQ-1404-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1405: All REQ-1405-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1406: All REQ-1406-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1407: All REQ-1407-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1408: All REQ-1408-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F15: Document Management Testing
+- [ ] TEST-1501: All REQ-1501-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1502: All REQ-1502-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1503: All REQ-1503-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1504: All REQ-1504-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1505: All REQ-1505-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1506: All REQ-1506-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F16: Notifications & Alerts Testing
+- [ ] TEST-1601: All REQ-1601-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1602: All REQ-1602-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1603: All REQ-1603-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1604: All REQ-1604-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1605: All REQ-1605-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F17: Administration Testing
+- [ ] TEST-1701: All REQ-1701-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1702: All REQ-1702-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1703: All REQ-1703-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1704: All REQ-1704-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1705: All REQ-1705-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1706: All REQ-1706-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1707: All REQ-1707-AC-XX acceptance criteria pass automated tests
+
+#### TEST-F18: Production Readiness Testing
+- [ ] TEST-1801: All REQ-1801-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1802: All REQ-1802-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1803: All REQ-1803-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1804: All REQ-1804-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1805: All REQ-1805-AC-XX acceptance criteria pass automated tests
+- [ ] TEST-1806: All REQ-1806-AC-XX acceptance criteria pass automated tests
+
+### Test Completion Criteria
+
+A feature is considered **test complete** when:
+
+1. **Unit Tests**: All functions have unit tests with 80%+ line coverage
+2. **Component Tests**: All Vue components have component tests
+3. **API Tests**: All API endpoints have integration tests for success and error cases
+4. **E2E Tests**: All acceptance criteria have corresponding Playwright E2E tests
+5. **CI Pipeline**: All tests pass in CI with no flaky tests
+6. **Coverage Report**: Coverage report shows 80%+ overall coverage
+
+### Test Naming Convention
+
+```
+tests/
+├── unit/                    # Unit tests (Vitest)
+│   ├── composables/
+│   ├── utils/
+│   └── server/
+├── components/              # Component tests (Vitest + Vue Test Utils)
+│   └── [ComponentName].test.ts
+├── integration/             # API integration tests (Vitest)
+│   └── api/
+│       └── [endpoint].test.ts
+└── e2e/                     # E2E tests (Playwright)
+    └── [feature]/
+        └── [user-story].spec.ts
+```
 
 ---
 
