@@ -2,6 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { GeofenceAlert, NewGeofenceAlert } from '../db/schema/geofence-alerts'
 import type { Geofence } from '../db/schema/geofences'
 import { db, schema } from './db'
+import { recordJobSiteEntry, recordJobSiteExit } from './job-site-visit-processor'
 import { createNotification } from './notifications'
 
 /**
@@ -200,6 +201,23 @@ export async function checkGeofenceAlerts(
         longitude: longitude.toFixed(7),
         alertedAt: now,
       })
+
+      // Track job site visit for work_site geofences
+      if (geofence.category === 'work_site') {
+        try {
+          await recordJobSiteEntry({
+            organisationId,
+            geofenceId: geofence.id,
+            assetId,
+            operatorSessionId,
+            latitude,
+            longitude,
+            entryTime: now,
+          })
+        } catch (error) {
+          console.error('Failed to record job site entry:', error)
+        }
+      }
     }
 
     // Check for exit
@@ -214,6 +232,21 @@ export async function checkGeofenceAlerts(
         longitude: longitude.toFixed(7),
         alertedAt: now,
       })
+
+      // Track job site visit exit for work_site geofences
+      if (geofence.category === 'work_site') {
+        try {
+          await recordJobSiteExit({
+            assetId,
+            geofenceId: geofence.id,
+            latitude,
+            longitude,
+            exitTime: now,
+          })
+        } catch (error) {
+          console.error('Failed to record job site exit:', error)
+        }
+      }
     }
 
     // Check for after-hours movement (only if inside geofence)

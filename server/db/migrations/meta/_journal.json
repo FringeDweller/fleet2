@@ -127,6 +127,13 @@
       "when": 1766901904273,
       "tag": "0017_broad_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1766921957105,
+      "tag": "0018_cooing_roland_deschain",
+      "breakpoints": true
     }
   ]
 }

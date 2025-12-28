@@ -6,6 +6,7 @@ import { assetLocationHistory } from './asset-location-history'
 import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
+import { customForms } from './custom-forms'
 import { defects } from './defects'
 import { fuelAuthorizations } from './fuel-authorizations'
 import { fuelTransactions } from './fuel-transactions'
@@ -18,6 +19,7 @@ import { integrationHealth, integrationSyncHistory } from './integration-health'
 import { inventoryCountItems } from './inventory-count-items'
 import { inventoryCountSessions } from './inventory-count-sessions'
 import { inventoryTransfers } from './inventory-transfers'
+import { jobSiteVisits } from './job-site-visits'
 import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
@@ -66,6 +68,8 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   geofenceAlertSettings: many(geofenceAlertSettings),
   inspectionTemplates: many(inspectionTemplates),
   inspections: many(inspections),
+  customForms: many(customForms),
+  jobSiteVisits: many(jobSiteVisits),
 }))
 
 // Work Order Approvals Relations
@@ -713,6 +717,7 @@ export const geofencesRelations = relations(geofences, ({ one, many }) => ({
   }),
   alertSettings: many(geofenceAlertSettings),
   alerts: many(geofenceAlerts),
+  jobSiteVisits: many(jobSiteVisits),
 }))
 
 // Geofence Alert Settings Relations
@@ -815,5 +820,43 @@ export const inspectionItemsRelations = relations(inspectionItems, ({ one }) => 
   inspection: one(inspections, {
     fields: [inspectionItems.inspectionId],
     references: [inspections.id],
+  }),
+}))
+
+// Job Site Visits Relations
+export const jobSiteVisitsRelations = relations(jobSiteVisits, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [jobSiteVisits.organisationId],
+    references: [organisations.id],
+  }),
+  geofence: one(geofences, {
+    fields: [jobSiteVisits.geofenceId],
+    references: [geofences.id],
+  }),
+  asset: one(assets, {
+    fields: [jobSiteVisits.assetId],
+    references: [assets.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [jobSiteVisits.operatorSessionId],
+    references: [operatorSessions.id],
+  }),
+}))
+
+// Custom Forms Relations
+export const customFormsRelations = relations(customForms, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [customForms.organisationId],
+    references: [organisations.id],
+  }),
+  createdBy: one(users, {
+    fields: [customForms.createdById],
+    references: [users.id],
+    relationName: 'customFormCreatedBy',
+  }),
+  updatedBy: one(users, {
+    fields: [customForms.updatedById],
+    references: [users.id],
+    relationName: 'customFormUpdatedBy',
   }),
 }))
