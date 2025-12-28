@@ -1,6 +1,8 @@
 import {
+  boolean,
   decimal,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   text,
@@ -16,6 +18,21 @@ import { users } from './users'
 export const fuelTypeEnum = pgEnum('fuel_type', ['diesel', 'petrol', 'electric', 'lpg', 'other'])
 
 export const fuelSyncStatusEnum = pgEnum('fuel_sync_status', ['synced', 'pending'])
+
+export const fuelSourceEnum = pgEnum('fuel_source', [
+  'manual', // Manually entered in the app
+  'authorization', // Created from fuel authorization flow
+  'external_sync', // Synced from external fuel backend
+])
+
+export const discrepancyTypeEnum = pgEnum('discrepancy_type', [
+  'quantity_mismatch', // Dispensed quantity differs from authorized
+  'amount_mismatch', // Cost differs significantly
+  'asset_mismatch', // Transaction for different asset
+  'unauthorized', // No matching authorization found
+  'timing_mismatch', // Transaction outside authorization window
+  'multiple', // Multiple discrepancy types
+])
 
 export const fuelTransactions = pgTable(
   'fuel_transactions',
@@ -57,6 +74,37 @@ export const fuelTransactions = pgTable(
     syncStatus: fuelSyncStatusEnum('sync_status').notNull().default('synced'),
     // Transaction date (may differ from createdAt if entered retroactively)
     transactionDate: timestamp('transaction_date', { withTimezone: true }).notNull(),
+
+    // Source tracking for integration
+    source: fuelSourceEnum('source').notNull().default('manual'),
+    // External system reference for synced transactions
+    externalTransactionId: varchar('external_transaction_id', { length: 255 }),
+    externalSystemId: varchar('external_system_id', { length: 100 }),
+
+    // Link to authorization if created from auth flow
+    // Note: Foreign key defined in relations.ts to avoid circular import
+    authorizationId: uuid('authorization_id'),
+
+    // Discrepancy tracking
+    hasDiscrepancy: boolean('has_discrepancy').notNull().default(false),
+    discrepancyType: discrepancyTypeEnum('discrepancy_type'),
+    discrepancyDetails: jsonb('discrepancy_details').$type<{
+      authorizedQuantity?: number
+      actualQuantity?: number
+      authorizedAmount?: number
+      actualAmount?: number
+      authorizedAssetId?: string
+      actualAssetId?: string
+      quantityVariancePercent?: number
+      amountVariancePercent?: number
+      notes?: string
+    }>(),
+    discrepancyResolvedAt: timestamp('discrepancy_resolved_at', { withTimezone: true }),
+    discrepancyResolvedById: uuid('discrepancy_resolved_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    discrepancyResolutionNotes: text('discrepancy_resolution_notes'),
+
     // Timestamps
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -68,6 +116,10 @@ export const fuelTransactions = pgTable(
     index('fuel_transactions_transaction_date_idx').on(table.transactionDate),
     index('fuel_transactions_fuel_type_idx').on(table.fuelType),
     index('fuel_transactions_sync_status_idx').on(table.syncStatus),
+    index('fuel_transactions_source_idx').on(table.source),
+    index('fuel_transactions_external_id_idx').on(table.externalTransactionId),
+    index('fuel_transactions_has_discrepancy_idx').on(table.hasDiscrepancy),
+    index('fuel_transactions_authorization_id_idx').on(table.authorizationId),
   ],
 )
 

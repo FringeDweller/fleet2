@@ -11,6 +11,10 @@ import { fuelAuthorizations } from './fuel-authorizations'
 import { fuelTransactions } from './fuel-transactions'
 import { geofenceAlertSettings, geofenceAlerts } from './geofence-alerts'
 import { geofences } from './geofences'
+import { inspectionItems } from './inspection-items'
+import { inspectionTemplates } from './inspection-templates'
+import { inspections } from './inspections'
+import { integrationHealth, integrationSyncHistory } from './integration-health'
 import { inventoryCountItems } from './inventory-count-items'
 import { inventoryCountSessions } from './inventory-count-sessions'
 import { inventoryTransfers } from './inventory-transfers'
@@ -60,6 +64,8 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   geofences: many(geofences),
   geofenceAlerts: many(geofenceAlerts),
   geofenceAlertSettings: many(geofenceAlertSettings),
+  inspectionTemplates: many(inspectionTemplates),
+  inspections: many(inspections),
 }))
 
 // Work Order Approvals Relations
@@ -742,5 +748,72 @@ export const geofenceAlertsRelations = relations(geofenceAlerts, ({ one }) => ({
   acknowledgedBy: one(users, {
     fields: [geofenceAlerts.acknowledgedById],
     references: [users.id],
+  }),
+}))
+
+// Integration Health Relations
+export const integrationHealthRelations = relations(integrationHealth, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [integrationHealth.organisationId],
+    references: [organisations.id],
+  }),
+  syncHistory: many(integrationSyncHistory),
+}))
+
+// Integration Sync History Relations
+export const integrationSyncHistoryRelations = relations(integrationSyncHistory, ({ one }) => ({
+  integrationHealth: one(integrationHealth, {
+    fields: [integrationSyncHistory.integrationHealthId],
+    references: [integrationHealth.id],
+  }),
+  organisation: one(organisations, {
+    fields: [integrationSyncHistory.organisationId],
+    references: [organisations.id],
+  }),
+}))
+
+// Inspection Templates Relations
+export const inspectionTemplatesRelations = relations(inspectionTemplates, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [inspectionTemplates.organisationId],
+    references: [organisations.id],
+  }),
+  category: one(assetCategories, {
+    fields: [inspectionTemplates.categoryId],
+    references: [assetCategories.id],
+  }),
+  inspections: many(inspections),
+}))
+
+// Inspections Relations
+export const inspectionsRelations = relations(inspections, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [inspections.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [inspections.assetId],
+    references: [assets.id],
+  }),
+  template: one(inspectionTemplates, {
+    fields: [inspections.templateId],
+    references: [inspectionTemplates.id],
+  }),
+  operator: one(users, {
+    fields: [inspections.operatorId],
+    references: [users.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [inspections.operatorSessionId],
+    references: [operatorSessions.id],
+  }),
+  items: many(inspectionItems),
+}))
+
+// Inspection Items Relations
+export const inspectionItemsRelations = relations(inspectionItems, ({ one }) => ({
+  inspection: one(inspections, {
+    fields: [inspectionItems.inspectionId],
+    references: [inspections.id],
   }),
 }))
