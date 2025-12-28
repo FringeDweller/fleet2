@@ -33,12 +33,35 @@ const links = [
       },
     },
     {
-      label: 'Fleet Map',
+      label: 'Fleet',
       icon: 'i-lucide-map',
-      to: '/fleet/map',
-      onSelect: () => {
-        open.value = false
-      },
+      to: '/fleet',
+      defaultOpen: false,
+      type: 'trigger',
+      children: [
+        {
+          label: 'Overview',
+          to: '/fleet',
+          exact: true,
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Map',
+          to: '/fleet/map',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Route History',
+          to: '/fleet/route-history',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+      ],
     },
     {
       label: 'Inventory',
