@@ -116,10 +116,20 @@ interface Defect {
   reportedAt: string
   resolvedAt: string | null
   resolutionNotes: string | null
+  inspection: {
+    id: string
+    status: string
+    completedAt: string | null
+    template: {
+      id: string
+      name: string
+    } | null
+  } | null
   workOrder: {
     id: string
     workOrderNumber: string
     status: string
+    priority: string
   } | null
   reportedBy: {
     id: string
@@ -131,16 +141,6 @@ interface Defect {
     firstName: string
     lastName: string
   } | null
-}
-
-interface DefectsResponse {
-  data: Defect[]
-  pagination: {
-    total: number
-    limit: number
-    offset: number
-    hasMore: boolean
-  }
 }
 
 interface FuelTransaction {
@@ -225,11 +225,46 @@ const { isNfcAvailable, writeAssetTag } = useNfc()
 // Tab state
 const activeTab = ref((route.query.tab as string) || 'details')
 
+// Active session state for handover
+interface ActiveSessionResponse {
+  hasActiveSession: boolean
+  session: {
+    id: string
+    startTime: string
+    startOdometer: string | null
+    startHours: string | null
+    operator: {
+      id: string
+      firstName: string
+      lastName: string
+      email: string
+      avatarUrl: string | null
+    }
+  } | null
+  asset: { id: string; assetNumber: string }
+  currentDuration?: {
+    minutes: number
+    formatted: string
+  }
+}
+
+const showHandoverModal = ref(false)
+const handoverHistoryRef = ref<{ refresh: () => void } | null>(null)
+
 const {
   data: asset,
   status,
   error,
 } = await useFetch<Asset>(`/api/assets/${route.params.id}`, {
+  lazy: true,
+})
+
+// Fetch active session for handover (US-8.5)
+const {
+  data: activeSessionData,
+  status: activeSessionStatus,
+  refresh: refreshActiveSession,
+} = await useFetch<ActiveSessionResponse>(`/api/assets/${route.params.id}/active-session`, {
   lazy: true,
 })
 
@@ -265,13 +300,12 @@ const {
   lazy: true,
 })
 
-// Fetch defects for this asset
+// Fetch defects for this asset (using dedicated asset defects endpoint)
 const {
   data: defectsData,
   status: defectsStatus,
   refresh: refreshDefects,
-} = await useFetch<DefectsResponse>(`/api/defects`, {
-  query: { assetId: route.params.id },
+} = await useFetch<Defect[]>(`/api/assets/${route.params.id}/defects`, {
   lazy: true,
 })
 
@@ -818,6 +852,14 @@ async function enrollNfcTag() {
 
         <template #right>
           <div class="flex gap-2">
+            <!-- Handover Button (US-8.5) - only shown when there's an active session -->
+            <UButton
+              v-if="activeSessionData?.hasActiveSession && activeSessionData.session"
+              label="Handover"
+              icon="i-lucide-users"
+              color="primary"
+              @click="showHandoverModal = true"
+            />
             <UButton
               label="Edit"
               icon="i-lucide-pencil"
@@ -983,6 +1025,7 @@ async function enrollNfcTag() {
           v-model="activeTab"
           :items="[
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
+            { label: 'Sessions', value: 'sessions', icon: 'i-lucide-users' },
             { label: 'Location', value: 'location', icon: 'i-lucide-map-pin' },
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
             { label: 'Documents', value: 'documents', icon: 'i-lucide-file-text' },
@@ -1210,6 +1253,72 @@ async function enrollNfcTag() {
             </p>
           </div>
         </UCard>
+
+        <!-- Sessions Tab (US-8.5) -->
+        <div v-if="activeTab === 'sessions'" class="space-y-6">
+          <!-- Active Session Card -->
+          <UCard v-if="activeSessionStatus !== 'pending'">
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h3 class="font-medium">
+                  Current Session
+                </h3>
+                <UButton
+                  v-if="activeSessionData?.hasActiveSession && activeSessionData.session"
+                  label="Handover"
+                  icon="i-lucide-users"
+                  color="primary"
+                  size="sm"
+                  @click="showHandoverModal = true"
+                />
+              </div>
+            </template>
+            <div v-if="activeSessionData?.hasActiveSession && activeSessionData.session" class="flex items-center gap-4">
+              <UAvatar
+                :src="activeSessionData.session.operator.avatarUrl || undefined"
+                :alt="`${activeSessionData.session.operator.firstName} ${activeSessionData.session.operator.lastName}`"
+                size="lg"
+              />
+              <div class="flex-1">
+                <p class="font-medium text-lg">
+                  {{ activeSessionData.session.operator.firstName }} {{ activeSessionData.session.operator.lastName }}
+                </p>
+                <p class="text-sm text-muted">
+                  {{ activeSessionData.session.operator.email }}
+                </p>
+                <div class="flex items-center gap-3 mt-2 text-sm text-muted">
+                  <span>Started: {{ formatDate(activeSessionData.session.startTime) }}</span>
+                  <UBadge v-if="activeSessionData.currentDuration" color="success" variant="subtle" size="xs">
+                    {{ activeSessionData.currentDuration.formatted }}
+                  </UBadge>
+                </div>
+              </div>
+              <UBadge color="success" variant="subtle" size="lg">
+                Active
+              </UBadge>
+            </div>
+            <div v-else class="text-center py-8">
+              <UIcon name="i-lucide-user-x" class="w-12 h-12 text-muted mx-auto mb-4" />
+              <p class="text-muted">
+                No active session for this asset.
+              </p>
+              <p class="text-sm text-muted mt-1">
+                Use the operator log-on feature to start a session.
+              </p>
+            </div>
+          </UCard>
+
+          <div v-if="activeSessionStatus === 'pending'" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
+          </div>
+
+          <!-- Handover History -->
+          <AssetsHandoverHistory
+            v-if="activeSessionStatus !== 'pending'"
+            ref="handoverHistoryRef"
+            :asset-id="(route.params.id as string)"
+          />
+        </div>
 
         <!-- Location Tab -->
         <div v-if="activeTab === 'location'" class="space-y-6">
@@ -1540,7 +1649,7 @@ async function enrollNfcTag() {
             <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-muted" />
           </div>
 
-          <div v-else-if="!defectsData?.data?.length" class="text-center py-8">
+          <div v-else-if="!defectsData?.length" class="text-center py-8">
             <UIcon name="i-lucide-check-circle" class="w-12 h-12 text-success mx-auto mb-4" />
             <p class="text-muted">
               No defects reported for this asset.
@@ -1552,7 +1661,7 @@ async function enrollNfcTag() {
 
           <div v-else class="space-y-3">
             <UCard
-              v-for="defect in defectsData.data"
+              v-for="defect in defectsData"
               :key="defect.id"
             >
               <div class="flex items-start justify-between gap-4">
@@ -2190,6 +2299,22 @@ async function enrollNfcTag() {
           </UCard>
         </template>
       </UModal>
+
+      <!-- Handover Modal (US-8.5) -->
+      <AssetsHandoverModal
+        v-if="activeSessionData?.hasActiveSession && activeSessionData.session && asset"
+        v-model:open="showHandoverModal"
+        :asset-id="asset.id"
+        :asset-number="asset.assetNumber"
+        :current-session="{
+          id: activeSessionData.session.id,
+          operator: activeSessionData.session.operator,
+          startTime: activeSessionData.session.startTime,
+          startOdometer: activeSessionData.session.startOdometer,
+          startHours: activeSessionData.session.startHours,
+        }"
+        @success="() => { refreshActiveSession(); handoverHistoryRef?.refresh(); }"
+      />
     </template>
   </UDashboardPanel>
 </template>

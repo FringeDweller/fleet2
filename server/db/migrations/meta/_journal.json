@@ -134,6 +134,13 @@
       "when": 1766921957105,
       "tag": "0018_cooing_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1766923611049,
+      "tag": "0019_unknown_madame_masque",
+      "breakpoints": true
     }
   ]
 }

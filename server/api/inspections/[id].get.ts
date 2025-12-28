@@ -68,7 +68,36 @@ export default defineEventHandler(async (event) => {
           status: true,
         },
       },
+      // Sign-off relation (US-9.4)
+      signedBy: {
+        columns: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
       items: true,
+      // Checkpoint scans (US-9.3)
+      checkpointScans: {
+        with: {
+          checkpointDefinition: {
+            columns: {
+              id: true,
+              name: true,
+              position: true,
+              required: true,
+            },
+          },
+          scannedBy: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
     },
   })
 

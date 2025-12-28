@@ -19,6 +19,13 @@ export const operatorSessionStatusEnum = pgEnum('operator_session_status', [
   'cancelled',
 ])
 
+export const handoverTypeEnum = pgEnum('handover_type', [
+  'shift_change', // Normal shift handover
+  'break', // Temporary break handover
+  'emergency', // Emergency handover
+  'other', // Other reason
+])
+
 export const operatorSessionSyncStatusEnum = pgEnum('operator_session_sync_status', [
   'synced',
   'pending',
@@ -68,6 +75,18 @@ export const operatorSessions = pgTable(
     // Notes and additional data
     notes: text('notes'),
 
+    // Handover tracking (US-8.5)
+    // Reference to the previous session this session was handed over from
+    handoverFromSessionId: uuid('handover_from_session_id'),
+    // Optional reason for the handover
+    handoverReason: text('handover_reason'),
+    // Type of handover
+    handoverType: handoverTypeEnum('handover_type'),
+    // Calculated gap time in minutes between this session and the previous session end
+    sessionGap: integer('session_gap'),
+    // Flag indicating if this session is linked to a previous session (within threshold)
+    isLinkedSession: boolean('is_linked_session').default(false).notNull(),
+
     // Audit fields
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -81,6 +100,8 @@ export const operatorSessions = pgTable(
     // Index for finding active sessions
     index('operator_sessions_active_asset_idx').on(table.assetId, table.status),
     index('operator_sessions_active_operator_idx').on(table.operatorId, table.status),
+    // Index for handover lookup
+    index('operator_sessions_handover_from_idx').on(table.handoverFromSessionId),
   ],
 )
 

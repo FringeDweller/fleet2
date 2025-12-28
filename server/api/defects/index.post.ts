@@ -6,6 +6,9 @@ import { createNotification } from '../../utils/notifications'
 
 const createDefectSchema = z.object({
   assetId: z.string().uuid('Asset is required'),
+  // Optional link to inspection that created this defect
+  inspectionId: z.string().uuid().optional().nullable(),
+  inspectionItemId: z.string().uuid().optional().nullable(),
   title: z.string().min(1, 'Title is required').max(255),
   description: z.string().optional().nullable(),
   category: z.string().max(100).optional().nullable(),
@@ -79,14 +82,20 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Get organisation settings
+  const organisation = await db.query.organisations.findFirst({
+    where: eq(schema.organisations.id, user.organisationId),
+  })
+
   // Create defect and optionally work order in a transaction
   const defectResult = await db.transaction(async (tx) => {
     let workOrderId: string | null = null
     let workOrder: typeof schema.workOrders.$inferSelect | null = null
 
-    // Auto-create work order for major and critical defects (or if explicitly requested)
+    // Auto-create work order for major and critical defects (respecting org setting)
     const shouldCreateWorkOrder =
       result.data.autoCreateWorkOrder &&
+      (organisation?.autoCreateWorkOrderOnDefect ?? true) &&
       (result.data.severity === 'major' || result.data.severity === 'critical')
 
     if (shouldCreateWorkOrder) {
@@ -142,6 +151,8 @@ export default defineEventHandler(async (event) => {
       .values({
         organisationId: user.organisationId,
         assetId: result.data.assetId,
+        inspectionId: result.data.inspectionId,
+        inspectionItemId: result.data.inspectionItemId,
         workOrderId,
         reportedById: user.id,
         title: result.data.title,

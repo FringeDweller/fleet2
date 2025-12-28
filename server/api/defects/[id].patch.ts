@@ -10,6 +10,8 @@ const updateDefectSchema = z.object({
   status: z.enum(['open', 'in_progress', 'resolved', 'closed']).optional(),
   location: z.string().max(255).optional().nullable(),
   resolutionNotes: z.string().optional().nullable(),
+  // Allow linking to a work order
+  workOrderId: z.string().uuid().optional().nullable(),
 })
 
 export default defineEventHandler(async (event) => {

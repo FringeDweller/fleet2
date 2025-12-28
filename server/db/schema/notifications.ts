@@ -24,6 +24,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'geofence_entry',
   'geofence_exit',
   'after_hours_movement',
+  'shift_handover', // US-8.5: Shift handover notifications for supervisors
   'system',
 ])
 

@@ -102,6 +102,12 @@ export const inspections = pgTable(
     // Offline sync data
     offlineData: jsonb('offline_data').$type<InspectionOfflineData>(),
 
+    // Sign-off fields (US-9.4)
+    signatureUrl: text('signature_url'),
+    declarationText: text('declaration_text'),
+    signedAt: timestamp('signed_at', { withTimezone: true }),
+    signedById: uuid('signed_by_id').references(() => users.id, { onDelete: 'set null' }),
+
     // Audit fields
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -115,6 +121,7 @@ export const inspections = pgTable(
     index('inspections_status_idx').on(table.status),
     index('inspections_sync_status_idx').on(table.syncStatus),
     index('inspections_started_at_idx').on(table.startedAt),
+    index('inspections_signed_by_id_idx').on(table.signedById),
   ],
 )
 

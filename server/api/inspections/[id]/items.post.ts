@@ -1,6 +1,7 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
+import { escalateFailedInspectionItems } from '../../../utils/defect-escalation'
 
 const photoSchema = z.object({
   id: z.string(),
@@ -66,6 +67,15 @@ export default defineEventHandler(async (event) => {
       eq(schema.inspections.id, inspectionId),
       eq(schema.inspections.organisationId, user.organisationId),
     ),
+    with: {
+      asset: {
+        columns: {
+          id: true,
+          categoryId: true,
+        },
+      },
+      checkpointScans: true,
+    },
   })
 
   if (!inspection) {
@@ -102,6 +112,42 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
+
+  // If trying to complete the inspection, validate all required checkpoints are scanned
+  if (result.data.complete && inspection.asset.categoryId) {
+    // Get required checkpoint definitions for this asset category
+    const requiredCheckpoints = await db.query.inspectionCheckpointDefinitions.findMany({
+      where: and(
+        eq(schema.inspectionCheckpointDefinitions.assetCategoryId, inspection.asset.categoryId),
+        eq(schema.inspectionCheckpointDefinitions.organisationId, user.organisationId),
+        eq(schema.inspectionCheckpointDefinitions.isActive, true),
+        eq(schema.inspectionCheckpointDefinitions.required, true),
+      ),
+    })
+
+    if (requiredCheckpoints.length > 0) {
+      const scannedCheckpointIds = new Set(
+        inspection.checkpointScans.map((s) => s.checkpointDefinitionId),
+      )
+      const missingCheckpoints = requiredCheckpoints.filter(
+        (cp) => !scannedCheckpointIds.has(cp.id),
+      )
+
+      if (missingCheckpoints.length > 0) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: 'Cannot complete inspection: required checkpoints have not been scanned',
+          data: {
+            missingCheckpoints: missingCheckpoints.map((cp) => ({
+              id: cp.id,
+              name: cp.name,
+              position: cp.position,
+            })),
+          },
+        })
+      }
+    }
+  }
 
   // Update inspection items in a transaction
   const updatedInspection = await db.transaction(async (tx) => {
@@ -191,6 +237,15 @@ export default defineEventHandler(async (event) => {
       },
     })
   })
+
+  // If the inspection was completed and had failures, escalate failed items to defects
+  // This is done outside the transaction to not block the response
+  if (result.data.complete && updatedInspection?.overallResult === 'fail') {
+    // Fire and forget - don't wait for defect escalation to complete
+    escalateFailedInspectionItems(inspectionId!, user.organisationId, user.id).catch((err) => {
+      console.error('Failed to escalate inspection failures to defects:', err)
+    })
+  }
 
   return updatedInspection
 })

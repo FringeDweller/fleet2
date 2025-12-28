@@ -80,6 +80,21 @@ export default defineEventHandler(async (event) => {
           model: true,
         },
       },
+      inspection: {
+        columns: {
+          id: true,
+          status: true,
+          completedAt: true,
+        },
+        with: {
+          template: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
       workOrder: {
         columns: {
           id: true,

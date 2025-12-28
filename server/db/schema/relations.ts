@@ -12,6 +12,10 @@ import { fuelAuthorizations } from './fuel-authorizations'
 import { fuelTransactions } from './fuel-transactions'
 import { geofenceAlertSettings, geofenceAlerts } from './geofence-alerts'
 import { geofences } from './geofences'
+import {
+  inspectionCheckpointDefinitions,
+  inspectionCheckpointScans,
+} from './inspection-checkpoints'
 import { inspectionItems } from './inspection-items'
 import { inspectionTemplates } from './inspection-templates'
 import { inspections } from './inspections'
@@ -311,6 +315,14 @@ export const defectsRelations = relations(defects, ({ one }) => ({
     fields: [defects.assetId],
     references: [assets.id],
   }),
+  inspection: one(inspections, {
+    fields: [defects.inspectionId],
+    references: [inspections.id],
+  }),
+  inspectionItem: one(inspectionItems, {
+    fields: [defects.inspectionItemId],
+    references: [inspectionItems.id],
+  }),
   workOrder: one(workOrders, {
     fields: [defects.workOrderId],
     references: [workOrders.id],
@@ -461,6 +473,15 @@ export const operatorSessionsRelations = relations(operatorSessions, ({ one, man
   operator: one(users, {
     fields: [operatorSessions.operatorId],
     references: [users.id],
+  }),
+  // Handover relations (US-8.5)
+  handoverFromSession: one(operatorSessions, {
+    fields: [operatorSessions.handoverFromSessionId],
+    references: [operatorSessions.id],
+    relationName: 'sessionHandover',
+  }),
+  handoverToSessions: many(operatorSessions, {
+    relationName: 'sessionHandover',
   }),
   fuelTransactions: many(fuelTransactions),
   fuelAuthorizations: many(fuelAuthorizations),
@@ -643,6 +664,7 @@ export const assetCategoriesRelations = relations(assetCategories, ({ one, many 
   compatibleParts: many(assetCategoryParts),
   maintenanceSchedules: many(maintenanceSchedules),
   taskOverrides: many(taskOverrides),
+  inspectionCheckpointDefinitions: many(inspectionCheckpointDefinitions),
 }))
 
 // Work Orders Relations
@@ -807,20 +829,29 @@ export const inspectionsRelations = relations(inspections, ({ one, many }) => ({
   operator: one(users, {
     fields: [inspections.operatorId],
     references: [users.id],
+    relationName: 'inspectionOperator',
   }),
   operatorSession: one(operatorSessions, {
     fields: [inspections.operatorSessionId],
     references: [operatorSessions.id],
   }),
+  signedBy: one(users, {
+    fields: [inspections.signedById],
+    references: [users.id],
+    relationName: 'inspectionSignedBy',
+  }),
   items: many(inspectionItems),
+  defects: many(defects),
+  checkpointScans: many(inspectionCheckpointScans),
 }))
 
 // Inspection Items Relations
-export const inspectionItemsRelations = relations(inspectionItems, ({ one }) => ({
+export const inspectionItemsRelations = relations(inspectionItems, ({ one, many }) => ({
   inspection: one(inspections, {
     fields: [inspectionItems.inspectionId],
     references: [inspections.id],
   }),
+  defects: many(defects),
 }))
 
 // Job Site Visits Relations
@@ -860,3 +891,38 @@ export const customFormsRelations = relations(customForms, ({ one }) => ({
     relationName: 'customFormUpdatedBy',
   }),
 }))
+
+// Inspection Checkpoint Definitions Relations
+export const inspectionCheckpointDefinitionsRelations = relations(
+  inspectionCheckpointDefinitions,
+  ({ one, many }) => ({
+    organisation: one(organisations, {
+      fields: [inspectionCheckpointDefinitions.organisationId],
+      references: [organisations.id],
+    }),
+    assetCategory: one(assetCategories, {
+      fields: [inspectionCheckpointDefinitions.assetCategoryId],
+      references: [assetCategories.id],
+    }),
+    scans: many(inspectionCheckpointScans),
+  }),
+)
+
+// Inspection Checkpoint Scans Relations
+export const inspectionCheckpointScansRelations = relations(
+  inspectionCheckpointScans,
+  ({ one }) => ({
+    inspection: one(inspections, {
+      fields: [inspectionCheckpointScans.inspectionId],
+      references: [inspections.id],
+    }),
+    checkpointDefinition: one(inspectionCheckpointDefinitions, {
+      fields: [inspectionCheckpointScans.checkpointDefinitionId],
+      references: [inspectionCheckpointDefinitions.id],
+    }),
+    scannedBy: one(users, {
+      fields: [inspectionCheckpointScans.scannedById],
+      references: [users.id],
+    }),
+  }),
+)

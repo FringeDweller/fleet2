@@ -89,6 +89,23 @@ export default defineEventHandler(async (event) => {
           avatarUrl: true,
         },
       },
+      // Include handover information (US-8.5)
+      handoverFromSession: {
+        columns: {
+          id: true,
+          startTime: true,
+          endTime: true,
+        },
+        with: {
+          operator: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
     },
     orderBy: (sessions) => [sortFn(sessions[sortField as keyof typeof sessions])],
     limit,

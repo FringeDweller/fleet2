@@ -35,6 +35,39 @@ export default defineEventHandler(async (event) => {
           year: true,
         },
       },
+      inspection: {
+        columns: {
+          id: true,
+          status: true,
+          overallResult: true,
+          startedAt: true,
+          completedAt: true,
+        },
+        with: {
+          operator: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+            },
+          },
+          template: {
+            columns: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+      inspectionItem: {
+        columns: {
+          id: true,
+          checklistItemLabel: true,
+          checklistItemType: true,
+          result: true,
+          notes: true,
+        },
+      },
       workOrder: {
         columns: {
           id: true,

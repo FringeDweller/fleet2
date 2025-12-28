@@ -47,6 +47,16 @@ interface Inspection {
   completedAt: string | null
   notes: string | null
   overallResult: string | null
+  // Sign-off fields (US-9.4)
+  signatureUrl: string | null
+  declarationText: string | null
+  signedAt: string | null
+  signedBy: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+  } | null
   asset: {
     id: string
     assetNumber: string
@@ -107,6 +117,44 @@ const activeItemId = ref<string | null>(null)
 const photoCaption = ref('')
 const showCompletionModal = ref(false)
 const completionNotes = ref('')
+const signatureData = ref<string | null>(null)
+const declarationAccepted = ref(false)
+const signatureRef = ref<{
+  clear: () => void
+  getSignatureData: () => string | null
+  isEmpty: () => boolean
+} | null>(null)
+
+// Checkpoint status tracking (US-9.3)
+const checkpointsComplete = ref(false)
+
+function onCheckpointUpdate(status: { allRequiredComplete: boolean }) {
+  checkpointsComplete.value = status.allRequiredComplete
+}
+
+function onCheckpointsComplete() {
+  checkpointsComplete.value = true
+}
+
+// Default declaration text - can be customized via inspection template in production
+const declarationText = computed(() => {
+  if (!inspection.value) return ''
+  const hasFailures = orderedItems.value.some((i) => getItemState(i.id).result === 'fail')
+  if (hasFailures) {
+    return `I, ${inspection.value.operator.firstName} ${inspection.value.operator.lastName}, declare that I have completed this pre-start inspection for asset ${inspection.value.asset.assetNumber}. I have identified defects/issues which have been documented above. I understand that I must report these issues to my supervisor before operating this equipment.`
+  }
+  return `I, ${inspection.value.operator.firstName} ${inspection.value.operator.lastName}, declare that I have completed this pre-start inspection for asset ${inspection.value.asset.assetNumber}. I confirm that all items have been checked and the equipment is safe to operate.`
+})
+
+// Handle signature update
+function onSignatureChange(signature: string | null) {
+  signatureData.value = signature
+}
+
+// Check if sign-off is valid
+const canSignOff = computed(() => {
+  return canComplete.value && declarationAccepted.value && signatureData.value !== null
+})
 
 // Initialize item states when inspection loads
 watch(
@@ -185,7 +233,8 @@ const validationErrors = computed(() => {
   return errors
 })
 
-const canComplete = computed(() => validationErrors.value.length === 0)
+// US-9.3: Include checkpoint completion check
+const canComplete = computed(() => validationErrors.value.length === 0 && checkpointsComplete.value)
 
 // Set result for an item
 function setItemResult(checklistItemId: string, result: ItemResult) {
@@ -286,13 +335,14 @@ async function saveProgress() {
   }
 }
 
-// Complete inspection
+// Complete inspection with sign-off (US-9.4)
 async function completeInspection() {
-  if (!canComplete.value || !inspection.value) return
+  if (!canSignOff.value || !inspection.value || !signatureData.value) return
 
   isSubmitting.value = true
 
   try {
+    // First, save all item responses
     const items = orderedItems.value.map((item) => {
       const state = getItemState(item.id)
       return {
@@ -307,14 +357,25 @@ async function completeInspection() {
       method: 'POST',
       body: {
         items: items.filter((i) => i.result !== 'pending'),
-        complete: true,
+        complete: false, // Don't complete yet, we'll do that in sign-off
+        notes: completionNotes.value || undefined,
+      },
+    })
+
+    // Then, sign off the inspection
+    await $fetch(`/api/inspections/${inspectionId}/sign-off`, {
+      method: 'POST',
+      body: {
+        signatureData: signatureData.value,
+        declarationText: declarationText.value,
+        declarationAccepted: true,
         notes: completionNotes.value || undefined,
       },
     })
 
     toast.add({
       title: 'Inspection Complete',
-      description: 'The pre-start inspection has been submitted successfully.',
+      description: 'The pre-start inspection has been signed off and submitted successfully.',
       color: 'success',
     })
 
@@ -333,6 +394,17 @@ async function completeInspection() {
     isSubmitting.value = false
   }
 }
+
+// Reset sign-off state when modal closes
+watch(showCompletionModal, (isOpen) => {
+  if (!isOpen) {
+    signatureData.value = null
+    declarationAccepted.value = false
+    if (signatureRef.value) {
+      signatureRef.value.clear()
+    }
+  }
+})
 
 // Auto-save on changes (debounced)
 let saveTimeout: ReturnType<typeof setTimeout> | null = null
@@ -447,24 +519,74 @@ async function handleFileSelect(event: Event) {
       <UButton label="Go Back" @click="router.back()" />
     </div>
 
-    <!-- Completed state -->
-    <div v-else-if="inspection?.status === 'completed'" class="text-center py-12 px-4">
-      <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-success mx-auto mb-4" />
-      <h2 class="text-xl font-bold mb-2">Inspection Complete</h2>
-      <p class="text-muted mb-2">
-        This inspection was completed on
-        {{ new Date(inspection.completedAt!).toLocaleDateString('en-AU', { dateStyle: 'medium' }) }}
-      </p>
-      <UBadge
-        :color="inspection.overallResult === 'pass' ? 'success' : inspection.overallResult === 'fail' ? 'error' : 'warning'"
-        size="lg"
-        class="mb-6"
-      >
-        {{ inspection.overallResult?.toUpperCase() || 'N/A' }}
-      </UBadge>
-      <div class="flex justify-center gap-3">
-        <UButton label="View Details" variant="outline" :to="`/assets/${inspection.asset.id}`" />
-        <UButton label="Done" color="primary" @click="router.push('/operator/session')" />
+    <!-- Completed state (US-9.4: includes sign-off info) -->
+    <div v-else-if="inspection?.status === 'completed'" class="py-8 px-4">
+      <div class="max-w-md mx-auto">
+        <!-- Success header -->
+        <div class="text-center mb-6">
+          <UIcon name="i-lucide-check-circle" class="w-16 h-16 text-success mx-auto mb-4" />
+          <h2 class="text-xl font-bold mb-2">Inspection Complete</h2>
+          <p class="text-muted mb-2">
+            This inspection was completed on
+            {{ new Date(inspection.completedAt!).toLocaleDateString('en-AU', { dateStyle: 'medium' }) }}
+            at {{ new Date(inspection.completedAt!).toLocaleTimeString('en-AU', { timeStyle: 'short' }) }}
+          </p>
+          <UBadge
+            :color="inspection.overallResult === 'pass' ? 'success' : inspection.overallResult === 'fail' ? 'error' : 'warning'"
+            size="lg"
+          >
+            {{ inspection.overallResult?.toUpperCase() || 'N/A' }}
+          </UBadge>
+        </div>
+
+        <!-- Sign-off details (US-9.4) -->
+        <div v-if="inspection.signedAt" class="bg-elevated rounded-lg border border-default p-4 mb-6 space-y-4">
+          <h3 class="font-medium flex items-center gap-2">
+            <UIcon name="i-lucide-file-check" class="w-4 h-4" />
+            Sign-Off Details
+          </h3>
+
+          <!-- Signed by and time -->
+          <div class="flex items-center gap-3 text-sm">
+            <UAvatar
+              :alt="`${inspection.signedBy?.firstName || inspection.operator.firstName} ${inspection.signedBy?.lastName || inspection.operator.lastName}`"
+              size="sm"
+            />
+            <div>
+              <p class="font-medium">
+                {{ inspection.signedBy?.firstName || inspection.operator.firstName }}
+                {{ inspection.signedBy?.lastName || inspection.operator.lastName }}
+              </p>
+              <p class="text-muted text-xs">
+                Signed {{ new Date(inspection.signedAt).toLocaleDateString('en-AU', { dateStyle: 'medium' }) }}
+                at {{ new Date(inspection.signedAt).toLocaleTimeString('en-AU', { timeStyle: 'short' }) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Declaration text -->
+          <div v-if="inspection.declarationText" class="bg-muted/20 rounded-lg p-3 border border-muted/30">
+            <p class="text-xs text-muted italic">{{ inspection.declarationText }}</p>
+          </div>
+
+          <!-- Signature image -->
+          <div v-if="inspection.signatureUrl" class="space-y-2">
+            <p class="text-xs text-muted">Digital Signature:</p>
+            <div class="bg-white rounded-lg border border-default p-2 inline-block">
+              <img
+                :src="inspection.signatureUrl"
+                alt="Digital signature"
+                class="max-h-24 w-auto"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-center gap-3">
+          <UButton label="View Asset" variant="outline" :to="`/assets/${inspection.asset.id}`" />
+          <UButton label="Done" color="primary" @click="router.push('/operator/session')" />
+        </div>
       </div>
     </div>
 
@@ -474,6 +596,13 @@ async function handleFileSelect(event: Event) {
       <div v-if="inspection.template.description" class="p-4 bg-muted/30 rounded-lg">
         <p class="text-sm">{{ inspection.template.description }}</p>
       </div>
+
+      <!-- Walk-Around Checkpoints (US-9.3) -->
+      <InspectionCheckpointScanner
+        :inspection-id="inspection.id"
+        @update="onCheckpointUpdate"
+        @complete="onCheckpointsComplete"
+      />
 
       <!-- Checklist Items -->
       <div class="space-y-3">
@@ -633,9 +762,10 @@ async function handleFileSelect(event: Event) {
     >
       <div class="space-y-2">
         <!-- Validation warnings -->
-        <div v-if="validationErrors.length > 0 && progress.completed > 0" class="text-xs text-warning">
+        <div v-if="(validationErrors.length > 0 || !checkpointsComplete) && progress.completed > 0" class="text-xs text-warning">
           <p class="font-medium mb-1">Cannot complete yet:</p>
           <ul class="list-disc list-inside space-y-0.5">
+            <li v-if="!checkpointsComplete">Required checkpoints not scanned</li>
             <li v-for="error in validationErrors.slice(0, 3)" :key="error">{{ error }}</li>
             <li v-if="validationErrors.length > 3">...and {{ validationErrors.length - 3 }} more</li>
           </ul>
@@ -703,13 +833,13 @@ async function handleFileSelect(event: Event) {
       </template>
     </UModal>
 
-    <!-- Completion Modal -->
+    <!-- Completion Modal with Sign-Off (US-9.4) -->
     <UModal v-model:open="showCompletionModal">
       <template #content>
-        <UCard>
+        <UCard class="max-h-[90vh] overflow-y-auto">
           <template #header>
             <div class="flex items-center justify-between">
-              <h3 class="font-medium">Complete Inspection</h3>
+              <h3 class="font-medium">Sign Off Inspection</h3>
               <UButton
                 icon="i-lucide-x"
                 variant="ghost"
@@ -720,7 +850,7 @@ async function handleFileSelect(event: Event) {
             </div>
           </template>
 
-          <div class="space-y-4">
+          <div class="space-y-6">
             <!-- Summary -->
             <div class="p-4 bg-muted/30 rounded-lg">
               <div class="grid grid-cols-3 gap-4 text-center">
@@ -754,13 +884,64 @@ async function handleFileSelect(event: Event) {
               description="This inspection has failed items. The asset may require attention before operation."
             />
 
+            <!-- Additional Notes -->
             <UFormField label="Additional Notes (optional)">
               <UTextarea
                 v-model="completionNotes"
                 placeholder="Any final notes about this inspection..."
-                :rows="3"
+                :rows="2"
               />
             </UFormField>
+
+            <!-- Declaration Section -->
+            <div class="space-y-3">
+              <h4 class="font-medium text-sm flex items-center gap-2">
+                <UIcon name="i-lucide-file-check" class="w-4 h-4" />
+                Declaration
+              </h4>
+              <div class="p-4 bg-muted/20 rounded-lg border border-default">
+                <p class="text-sm leading-relaxed">{{ declarationText }}</p>
+              </div>
+              <label class="flex items-start gap-3 cursor-pointer">
+                <UCheckbox
+                  v-model="declarationAccepted"
+                  class="mt-0.5"
+                />
+                <span class="text-sm">
+                  I have read and agree to the above declaration
+                  <span class="text-error">*</span>
+                </span>
+              </label>
+            </div>
+
+            <!-- Signature Section -->
+            <div class="space-y-3">
+              <h4 class="font-medium text-sm flex items-center gap-2">
+                <UIcon name="i-lucide-pen-tool" class="w-4 h-4" />
+                Signature
+                <span class="text-error">*</span>
+              </h4>
+              <InspectionsSignatureCapture
+                ref="signatureRef"
+                :height="150"
+                :disabled="!declarationAccepted"
+                @change="onSignatureChange"
+              />
+              <p v-if="!declarationAccepted" class="text-xs text-muted">
+                Please accept the declaration above before signing
+              </p>
+            </div>
+
+            <!-- Validation Summary -->
+            <div v-if="!canSignOff" class="p-3 bg-warning/10 border border-warning/30 rounded-lg">
+              <p class="text-sm text-warning font-medium mb-1">Cannot complete yet:</p>
+              <ul class="text-xs text-muted space-y-0.5 list-disc list-inside">
+                <li v-if="!checkpointsComplete">Required checkpoints not scanned</li>
+                <li v-if="!declarationAccepted">Accept the declaration</li>
+                <li v-if="!signatureData">Provide your signature</li>
+                <li v-for="error in validationErrors.slice(0, 2)" :key="error">{{ error }}</li>
+              </ul>
+            </div>
           </div>
 
           <template #footer>
@@ -771,10 +952,11 @@ async function handleFileSelect(event: Event) {
                 @click="showCompletionModal = false"
               />
               <UButton
-                label="Submit Inspection"
+                label="Sign & Submit"
                 color="success"
                 icon="i-lucide-check-circle"
                 :loading="isSubmitting"
+                :disabled="!canSignOff"
                 @click="completeInspection"
               />
             </div>

@@ -40,6 +40,12 @@ export const organisations = pgTable('organisations', {
   certificationEnforcement: certificationEnforcementEnum('certification_enforcement')
     .default('warn')
     .notNull(),
+  // Handover threshold in minutes - sessions within this time are linked (US-8.5)
+  // Default 30 minutes
+  handoverThresholdMinutes: integer('handover_threshold_minutes').default(30).notNull(),
+  // Defect escalation settings (US-9.5)
+  // If true, auto-create work orders when defects are created (for major/critical severity)
+  autoCreateWorkOrderOnDefect: boolean('auto_create_work_order_on_defect').default(true).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

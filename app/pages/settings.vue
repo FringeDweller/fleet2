@@ -41,6 +41,11 @@ const links = [
       to: '/settings/asset-categories',
     },
     {
+      label: 'Inspection Checkpoints',
+      icon: 'i-lucide-scan',
+      to: '/settings/inspection-checkpoints',
+    },
+    {
       label: 'Task Templates',
       icon: 'i-lucide-clipboard-list',
       to: '/settings/task-templates',

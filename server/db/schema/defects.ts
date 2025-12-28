@@ -1,5 +1,7 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { assets } from './assets'
+import { inspectionItems } from './inspection-items'
+import { inspections } from './inspections'
 import { organisations } from './organisations'
 import { users } from './users'
 import { workOrders } from './work-orders'
@@ -23,8 +25,12 @@ export const defects = pgTable(
     assetId: uuid('asset_id')
       .notNull()
       .references(() => assets.id, { onDelete: 'cascade' }),
-    // Future: can link to an inspection record
-    inspectionId: uuid('inspection_id'),
+    // Link to the original inspection that created this defect
+    inspectionId: uuid('inspection_id').references(() => inspections.id, { onDelete: 'set null' }),
+    // Link to the specific inspection item that failed
+    inspectionItemId: uuid('inspection_item_id').references(() => inspectionItems.id, {
+      onDelete: 'set null',
+    }),
     // Auto-generated work order for this defect
     workOrderId: uuid('work_order_id').references(() => workOrders.id, { onDelete: 'set null' }),
     // Who reported the defect
@@ -52,6 +58,8 @@ export const defects = pgTable(
   (table) => [
     index('defects_organisation_id_idx').on(table.organisationId),
     index('defects_asset_id_idx').on(table.assetId),
+    index('defects_inspection_id_idx').on(table.inspectionId),
+    index('defects_inspection_item_id_idx').on(table.inspectionItemId),
     index('defects_work_order_id_idx').on(table.workOrderId),
     index('defects_status_idx').on(table.status),
     index('defects_severity_idx').on(table.severity),
