@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from '@nuxt/ui'
+import type { FormSubmitEvent, TableColumn } from '@nuxt/ui'
 import { formatDistanceToNow } from 'date-fns'
 import * as z from 'zod'
 
@@ -42,6 +42,23 @@ interface Part {
   updatedAt: string
 }
 
+interface LocationQuantity {
+  id: string
+  locationId: string
+  locationName: string
+  locationType: string
+  locationCode: string | null
+  quantity: number
+}
+
+interface PartLocationsResponse {
+  partId: string
+  totalQuantity: number
+  locations: LocationQuantity[]
+}
+
+const UBadge = resolveComponent('UBadge')
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
@@ -54,6 +71,92 @@ const {
 } = await useFetch<Part>(`/api/parts/${route.params.id}`, {
   lazy: true,
 })
+
+// Fetch location quantities
+const {
+  data: locationData,
+  status: locationStatus,
+  refresh: refreshLocations,
+} = await useFetch<PartLocationsResponse>(`/api/parts/${route.params.id}/locations`, {
+  lazy: true,
+})
+
+const partLocations = computed(() => locationData.value?.locations || [])
+const hasMultipleLocations = computed(() => partLocations.value.length > 1)
+
+const locationTypeColors: Record<string, string> = {
+  warehouse: 'primary',
+  bin: 'info',
+  shelf: 'success',
+  truck: 'warning',
+  building: 'neutral',
+  room: 'neutral',
+  other: 'neutral',
+}
+
+const locationTypeLabels: Record<string, string> = {
+  warehouse: 'Warehouse',
+  bin: 'Bin',
+  shelf: 'Shelf',
+  truck: 'Truck',
+  building: 'Building',
+  room: 'Room',
+  other: 'Other',
+}
+
+const locationColumns: TableColumn<LocationQuantity>[] = [
+  {
+    accessorKey: 'locationName',
+    header: 'Location',
+    cell: ({ row }) =>
+      h('div', [
+        h('p', { class: 'font-medium' }, row.original.locationName),
+        row.original.locationCode
+          ? h('p', { class: 'text-sm text-muted font-mono' }, row.original.locationCode)
+          : null,
+      ]),
+  },
+  {
+    accessorKey: 'locationType',
+    header: 'Type',
+    cell: ({ row }) =>
+      h(
+        UBadge,
+        {
+          color: (locationTypeColors[row.original.locationType] as any) || 'neutral',
+          variant: 'subtle',
+          size: 'sm',
+        },
+        () => locationTypeLabels[row.original.locationType] || row.original.locationType,
+      ),
+  },
+  {
+    accessorKey: 'quantity',
+    header: 'Quantity',
+    cell: ({ row }) =>
+      h('div', { class: 'text-right' }, [
+        h('span', { class: 'font-bold text-lg' }, row.original.quantity.toLocaleString()),
+        h('span', { class: 'text-muted ml-1' }, part.value?.unit || ''),
+      ]),
+  },
+  {
+    id: 'percentage',
+    header: '% of Total',
+    cell: ({ row }) => {
+      const total = parseFloat(part.value?.quantityInStock || '0')
+      const pct = total > 0 ? (row.original.quantity / total) * 100 : 0
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('div', { class: 'flex-1 h-2 bg-muted/20 rounded-full overflow-hidden' }, [
+          h('div', {
+            class: 'h-full bg-primary rounded-full',
+            style: { width: `${pct}%` },
+          }),
+        ]),
+        h('span', { class: 'text-sm text-muted w-12 text-right' }, `${pct.toFixed(1)}%`),
+      ])
+    },
+  },
+]
 
 // Active tab
 const activeTab = ref((route.query.tab as string) || 'details')
@@ -249,6 +352,7 @@ const formatDate = (date: string) => {
           v-model="activeTab"
           :items="[
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
+            { label: 'Locations', value: 'locations', icon: 'i-lucide-map-pin', badge: partLocations.length > 0 ? partLocations.length.toString() : undefined },
             { label: 'Adjust Stock', value: 'adjust', icon: 'i-lucide-package-plus' },
             { label: 'History', value: 'history', icon: 'i-lucide-history' }
           ]"
@@ -412,6 +516,62 @@ const formatDate = (date: string) => {
             </div>
           </dl>
         </UCard>
+
+        <!-- Locations Tab -->
+        <div v-if="activeTab === 'locations'">
+          <UCard>
+            <template #header>
+              <div class="flex items-center justify-between">
+                <h3 class="font-medium">Stock by Location</h3>
+                <NuxtLink to="/inventory/transfers">
+                  <UButton
+                    label="Transfer Stock"
+                    icon="i-lucide-arrow-right-left"
+                    color="primary"
+                    variant="outline"
+                    size="sm"
+                  />
+                </NuxtLink>
+              </div>
+            </template>
+
+            <div v-if="locationStatus === 'pending'" class="flex items-center justify-center py-8">
+              <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-muted" />
+            </div>
+
+            <div v-else-if="partLocations.length === 0" class="text-center py-8">
+              <UIcon name="i-lucide-map-pin" class="w-10 h-10 text-muted mx-auto mb-3" />
+              <p class="text-muted mb-2">No location quantities recorded</p>
+              <p class="text-sm text-muted">
+                Stock is tracked at the part level. To track by location, use the transfer feature.
+              </p>
+            </div>
+
+            <div v-else>
+              <UTable
+                :data="partLocations"
+                :columns="locationColumns"
+                :ui="{
+                  base: 'table-fixed border-separate border-spacing-0',
+                  thead: '[&>tr]:bg-elevated/50 [&>tr]:after:content-none',
+                  tbody: '[&>tr]:last:[&>td]:border-b-0',
+                  th: 'py-2 first:rounded-l-lg last:rounded-r-lg border-y border-default first:border-l last:border-r',
+                  td: 'border-b border-default',
+                }"
+              />
+
+              <!-- Location Summary -->
+              <div class="mt-4 p-4 bg-elevated/50 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <span class="text-muted">Total across {{ partLocations.length }} location{{ partLocations.length > 1 ? 's' : '' }}</span>
+                  <span class="font-bold text-xl">
+                    {{ parseFloat(part.quantityInStock).toLocaleString() }} {{ part.unit }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </UCard>
+        </div>
 
         <!-- Adjust Stock Tab -->
         <div v-if="activeTab === 'adjust'" class="max-w-lg">

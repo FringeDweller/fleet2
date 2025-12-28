@@ -12,6 +12,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 import { organisations } from './organisations'
+import { taskGroups } from './task-groups'
 
 export interface TemplateChecklistItem {
   id: string
@@ -39,6 +40,7 @@ export const taskTemplates = pgTable(
     organisationId: uuid('organisation_id')
       .notNull()
       .references(() => organisations.id, { onDelete: 'cascade' }),
+    groupId: uuid('group_id').references(() => taskGroups.id, { onDelete: 'set null' }),
     name: varchar('name', { length: 200 }).notNull(),
     description: text('description'),
     category: varchar('category', { length: 100 }),
@@ -56,6 +58,7 @@ export const taskTemplates = pgTable(
   },
   (table) => [
     index('task_templates_organisation_id_idx').on(table.organisationId),
+    index('task_templates_group_id_idx').on(table.groupId),
     index('task_templates_is_archived_idx').on(table.isArchived),
     index('task_templates_category_idx').on(table.category),
   ],

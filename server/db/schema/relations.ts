@@ -1,20 +1,28 @@
 import { relations } from 'drizzle-orm'
 import { assetCategories } from './asset-categories'
 import { assetCategoryParts } from './asset-category-parts'
+import { assetDocuments } from './asset-documents'
 import { assetLocationHistory } from './asset-location-history'
 import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
 import { defects } from './defects'
+import { inventoryCountItems } from './inventory-count-items'
+import { inventoryCountSessions } from './inventory-count-sessions'
+import { inventoryTransfers } from './inventory-transfers'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
 import { organisations } from './organisations'
 import { partCategories } from './part-categories'
+import { partLocationQuantities } from './part-location-quantities'
 import { partUsageHistory } from './part-usage-history'
 import { parts } from './parts'
 import { roles } from './roles'
 import { savedSearches } from './saved-searches'
 import { sessions } from './sessions'
+import { storageLocations } from './storage-locations'
+import { taskGroups } from './task-groups'
+import { taskOverrides } from './task-overrides'
 import { taskTemplateParts } from './task-template-parts'
 import { taskTemplates } from './task-templates'
 import { users } from './users'
@@ -29,7 +37,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   assetCategories: many(assetCategories),
   assets: many(assets),
   auditLogs: many(auditLog),
+  taskGroups: many(taskGroups),
   taskTemplates: many(taskTemplates),
+  taskOverrides: many(taskOverrides),
   workOrders: many(workOrders),
   maintenanceSchedules: many(maintenanceSchedules),
   notifications: many(notifications),
@@ -37,6 +47,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   partCategories: many(partCategories),
   parts: many(parts),
   defects: many(defects),
+  storageLocations: many(storageLocations),
+  partLocationQuantities: many(partLocationQuantities),
+  inventoryTransfers: many(inventoryTransfers),
 }))
 
 export const rolesRelations = relations(roles, ({ many }) => ({
@@ -54,6 +67,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   sessions: many(sessions),
   auditLogs: many(auditLog),
+  taskGroups: many(taskGroups),
   assignedWorkOrders: many(workOrders, { relationName: 'assignedWorkOrders' }),
   createdWorkOrders: many(workOrders, { relationName: 'createdWorkOrders' }),
   notifications: many(notifications),
@@ -94,6 +108,7 @@ export const assetCategoriesRelations = relations(assetCategories, ({ one, many 
   assets: many(assets),
   maintenanceSchedules: many(maintenanceSchedules),
   compatibleParts: many(assetCategoryParts),
+  taskOverrides: many(taskOverrides),
 }))
 
 export const assetsRelations = relations(assets, ({ one, many }) => ({
@@ -109,7 +124,9 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   maintenanceSchedules: many(maintenanceSchedules),
   compatibleParts: many(assetParts),
   locationHistory: many(assetLocationHistory),
+  documents: many(assetDocuments),
   defects: many(defects),
+  taskOverrides: many(taskOverrides),
 }))
 
 // Asset Location History Relations
@@ -124,14 +141,48 @@ export const assetLocationHistoryRelations = relations(assetLocationHistory, ({ 
   }),
 }))
 
+// Asset Documents Relations
+export const assetDocumentsRelations = relations(assetDocuments, ({ one }) => ({
+  asset: one(assets, {
+    fields: [assetDocuments.assetId],
+    references: [assets.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [assetDocuments.uploadedById],
+    references: [users.id],
+  }),
+}))
+
+// Task Groups Relations
+export const taskGroupsRelations = relations(taskGroups, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [taskGroups.organisationId],
+    references: [organisations.id],
+  }),
+  parent: one(taskGroups, {
+    fields: [taskGroups.parentId],
+    references: [taskGroups.id],
+    relationName: 'taskGroupParentChild',
+  }),
+  children: many(taskGroups, {
+    relationName: 'taskGroupParentChild',
+  }),
+  templates: many(taskTemplates),
+}))
+
 // Task Templates Relations
 export const taskTemplatesRelations = relations(taskTemplates, ({ one, many }) => ({
   organisation: one(organisations, {
     fields: [taskTemplates.organisationId],
     references: [organisations.id],
   }),
+  group: one(taskGroups, {
+    fields: [taskTemplates.groupId],
+    references: [taskGroups.id],
+  }),
   workOrders: many(workOrders),
   templateParts: many(taskTemplateParts),
+  overrides: many(taskOverrides),
 }))
 
 // Task Template Parts Relations
@@ -215,6 +266,11 @@ export const workOrderPartsRelations = relations(workOrderParts, ({ one }) => ({
   part: one(parts, {
     fields: [workOrderParts.partId],
     references: [parts.id],
+  }),
+  // Optional source location for multi-location inventory
+  sourceLocation: one(storageLocations, {
+    fields: [workOrderParts.sourceLocationId],
+    references: [storageLocations.id],
   }),
 }))
 
@@ -397,5 +453,126 @@ export const defectsRelations = relations(defects, ({ one }) => ({
     fields: [defects.resolvedById],
     references: [users.id],
     relationName: 'defectResolvedBy',
+  }),
+}))
+// Task Overrides Relations
+export const taskOverridesRelations = relations(taskOverrides, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [taskOverrides.organisationId],
+    references: [organisations.id],
+  }),
+  taskTemplate: one(taskTemplates, {
+    fields: [taskOverrides.taskTemplateId],
+    references: [taskTemplates.id],
+  }),
+  asset: one(assets, {
+    fields: [taskOverrides.assetId],
+    references: [assets.id],
+  }),
+  category: one(assetCategories, {
+    fields: [taskOverrides.categoryId],
+    references: [assetCategories.id],
+  }),
+}))
+
+export const inventoryCountSessionsRelations = relations(
+  inventoryCountSessions,
+  ({ one, many }) => ({
+    organisation: one(organisations, {
+      fields: [inventoryCountSessions.organisationId],
+      references: [organisations.id],
+    }),
+    startedBy: one(users, {
+      fields: [inventoryCountSessions.startedById],
+      references: [users.id],
+      relationName: 'inventoryCountSessionStartedBy',
+    }),
+    completedBy: one(users, {
+      fields: [inventoryCountSessions.completedById],
+      references: [users.id],
+      relationName: 'inventoryCountSessionCompletedBy',
+    }),
+    cancelledBy: one(users, {
+      fields: [inventoryCountSessions.cancelledById],
+      references: [users.id],
+      relationName: 'inventoryCountSessionCancelledBy',
+    }),
+    items: many(inventoryCountItems),
+  }),
+)
+
+export const inventoryCountItemsRelations = relations(inventoryCountItems, ({ one }) => ({
+  session: one(inventoryCountSessions, {
+    fields: [inventoryCountItems.sessionId],
+    references: [inventoryCountSessions.id],
+  }),
+  part: one(parts, {
+    fields: [inventoryCountItems.partId],
+    references: [parts.id],
+  }),
+  adjustedBy: one(users, {
+    fields: [inventoryCountItems.adjustedById],
+    references: [users.id],
+  }),
+}))
+
+// Storage Locations Relations
+export const storageLocationsRelations = relations(storageLocations, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [storageLocations.organisationId],
+    references: [organisations.id],
+  }),
+  parent: one(storageLocations, {
+    fields: [storageLocations.parentId],
+    references: [storageLocations.id],
+    relationName: 'locationParentChild',
+  }),
+  children: many(storageLocations, {
+    relationName: 'locationParentChild',
+  }),
+  partQuantities: many(partLocationQuantities),
+  transfersFrom: many(inventoryTransfers, { relationName: 'transfersFrom' }),
+  transfersTo: many(inventoryTransfers, { relationName: 'transfersTo' }),
+}))
+
+// Part Location Quantities Relations
+export const partLocationQuantitiesRelations = relations(partLocationQuantities, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [partLocationQuantities.organisationId],
+    references: [organisations.id],
+  }),
+  part: one(parts, {
+    fields: [partLocationQuantities.partId],
+    references: [parts.id],
+  }),
+  location: one(storageLocations, {
+    fields: [partLocationQuantities.locationId],
+    references: [storageLocations.id],
+  }),
+}))
+
+// Inventory Transfers Relations
+export const inventoryTransfersRelations = relations(inventoryTransfers, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [inventoryTransfers.organisationId],
+    references: [organisations.id],
+  }),
+  part: one(parts, {
+    fields: [inventoryTransfers.partId],
+    references: [parts.id],
+  }),
+  fromLocation: one(storageLocations, {
+    fields: [inventoryTransfers.fromLocationId],
+    references: [storageLocations.id],
+    relationName: 'transfersFrom',
+  }),
+  toLocation: one(storageLocations, {
+    fields: [inventoryTransfers.toLocationId],
+    references: [storageLocations.id],
+    relationName: 'transfersTo',
+  }),
+  transferredBy: one(users, {
+    fields: [inventoryTransfers.transferredById],
+    references: [users.id],
   }),
 }))

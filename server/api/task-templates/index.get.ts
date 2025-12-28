@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
   const search = query.search as string | undefined
   const includeArchived = query.includeArchived === 'true'
   const activeOnly = query.activeOnly === 'true'
+  const groupId = query.groupId as string | undefined
 
   const conditions = [eq(schema.taskTemplates.organisationId, session.user.organisationId)]
 
@@ -28,6 +29,10 @@ export default defineEventHandler(async (event) => {
 
   if (search) {
     conditions.push(ilike(schema.taskTemplates.name, `%${search}%`))
+  }
+
+  if (groupId) {
+    conditions.push(eq(schema.taskTemplates.groupId, groupId))
   }
 
   const templates = await db.query.taskTemplates.findMany({

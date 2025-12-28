@@ -23,6 +23,7 @@ const updateTemplateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   description: z.string().optional().nullable(),
   category: z.string().max(100).optional().nullable(),
+  groupId: z.string().uuid().optional().nullable(),
   estimatedDuration: z.number().int().positive().optional().nullable(),
   estimatedCost: z.number().positive().optional().nullable(),
   skillLevel: z.enum(['entry', 'intermediate', 'advanced', 'expert']).optional().nullable(),
@@ -91,6 +92,7 @@ export default defineEventHandler(async (event) => {
   if (result.data.name !== undefined) updateData.name = result.data.name
   if (result.data.description !== undefined) updateData.description = result.data.description
   if (result.data.category !== undefined) updateData.category = result.data.category
+  if (result.data.groupId !== undefined) updateData.groupId = result.data.groupId
   if (result.data.estimatedDuration !== undefined)
     updateData.estimatedDuration = result.data.estimatedDuration
   if (result.data.estimatedCost !== undefined)

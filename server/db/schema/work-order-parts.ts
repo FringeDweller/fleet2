@@ -9,6 +9,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 import { parts } from './parts'
+import { storageLocations } from './storage-locations'
 import { users } from './users'
 import { workOrders } from './work-orders'
 
@@ -21,6 +22,10 @@ export const workOrderParts = pgTable(
       .references(() => workOrders.id, { onDelete: 'cascade' }),
     // Optional link to parts inventory - when set, enables stock tracking and deduction
     partId: uuid('part_id').references(() => parts.id, { onDelete: 'set null' }),
+    // Optional source location for multi-location inventory
+    sourceLocationId: uuid('source_location_id').references(() => storageLocations.id, {
+      onDelete: 'set null',
+    }),
     partName: varchar('part_name', { length: 200 }).notNull(),
     partNumber: varchar('part_number', { length: 100 }),
     quantity: integer('quantity').notNull().default(1),
@@ -36,6 +41,7 @@ export const workOrderParts = pgTable(
   (table) => [
     index('work_order_parts_work_order_id_idx').on(table.workOrderId),
     index('work_order_parts_part_id_idx').on(table.partId),
+    index('work_order_parts_source_location_id_idx').on(table.sourceLocationId),
   ],
 )
 

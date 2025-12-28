@@ -375,6 +375,14 @@ const pagination = ref({
             @click="router.push('/work-orders/kanban')"
           />
           <UButton
+            label="Calendar View"
+            icon="i-lucide-calendar"
+            color="neutral"
+            variant="outline"
+            class="mr-2"
+            @click="router.push('/maintenance/calendar')"
+          />
+          <UButton
             label="New Work Order"
             icon="i-lucide-plus"
             color="primary"

@@ -143,10 +143,38 @@ interface DefectsResponse {
   }
 }
 
+interface Document {
+  id: string
+  assetId: string
+  name: string
+  filePath: string
+  fileType: string
+  fileSize: number
+  description: string | null
+  documentType:
+    | 'registration'
+    | 'insurance'
+    | 'inspection'
+    | 'certification'
+    | 'manual'
+    | 'warranty'
+    | 'other'
+  expiryDate: string | null
+  uploadedById: string
+  uploadedBy: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+  createdAt: string
+  updatedAt: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
 const { cacheAsset, getCachedAsset, isOnline } = useAssetCache()
+const { isNfcAvailable, writeAssetTag } = useNfc()
 
 // Tab state
 const activeTab = ref((route.query.tab as string) || 'details')
@@ -201,6 +229,15 @@ const {
   lazy: true,
 })
 
+// Fetch documents for this asset
+const {
+  data: documentsData,
+  status: documentsStatus,
+  refresh: refreshDocuments,
+} = await useFetch<Document[]>(`/api/assets/${route.params.id}/documents`, {
+  lazy: true,
+})
+
 // Add part modal state
 const showAddPartModal = ref(false)
 const addingPart = ref(false)
@@ -228,6 +265,24 @@ const defectForm = ref({
   severity: 'minor' as 'minor' | 'major' | 'critical',
   location: '',
   autoCreateWorkOrder: true,
+})
+
+// Upload document modal state
+const showUploadDocumentModal = ref(false)
+const uploadingDocument = ref(false)
+const documentForm = ref({
+  name: '',
+  description: '',
+  documentType: 'other' as
+    | 'registration'
+    | 'insurance'
+    | 'inspection'
+    | 'certification'
+    | 'manual'
+    | 'warranty'
+    | 'other',
+  expiryDate: '',
+  file: null as File | null,
 })
 
 const severityOptions = [
@@ -397,6 +452,116 @@ async function getCurrentPosition() {
   )
 }
 
+const documentTypeOptions = [
+  { label: 'Registration', value: 'registration' },
+  { label: 'Insurance', value: 'insurance' },
+  { label: 'Inspection', value: 'inspection' },
+  { label: 'Certification', value: 'certification' },
+  { label: 'Manual', value: 'manual' },
+  { label: 'Warranty', value: 'warranty' },
+  { label: 'Other', value: 'other' },
+]
+
+function openUploadDocumentModal() {
+  documentForm.value = {
+    name: '',
+    description: '',
+    documentType: 'other',
+    expiryDate: '',
+    file: null,
+  }
+  showUploadDocumentModal.value = true
+}
+
+async function uploadDocument() {
+  if (!documentForm.value.file || !documentForm.value.name.trim()) return
+
+  uploadingDocument.value = true
+  try {
+    // In a real implementation, this would upload to a file storage service
+    // For now, we'll simulate it with a placeholder path
+    const filePath = `/uploads/documents/${route.params.id}/${Date.now()}-${documentForm.value.file.name}`
+
+    await $fetch(`/api/assets/${route.params.id}/documents`, {
+      method: 'POST',
+      body: {
+        name: documentForm.value.name,
+        filePath,
+        fileType: documentForm.value.file.type,
+        fileSize: documentForm.value.file.size,
+        description: documentForm.value.description || undefined,
+        documentType: documentForm.value.documentType,
+        expiryDate: documentForm.value.expiryDate
+          ? new Date(documentForm.value.expiryDate).toISOString()
+          : undefined,
+      },
+    })
+
+    toast.add({
+      title: 'Document uploaded',
+      description: 'The document has been uploaded successfully.',
+      color: 'success',
+    })
+
+    showUploadDocumentModal.value = false
+    refreshDocuments()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Error',
+      description: error.data?.statusMessage || 'Failed to upload document.',
+      color: 'error',
+    })
+  } finally {
+    uploadingDocument.value = false
+  }
+}
+
+async function deleteDocument(docId: string, docName: string) {
+  if (!confirm(`Are you sure you want to delete "${docName}"?`)) return
+
+  try {
+    await $fetch(`/api/assets/${route.params.id}/documents/${docId}`, {
+      method: 'DELETE',
+    })
+
+    toast.add({
+      title: 'Document deleted',
+      description: 'The document has been deleted successfully.',
+    })
+
+    refreshDocuments()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Error',
+      description: error.data?.statusMessage || 'Failed to delete document.',
+      color: 'error',
+    })
+  }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`
+}
+
+function isDocumentExpiringSoon(expiryDate: string | null): boolean {
+  if (!expiryDate) return false
+  const expiry = new Date(expiryDate)
+  const now = new Date()
+  const daysUntilExpiry = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  return daysUntilExpiry <= 30 && daysUntilExpiry >= 0
+}
+
+function isDocumentExpired(expiryDate: string | null): boolean {
+  if (!expiryDate) return false
+  return new Date(expiryDate) < new Date()
+}
+
 const availableParts = computed(() => {
   if (!allPartsData.value?.data) return []
   const assignedIds = new Set(compatiblePartsData.value?.data?.map((cp) => cp.partId) || [])
@@ -522,6 +687,64 @@ const formatCurrency = (value: number | string | null | undefined) => {
     style: 'currency',
     currency: 'AUD',
   }).format(num)
+}
+
+// NFC enrollment state
+const isWritingNfc = ref(false)
+const nfcEnrollmentStatus = ref<'idle' | 'writing' | 'success' | 'error'>('idle')
+
+async function enrollNfcTag() {
+  if (!asset.value) return
+
+  nfcEnrollmentStatus.value = 'writing'
+  isWritingNfc.value = true
+
+  try {
+    // Write to NFC tag using Web NFC API
+    const result = await writeAssetTag(asset.value.id)
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to write NFC tag')
+    }
+
+    // Record enrollment in backend
+    await $fetch(`/api/assets/${asset.value.id}/enroll-nfc`, {
+      method: 'POST',
+      body: {
+        tagId: result.tagId,
+      },
+    })
+
+    nfcEnrollmentStatus.value = 'success'
+    toast.add({
+      title: 'NFC Tag Written',
+      description: 'The asset has been successfully enrolled to the NFC tag.',
+      color: 'success',
+      icon: 'i-lucide-nfc',
+    })
+
+    // Reset status after 3 seconds
+    setTimeout(() => {
+      nfcEnrollmentStatus.value = 'idle'
+    }, 3000)
+  } catch (err: unknown) {
+    const error = err as { message?: string; data?: { statusMessage?: string } }
+    nfcEnrollmentStatus.value = 'error'
+    toast.add({
+      title: 'NFC Enrollment Failed',
+      description:
+        error.message || error.data?.statusMessage || 'Failed to write NFC tag. Please try again.',
+      color: 'error',
+      icon: 'i-lucide-alert-circle',
+    })
+
+    // Reset status after 3 seconds
+    setTimeout(() => {
+      nfcEnrollmentStatus.value = 'idle'
+    }, 3000)
+  } finally {
+    isWritingNfc.value = false
+  }
 }
 </script>
 
@@ -707,6 +930,7 @@ const formatCurrency = (value: number | string | null | undefined) => {
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
             { label: 'Location', value: 'location', icon: 'i-lucide-map-pin' },
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
+            { label: 'Documents', value: 'documents', icon: 'i-lucide-file-text' },
             { label: 'Defects', value: 'defects', icon: 'i-lucide-alert-triangle' },
             { label: 'Costs', value: 'costs', icon: 'i-lucide-dollar-sign' }
           ]"
@@ -845,6 +1069,90 @@ const formatCurrency = (value: number | string | null | undefined) => {
           <p class="text-xs text-muted text-center mt-3">
             Scan this code to quickly access this asset
           </p>
+        </UCard>
+
+        <!-- NFC Enrollment Card -->
+        <UCard v-if="activeTab === 'details'">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h3 class="font-medium">
+                NFC Tag Enrollment
+              </h3>
+              <UIcon
+                v-if="nfcEnrollmentStatus === 'success'"
+                name="i-lucide-check-circle"
+                class="w-5 h-5 text-success"
+              />
+            </div>
+          </template>
+
+          <div class="space-y-4">
+            <p class="text-sm text-muted">
+              Write this asset's ID to an NFC tag for quick identification and access.
+            </p>
+
+            <!-- Android only notice -->
+            <UAlert
+              v-if="!isNfcAvailable"
+              color="info"
+              icon="i-lucide-info"
+              title="Android Device Required"
+              description="NFC writing is only available on Android devices with NFC support. Use the QR code above as an alternative on other devices."
+            />
+
+            <!-- Success message -->
+            <UAlert
+              v-if="nfcEnrollmentStatus === 'success'"
+              color="success"
+              icon="i-lucide-check-circle"
+              title="NFC Tag Written Successfully"
+              description="The asset ID has been written to the NFC tag. You can now use it to quickly identify this asset."
+            />
+
+            <!-- Error message -->
+            <UAlert
+              v-if="nfcEnrollmentStatus === 'error'"
+              color="error"
+              icon="i-lucide-alert-circle"
+              title="Failed to Write NFC Tag"
+              description="Please ensure NFC is enabled on your device and try again."
+            />
+
+            <!-- Instructions -->
+            <div v-if="isNfcAvailable" class="bg-muted/50 rounded-lg p-4 space-y-2">
+              <p class="font-medium text-sm">
+                How to write an NFC tag:
+              </p>
+              <ol class="text-sm text-muted space-y-1 list-decimal list-inside">
+                <li>Click the "Write NFC Tag" button below</li>
+                <li>Hold a blank NFC tag close to your device</li>
+                <li>Wait for the confirmation message</li>
+                <li>Attach the tag to the asset for future scanning</li>
+              </ol>
+            </div>
+
+            <!-- Write button -->
+            <div class="flex justify-center">
+              <UButton
+                v-if="isNfcAvailable"
+                label="Write NFC Tag"
+                icon="i-lucide-nfc"
+                color="primary"
+                size="lg"
+                :loading="isWritingNfc"
+                :disabled="nfcEnrollmentStatus === 'writing'"
+                @click="enrollNfcTag"
+              >
+                <template v-if="isWritingNfc">
+                  Hold tag to device...
+                </template>
+              </UButton>
+            </div>
+
+            <p v-if="isNfcAvailable" class="text-xs text-muted text-center">
+              Compatible with NFC Type 1-5 tags (NTAG, MIFARE, etc.)
+            </p>
+          </div>
         </UCard>
 
         <!-- Location Tab -->
@@ -1068,6 +1376,91 @@ const formatCurrency = (value: number | string | null | undefined) => {
                 <UTooltip v-else text="Inherited from category - cannot remove here">
                   <UIcon name="i-lucide-lock" class="w-4 h-4 text-muted" />
                 </UTooltip>
+              </div>
+            </UCard>
+          </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div v-if="activeTab === 'documents'" class="space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-medium">Documents</h3>
+            <UButton
+              label="Upload Document"
+              icon="i-lucide-upload"
+              color="primary"
+              @click="openUploadDocumentModal"
+            />
+          </div>
+
+          <div v-if="documentsStatus === 'pending'" class="flex items-center justify-center py-8">
+            <UIcon name="i-lucide-loader-2" class="w-6 h-6 animate-spin text-muted" />
+          </div>
+
+          <div v-else-if="!documentsData?.length" class="text-center py-8">
+            <UIcon name="i-lucide-file-x" class="w-12 h-12 text-muted mx-auto mb-4" />
+            <p class="text-muted">No documents uploaded yet.</p>
+            <p class="text-sm text-muted mt-1">Upload documents for this asset.</p>
+          </div>
+
+          <div v-else class="grid grid-cols-1 gap-4">
+            <UCard v-for="doc in documentsData" :key="doc.id">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <UIcon name="i-lucide-file-text" class="w-5 h-5 text-muted" />
+                    <span class="font-medium">{{ doc.name }}</span>
+                    <UBadge variant="subtle" size="xs" class="capitalize">
+                      {{ doc.documentType }}
+                    </UBadge>
+                  </div>
+                  <p v-if="doc.description" class="text-sm text-muted mb-2">{{ doc.description }}</p>
+                  <div class="flex items-center gap-3 text-xs text-muted">
+                    <span>{{ formatFileSize(doc.fileSize) }}</span>
+                    <span>Uploaded {{ formatDate(doc.createdAt) }}</span>
+                    <span v-if="doc.uploadedBy">
+                      by {{ doc.uploadedBy.firstName }} {{ doc.uploadedBy.lastName }}
+                    </span>
+                  </div>
+                  <div v-if="doc.expiryDate" class="mt-2 flex items-center gap-2">
+                    <UBadge
+                      v-if="isDocumentExpired(doc.expiryDate)"
+                      color="error"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      Expired {{ formatDate(doc.expiryDate) }}
+                    </UBadge>
+                    <UBadge
+                      v-else-if="isDocumentExpiringSoon(doc.expiryDate)"
+                      color="warning"
+                      variant="subtle"
+                      size="xs"
+                    >
+                      Expires {{ formatDate(doc.expiryDate) }}
+                    </UBadge>
+                    <UBadge v-else variant="subtle" size="xs">
+                      Expires {{ formatDate(doc.expiryDate) }}
+                    </UBadge>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <UButton
+                    icon="i-lucide-download"
+                    color="neutral"
+                    variant="ghost"
+                    size="xs"
+                    :href="doc.filePath"
+                    download
+                  />
+                  <UButton
+                    icon="i-lucide-trash-2"
+                    color="error"
+                    variant="ghost"
+                    size="xs"
+                    @click="deleteDocument(doc.id, doc.name)"
+                  />
+                </div>
               </div>
             </UCard>
           </div>
@@ -1495,6 +1888,65 @@ const formatCurrency = (value: number | string | null | undefined) => {
                   :loading="reportingDefect"
                   :disabled="!defectForm.title.trim()"
                   @click="reportDefect"
+                />
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
+
+      <!-- Upload Document Modal -->
+      <UModal v-model:open="showUploadDocumentModal">
+        <template #content>
+          <UCard>
+            <template #header>
+              <h3 class="font-medium">Upload Document</h3>
+            </template>
+            <div class="space-y-4">
+              <UFormField label="Document Name" required>
+                <UInput v-model="documentForm.name" placeholder="e.g. Insurance Certificate 2025" />
+              </UFormField>
+              <UFormField label="Document Type">
+                <USelect
+                  v-model="documentForm.documentType"
+                  :items="documentTypeOptions"
+                  placeholder="Select type..."
+                />
+              </UFormField>
+              <UFormField label="File" required>
+                <input
+                  type="file"
+                  @change="(e) => documentForm.file = (e.target as HTMLInputElement).files?.[0] || null"
+                  class="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                />
+              </UFormField>
+              <UFormField label="Description">
+                <UTextarea
+                  v-model="documentForm.description"
+                  placeholder="Optional description..."
+                  :rows="2"
+                />
+              </UFormField>
+              <UFormField label="Expiry Date">
+                <UInput v-model="documentForm.expiryDate" type="date" />
+              </UFormField>
+            </div>
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton
+                  label="Cancel"
+                  color="neutral"
+                  variant="subtle"
+                  @click="showUploadDocumentModal = false"
+                />
+                <UButton
+                  label="Upload"
+                  color="primary"
+                  icon="i-lucide-upload"
+                  :loading="uploadingDocument"
+                  :disabled="!documentForm.file || !documentForm.name.trim()"
+                  @click="uploadDocument"
                 />
               </div>
             </template>

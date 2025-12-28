@@ -65,8 +65,15 @@ interface TaskTemplate {
   version: number
   isActive: boolean
   isArchived: boolean
+  groupId: string | null
   createdAt: string
   updatedAt: string
+}
+
+interface TaskGroup {
+  id: string
+  name: string
+  description: string | null
 }
 
 const skillLevelOptions = [
@@ -76,12 +83,29 @@ const skillLevelOptions = [
   { label: 'Expert', value: 'expert' },
 ]
 
+const router = useRouter()
 const toast = useToast()
 const search = ref('')
 const showArchived = ref(false)
+const groupFilter = ref('')
 const modalOpen = ref(false)
 const isEditing = ref(false)
 const loading = ref(false)
+
+// Fetch task groups for filtering
+const { data: groups } = await useFetch<TaskGroup[]>('/api/task-groups', {
+  query: { includeChildren: 'false' },
+  lazy: true,
+  default: () => [],
+})
+
+const groupOptions = computed(() => {
+  const options = [{ label: 'All Groups', value: '' }]
+  for (const group of groups.value || []) {
+    options.push({ label: group.name, value: group.id })
+  }
+  return options
+})
 
 const {
   data: templates,
@@ -91,6 +115,7 @@ const {
   query: computed(() => ({
     search: search.value || undefined,
     includeArchived: showArchived.value ? 'true' : undefined,
+    groupId: groupFilter.value || undefined,
   })),
   lazy: true,
   default: () => [],
@@ -107,6 +132,7 @@ const currentTemplate = ref({
   checklistItems: [] as TemplateChecklistItem[],
   requiredParts: [] as TemplateRequiredPart[],
   isActive: true,
+  groupId: '' as string,
 })
 
 const newChecklistItem = ref({
@@ -268,6 +294,7 @@ function openCreateModal() {
     checklistItems: [],
     requiredParts: [],
     isActive: true,
+    groupId: '',
   }
   // Clear inventory parts state
   templateParts.value = []
@@ -290,6 +317,7 @@ async function openEditModal(template: TaskTemplate) {
     checklistItems: [...template.checklistItems],
     requiredParts: [...(template.requiredParts || [])],
     isActive: template.isActive,
+    groupId: template.groupId || '',
   }
   // Reset parts search
   partsSearch.value = ''
@@ -388,6 +416,7 @@ async function saveTemplate() {
       checklistItems: currentTemplate.value.checklistItems,
       requiredParts: currentTemplate.value.requiredParts,
       isActive: currentTemplate.value.isActive,
+      groupId: currentTemplate.value.groupId || null,
     }
 
     if (isEditing.value) {
@@ -469,6 +498,11 @@ function getRowActions(template: TaskTemplate) {
         onSelect: () => openEditModal(template),
       },
       {
+        label: 'Manage Overrides',
+        icon: 'i-lucide-settings-2',
+        onSelect: () => router.push(`/settings/task-templates/${template.id}`),
+      },
+      {
         label: template.isActive ? 'Deactivate' : 'Activate',
         icon: template.isActive ? 'i-lucide-toggle-right' : 'i-lucide-toggle-left',
         onSelect: () => toggleActive(template),
@@ -495,13 +529,21 @@ function getRowActions(template: TaskTemplate) {
       orientation="horizontal"
       class="mb-4"
     >
-      <UButton
-        label="Create Template"
-        icon="i-lucide-plus"
-        color="primary"
-        class="w-fit lg:ms-auto"
-        @click="openCreateModal"
-      />
+      <div class="flex items-center gap-2 w-fit lg:ms-auto">
+        <UButton
+          label="Task Groups"
+          icon="i-lucide-folder-tree"
+          color="neutral"
+          variant="outline"
+          @click="router.push('/settings/task-groups')"
+        />
+        <UButton
+          label="Create Template"
+          icon="i-lucide-plus"
+          color="primary"
+          @click="openCreateModal"
+        />
+      </div>
     </UPageCard>
 
     <UPageCard
@@ -513,12 +555,18 @@ function getRowActions(template: TaskTemplate) {
       }"
     >
       <template #header>
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-4 flex-wrap">
           <UInput
             v-model="search"
             icon="i-lucide-search"
             placeholder="Search templates..."
-            class="flex-1"
+            class="flex-1 min-w-48"
+          />
+          <USelect
+            v-model="groupFilter"
+            :items="groupOptions"
+            placeholder="Filter by group"
+            class="min-w-40"
           />
           <UCheckbox v-model="showArchived" label="Show archived" />
         </div>
@@ -668,6 +716,16 @@ function getRowActions(template: TaskTemplate) {
                   />
                 </UFormField>
 
+                <UFormField label="Task Group">
+                  <USelect
+                    v-model="currentTemplate.groupId"
+                    :items="[{ label: 'No Group', value: '' }, ...groupOptions.slice(1)]"
+                    placeholder="Select task group"
+                  />
+                </UFormField>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
                 <UFormField label="Skill Level">
                   <USelect
                     v-model="currentTemplate.skillLevel"
@@ -675,9 +733,7 @@ function getRowActions(template: TaskTemplate) {
                     placeholder="Select skill level"
                   />
                 </UFormField>
-              </div>
 
-              <div class="grid grid-cols-2 gap-4">
                 <UFormField label="Estimated Duration (minutes)">
                   <UInput
                     v-model.number="currentTemplate.estimatedDuration"
@@ -686,17 +742,18 @@ function getRowActions(template: TaskTemplate) {
                     placeholder="e.g., 30"
                   />
                 </UFormField>
-
-                <UFormField label="Estimated Cost ($)">
-                  <UInput
-                    v-model.number="currentTemplate.estimatedCost"
-                    type="number"
-                    :min="0"
-                    :step="0.01"
-                    placeholder="e.g., 150.00"
-                  />
-                </UFormField>
               </div>
+
+              <UFormField label="Estimated Cost ($)">
+                <UInput
+                  v-model.number="currentTemplate.estimatedCost"
+                  type="number"
+                  :min="0"
+                  :step="0.01"
+                  placeholder="e.g., 150.00"
+                  class="w-1/2"
+                />
+              </UFormField>
 
               <div class="flex items-center pt-2">
                 <UCheckbox v-model="currentTemplate.isActive" label="Active template" />

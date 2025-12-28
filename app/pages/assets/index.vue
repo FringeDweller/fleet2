@@ -516,6 +516,13 @@ const columns: TableColumn<Asset>[] = [
         <template #right>
           <div class="flex items-center gap-2">
             <UButton
+              label="Import CSV"
+              icon="i-lucide-upload"
+              color="neutral"
+              variant="outline"
+              @click="router.push('/assets/import')"
+            />
+            <UButton
               label="Export CSV"
               icon="i-lucide-download"
               color="neutral"
