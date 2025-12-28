@@ -16,13 +16,14 @@ const ARGON2_OPTIONS = {
 const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_DURATION_MINUTES = 30
 
-export async function hashPassword(password: string): Promise<string> {
+// Named to avoid conflict with nuxt-auth-utils exports
+export async function hashPasswordArgon2(password: string): Promise<string> {
   return hash(password, ARGON2_OPTIONS)
 }
 
-export async function verifyPassword(hash: string, password: string): Promise<boolean> {
+export async function verifyPasswordArgon2(storedHash: string, password: string): Promise<boolean> {
   try {
-    return await verify(hash, password)
+    return await verify(storedHash, password)
   } catch {
     return false
   }
@@ -66,7 +67,7 @@ export async function authenticateUser(email: string, password: string): Promise
   }
 
   // Verify password
-  const isValid = await verifyPassword(user.passwordHash, password)
+  const isValid = await verifyPasswordArgon2(user.passwordHash, password)
 
   if (!isValid) {
     // Increment failed attempts
@@ -196,7 +197,7 @@ export async function resetPasswordWithToken(token: string, newPassword: string)
 
   if (!user) return false
 
-  const passwordHash = await hashPassword(newPassword)
+  const passwordHash = await hashPasswordArgon2(newPassword)
 
   await db
     .update(schema.users)
