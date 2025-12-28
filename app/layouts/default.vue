@@ -33,6 +33,14 @@ const links = [
       },
     },
     {
+      label: 'Fleet Map',
+      icon: 'i-lucide-map',
+      to: '/fleet/map',
+      onSelect: () => {
+        open.value = false
+      },
+    },
+    {
       label: 'Inventory',
       icon: 'i-lucide-package',
       to: '/inventory/parts',

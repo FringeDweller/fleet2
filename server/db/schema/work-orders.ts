@@ -24,6 +24,7 @@ export const workOrderPriorityEnum = pgEnum('work_order_priority', [
 ])
 export const workOrderStatusEnum = pgEnum('work_order_status', [
   'draft',
+  'pending_approval',
   'open',
   'in_progress',
   'pending_parts',

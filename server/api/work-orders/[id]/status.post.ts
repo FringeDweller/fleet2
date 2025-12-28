@@ -145,13 +145,64 @@ const statusSchema = z.object({
 })
 
 // Valid status transitions
+// Note: pending_approval is handled via request-approval, approve, reject, and emergency-override endpoints
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ['open'],
+  pending_approval: [], // Can only transition via approve/reject/emergency-override endpoints
   open: ['in_progress', 'closed'],
   in_progress: ['pending_parts', 'completed', 'open'],
   pending_parts: ['in_progress', 'open'],
   completed: ['closed', 'in_progress'],
   closed: [], // Terminal state
+}
+
+// Check if work order requires approval based on org settings and cost
+async function checkApprovalRequired(
+  organisationId: string,
+  workOrderId: string,
+): Promise<{ required: boolean; reason?: string }> {
+  // Get organisation settings for approval threshold
+  const organisation = await db.query.organisations.findFirst({
+    where: eq(schema.organisations.id, organisationId),
+    columns: {
+      workOrderApprovalThreshold: true,
+      requireApprovalForAllWorkOrders: true,
+    },
+  })
+
+  const requireAll = organisation?.requireApprovalForAllWorkOrders ?? false
+  const threshold = organisation?.workOrderApprovalThreshold
+    ? Number.parseFloat(organisation.workOrderApprovalThreshold)
+    : null
+
+  if (requireAll) {
+    return {
+      required: true,
+      reason:
+        'This organisation requires approval for all work orders. Please submit for approval instead.',
+    }
+  }
+
+  if (threshold !== null) {
+    // Calculate estimated total cost from parts
+    const partsResult = await db
+      .select({
+        total: sum(schema.workOrderParts.totalCost),
+      })
+      .from(schema.workOrderParts)
+      .where(eq(schema.workOrderParts.workOrderId, workOrderId))
+
+    const estimatedCost = Number.parseFloat(partsResult[0]?.total || '0')
+
+    if (estimatedCost >= threshold) {
+      return {
+        required: true,
+        reason: `This work order exceeds the approval threshold of $${threshold.toFixed(2)}. Please submit for approval instead.`,
+      }
+    }
+  }
+
+  return { required: false }
 }
 
 function isValidTransition(fromStatus: string, toStatus: string): boolean {
@@ -209,6 +260,17 @@ export default defineEventHandler(async (event) => {
       statusCode: 400,
       statusMessage: `Invalid status transition from '${existing.status}' to '${result.data.status}'`,
     })
+  }
+
+  // Check if approval is required when transitioning from draft to open
+  if (existing.status === 'draft' && result.data.status === 'open') {
+    const approvalCheck = await checkApprovalRequired(session.user.organisationId, id)
+    if (approvalCheck.required) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: approvalCheck.reason,
+      })
+    }
   }
 
   const now = new Date()

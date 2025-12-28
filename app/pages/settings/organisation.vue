@@ -13,6 +13,8 @@ interface Organisation {
   logoUrl: string | null
   primaryColor: string
   preventNegativeStock: boolean
+  workOrderApprovalThreshold: string | null
+  requireApprovalForAllWorkOrders: boolean
 }
 
 const {
@@ -28,6 +30,8 @@ const {
     logoUrl: null,
     primaryColor: '#0066cc',
     preventNegativeStock: false,
+    workOrderApprovalThreshold: null,
+    requireApprovalForAllWorkOrders: false,
   }),
 })
 
@@ -36,6 +40,12 @@ const organisationSchema = z.object({
   description: z.string().nullable().optional(),
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format'),
   preventNegativeStock: z.boolean(),
+  workOrderApprovalThreshold: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format')
+    .nullable()
+    .optional(),
+  requireApprovalForAllWorkOrders: z.boolean(),
 })
 
 type OrganisationSchema = z.output<typeof organisationSchema>
@@ -45,6 +55,8 @@ const formState = reactive<OrganisationSchema>({
   description: null,
   primaryColor: '#0066cc',
   preventNegativeStock: false,
+  workOrderApprovalThreshold: null,
+  requireApprovalForAllWorkOrders: false,
 })
 
 // Sync form state with fetched data
@@ -56,6 +68,8 @@ watch(
       formState.description = org.description
       formState.primaryColor = org.primaryColor
       formState.preventNegativeStock = org.preventNegativeStock
+      formState.workOrderApprovalThreshold = org.workOrderApprovalThreshold
+      formState.requireApprovalForAllWorkOrders = org.requireApprovalForAllWorkOrders
     }
   },
   { immediate: true },
@@ -216,6 +230,52 @@ async function onSubmit(event: FormSubmitEvent<OrganisationSchema>) {
             :disabled="!canWriteSettings"
           />
         </UFormField>
+
+        <USeparator />
+
+        <h3 class="text-base font-semibold text-highlighted py-4">
+          Work Order Approval Settings
+        </h3>
+
+        <UFormField
+          name="requireApprovalForAllWorkOrders"
+          class="flex justify-between items-center gap-4"
+        >
+          <div>
+            <p class="text-sm font-medium text-highlighted">Require Approval for All Work Orders</p>
+            <p class="text-sm text-muted mt-1">
+              When enabled, all work orders require manager approval before they can be opened.
+            </p>
+          </div>
+          <USwitch
+            v-model="formState.requireApprovalForAllWorkOrders"
+            :disabled="!canWriteSettings"
+          />
+        </UFormField>
+
+        <USeparator />
+
+        <UFormField
+          name="workOrderApprovalThreshold"
+          label="Approval Threshold Amount"
+          description="Work orders with estimated costs at or above this amount require approval. Leave empty to only use the toggle above."
+          class="flex max-sm:flex-col justify-between items-start gap-4"
+        >
+          <div class="flex items-center gap-2">
+            <span class="text-muted">$</span>
+            <UInput
+              v-model="formState.workOrderApprovalThreshold"
+              :disabled="!canWriteSettings || formState.requireApprovalForAllWorkOrders"
+              placeholder="0.00"
+              class="w-32"
+              type="text"
+              inputmode="decimal"
+            />
+          </div>
+        </UFormField>
+        <p v-if="formState.requireApprovalForAllWorkOrders" class="text-sm text-muted -mt-2">
+          The threshold is ignored when approval is required for all work orders.
+        </p>
       </UPageCard>
     </UForm>
   </div>

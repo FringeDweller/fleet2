@@ -53,7 +53,14 @@ interface WorkOrder {
   workOrderNumber: string
   title: string
   description: string | null
-  status: 'draft' | 'open' | 'in_progress' | 'pending_parts' | 'completed' | 'closed'
+  status:
+    | 'draft'
+    | 'pending_approval'
+    | 'open'
+    | 'in_progress'
+    | 'pending_parts'
+    | 'completed'
+    | 'closed'
   priority: 'low' | 'medium' | 'high' | 'critical'
   dueDate: string | null
   startedAt: string | null
@@ -109,6 +116,7 @@ const {
 
 const statusColors: Record<string, 'neutral' | 'info' | 'warning' | 'success' | 'error'> = {
   draft: 'neutral',
+  pending_approval: 'warning',
   open: 'info',
   in_progress: 'warning',
   pending_parts: 'warning',
@@ -125,6 +133,7 @@ const priorityColors = {
 
 const statusLabels = {
   draft: 'Draft',
+  pending_approval: 'Pending Approval',
   open: 'Open',
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
@@ -134,6 +143,7 @@ const statusLabels = {
 
 const validTransitions: Record<string, { label: string; value: string }[]> = {
   draft: [{ label: 'Open', value: 'open' }],
+  pending_approval: [], // Handled via approval actions
   open: [
     { label: 'Start Work', value: 'in_progress' },
     { label: 'Close', value: 'closed' },
@@ -156,6 +166,139 @@ const validTransitions: Record<string, { label: string; value: string }[]> = {
 
 const activeTab = ref('details')
 const statusChangeLoading = ref(false)
+const approvalLoading = ref(false)
+const showApprovalDialog = ref(false)
+const showRejectDialog = ref(false)
+const showEmergencyOverrideDialog = ref(false)
+const approvalNotes = ref('')
+const rejectReason = ref('')
+const emergencyReason = ref('')
+
+const { isManager } = usePermissions()
+
+// Request approval for draft work order
+async function requestApproval() {
+  approvalLoading.value = true
+  try {
+    await $fetch(`/api/work-orders/${route.params.id}/request-approval`, {
+      method: 'POST',
+      body: { notes: approvalNotes.value || undefined },
+    })
+    toast.add({
+      title: 'Approval requested',
+      description: 'Work order has been submitted for approval.',
+    })
+    approvalNotes.value = ''
+    refresh()
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to request approval'
+    toast.add({
+      title: 'Error',
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    approvalLoading.value = false
+  }
+}
+
+// Approve work order (manager only)
+async function approveWorkOrder() {
+  approvalLoading.value = true
+  try {
+    await $fetch(`/api/work-orders/${route.params.id}/approve`, {
+      method: 'POST',
+      body: { notes: approvalNotes.value || undefined },
+    })
+    toast.add({
+      title: 'Work order approved',
+      description: 'The work order is now open and can be started.',
+    })
+    showApprovalDialog.value = false
+    approvalNotes.value = ''
+    refresh()
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to approve work order'
+    toast.add({
+      title: 'Error',
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    approvalLoading.value = false
+  }
+}
+
+// Reject work order (manager only)
+async function rejectWorkOrder() {
+  if (!rejectReason.value.trim()) {
+    toast.add({
+      title: 'Error',
+      description: 'A reason is required when rejecting a work order.',
+      color: 'error',
+    })
+    return
+  }
+  approvalLoading.value = true
+  try {
+    await $fetch(`/api/work-orders/${route.params.id}/reject`, {
+      method: 'POST',
+      body: { reason: rejectReason.value },
+    })
+    toast.add({
+      title: 'Work order rejected',
+      description: 'The work order has been returned to draft status.',
+    })
+    showRejectDialog.value = false
+    rejectReason.value = ''
+    refresh()
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to reject work order'
+    toast.add({
+      title: 'Error',
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    approvalLoading.value = false
+  }
+}
+
+// Emergency override (manager only)
+async function emergencyOverride() {
+  if (emergencyReason.value.length < 10) {
+    toast.add({
+      title: 'Error',
+      description: 'Emergency reason must be at least 10 characters.',
+      color: 'error',
+    })
+    return
+  }
+  approvalLoading.value = true
+  try {
+    await $fetch(`/api/work-orders/${route.params.id}/emergency-override`, {
+      method: 'POST',
+      body: { emergencyReason: emergencyReason.value },
+    })
+    toast.add({
+      title: 'Emergency override applied',
+      description: 'The work order is now open.',
+      color: 'warning',
+    })
+    showEmergencyOverrideDialog.value = false
+    emergencyReason.value = ''
+    refresh()
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to apply emergency override'
+    toast.add({
+      title: 'Error',
+      description: message,
+      color: 'error',
+    })
+  } finally {
+    approvalLoading.value = false
+  }
+}
 
 async function changeStatus(newStatus: string) {
   statusChangeLoading.value = true
@@ -265,6 +408,47 @@ const tabs = computed(() => [
 
         <template #right>
           <div class="flex gap-2">
+            <!-- Approval actions for pending_approval status -->
+            <template v-if="workOrder?.status === 'pending_approval' && isManager">
+              <UButton
+                label="Approve"
+                icon="i-lucide-check"
+                color="success"
+                :loading="approvalLoading"
+                @click="showApprovalDialog = true"
+              />
+              <UButton
+                label="Reject"
+                icon="i-lucide-x"
+                color="error"
+                variant="outline"
+                :loading="approvalLoading"
+                @click="showRejectDialog = true"
+              />
+            </template>
+
+            <!-- Request approval for draft work orders -->
+            <UButton
+              v-if="workOrder?.status === 'draft'"
+              label="Request Approval"
+              icon="i-lucide-send"
+              color="primary"
+              variant="outline"
+              :loading="approvalLoading"
+              @click="requestApproval"
+            />
+
+            <!-- Emergency override for managers (draft or pending_approval) -->
+            <UButton
+              v-if="isManager && (workOrder?.status === 'draft' || workOrder?.status === 'pending_approval')"
+              label="Emergency Override"
+              icon="i-lucide-alert-triangle"
+              color="warning"
+              variant="subtle"
+              :loading="approvalLoading"
+              @click="showEmergencyOverrideDialog = true"
+            />
+
             <UDropdownMenu
               v-if="workOrder && validTransitions[workOrder.status]?.length"
               :items="
@@ -579,4 +763,144 @@ const tabs = computed(() => [
       </div>
     </template>
   </UDashboardPanel>
+
+  <!-- Approve Dialog -->
+  <UModal v-model:open="showApprovalDialog">
+    <template #content>
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-check-circle" class="w-5 h-5 text-success" />
+            <h3 class="font-semibold">Approve Work Order</h3>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <p class="text-muted">
+            Are you sure you want to approve this work order? It will be marked as open and can be started.
+          </p>
+          <UFormField label="Notes (optional)">
+            <UTextarea
+              v-model="approvalNotes"
+              placeholder="Add any notes about this approval..."
+              :rows="3"
+            />
+          </UFormField>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton
+              label="Cancel"
+              color="neutral"
+              variant="outline"
+              @click="showApprovalDialog = false"
+            />
+            <UButton
+              label="Approve"
+              icon="i-lucide-check"
+              color="success"
+              :loading="approvalLoading"
+              @click="approveWorkOrder"
+            />
+          </div>
+        </template>
+      </UCard>
+    </template>
+  </UModal>
+
+  <!-- Reject Dialog -->
+  <UModal v-model:open="showRejectDialog">
+    <template #content>
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-x-circle" class="w-5 h-5 text-error" />
+            <h3 class="font-semibold">Reject Work Order</h3>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <p class="text-muted">
+            Please provide a reason for rejecting this work order. It will be returned to draft status.
+          </p>
+          <UFormField label="Reason" required>
+            <UTextarea
+              v-model="rejectReason"
+              placeholder="Enter the reason for rejection..."
+              :rows="3"
+            />
+          </UFormField>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton
+              label="Cancel"
+              color="neutral"
+              variant="outline"
+              @click="showRejectDialog = false"
+            />
+            <UButton
+              label="Reject"
+              icon="i-lucide-x"
+              color="error"
+              :loading="approvalLoading"
+              :disabled="!rejectReason.trim()"
+              @click="rejectWorkOrder"
+            />
+          </div>
+        </template>
+      </UCard>
+    </template>
+  </UModal>
+
+  <!-- Emergency Override Dialog -->
+  <UModal v-model:open="showEmergencyOverrideDialog">
+    <template #content>
+      <UCard>
+        <template #header>
+          <div class="flex items-center gap-2">
+            <UIcon name="i-lucide-alert-triangle" class="w-5 h-5 text-warning" />
+            <h3 class="font-semibold">Emergency Override</h3>
+          </div>
+        </template>
+
+        <div class="space-y-4">
+          <UAlert
+            color="warning"
+            icon="i-lucide-alert-triangle"
+            title="This action will bypass the approval workflow"
+            description="Emergency overrides are logged and audited. Only use this in genuine emergency situations."
+          />
+          <UFormField label="Emergency Reason" required>
+            <UTextarea
+              v-model="emergencyReason"
+              placeholder="Describe the emergency situation (min 10 characters)..."
+              :rows="3"
+            />
+          </UFormField>
+        </div>
+
+        <template #footer>
+          <div class="flex justify-end gap-2">
+            <UButton
+              label="Cancel"
+              color="neutral"
+              variant="outline"
+              @click="showEmergencyOverrideDialog = false"
+            />
+            <UButton
+              label="Apply Override"
+              icon="i-lucide-alert-triangle"
+              color="warning"
+              :loading="approvalLoading"
+              :disabled="emergencyReason.length < 10"
+              @click="emergencyOverride"
+            />
+          </div>
+        </template>
+      </UCard>
+    </template>
+  </UModal>
 </template>

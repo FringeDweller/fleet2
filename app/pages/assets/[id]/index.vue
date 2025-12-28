@@ -143,6 +143,52 @@ interface DefectsResponse {
   }
 }
 
+interface FuelTransaction {
+  id: string
+  quantity: string
+  unitCost: string | null
+  totalCost: string | null
+  fuelType: 'diesel' | 'petrol' | 'electric' | 'lpg' | 'other'
+  odometer: string | null
+  engineHours: string | null
+  transactionDate: string
+  vendor: string | null
+  locationName: string | null
+  user: {
+    id: string
+    firstName: string
+    lastName: string
+  } | null
+}
+
+interface FuelHistoryResponse {
+  data: FuelTransaction[]
+  summary: {
+    totalQuantity: number
+    totalCost: number
+    avgUnitCost: number
+    transactionCount: number
+    fuelEfficiency: {
+      per100km: number
+      kmPerLitre: number
+      distance: number
+      totalFuel: number
+    } | null
+  }
+  pagination: {
+    total: number
+    limit: number
+    offset: number
+    hasMore: boolean
+  }
+  asset: {
+    id: string
+    assetNumber: string
+    make: string | null
+    model: string | null
+  }
+}
+
 interface Document {
   id: string
   assetId: string
@@ -235,6 +281,15 @@ const {
   status: documentsStatus,
   refresh: refreshDocuments,
 } = await useFetch<Document[]>(`/api/assets/${route.params.id}/documents`, {
+  lazy: true,
+})
+
+// Fetch fuel history for this asset
+const {
+  data: fuelHistoryData,
+  status: fuelHistoryStatus,
+  refresh: refreshFuelHistory,
+} = await useFetch<FuelHistoryResponse>(`/api/assets/${route.params.id}/fuel-history`, {
   lazy: true,
 })
 
@@ -932,6 +987,7 @@ async function enrollNfcTag() {
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
             { label: 'Documents', value: 'documents', icon: 'i-lucide-file-text' },
             { label: 'Defects', value: 'defects', icon: 'i-lucide-alert-triangle' },
+            { label: 'Fuel', value: 'fuel', icon: 'i-lucide-fuel' },
             { label: 'Costs', value: 'costs', icon: 'i-lucide-dollar-sign' }
           ]"
         />
@@ -1564,6 +1620,187 @@ async function enrollNfcTag() {
                 </div>
               </div>
             </UCard>
+          </div>
+        </div>
+
+        <!-- Fuel Tab -->
+        <div v-if="activeTab === 'fuel'" class="space-y-6">
+          <div v-if="fuelHistoryStatus === 'pending'" class="flex items-center justify-center py-12">
+            <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
+          </div>
+
+          <template v-else-if="fuelHistoryData">
+            <!-- Fuel Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Total Fuel
+                  </p>
+                  <p class="text-2xl font-bold text-info">
+                    {{ fuelHistoryData.summary.totalQuantity.toLocaleString('en-AU', { maximumFractionDigits: 1 }) }} L
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Total Cost
+                  </p>
+                  <p class="text-2xl font-bold text-success">
+                    {{ formatCurrency(fuelHistoryData.summary.totalCost) }}
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Avg Cost/L
+                  </p>
+                  <p class="text-2xl font-bold">
+                    ${{ fuelHistoryData.summary.avgUnitCost.toFixed(3) }}
+                  </p>
+                </div>
+              </UCard>
+              <UCard>
+                <div class="text-center">
+                  <p class="text-sm text-muted mb-1">
+                    Fuel Efficiency
+                  </p>
+                  <p class="text-2xl font-bold text-primary">
+                    {{ fuelHistoryData.summary.fuelEfficiency
+                      ? `${fuelHistoryData.summary.fuelEfficiency.kmPerLitre.toFixed(1)} km/L`
+                      : '-'
+                    }}
+                  </p>
+                </div>
+              </UCard>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="flex justify-end">
+              <NuxtLink to="/fuel/new">
+                <UButton
+                  label="Record Fuel"
+                  icon="i-lucide-plus"
+                  color="primary"
+                />
+              </NuxtLink>
+            </div>
+
+            <!-- Recent Fuel Transactions -->
+            <UCard>
+              <template #header>
+                <div class="flex items-center justify-between">
+                  <h3 class="font-medium">
+                    Recent Fuel Transactions
+                  </h3>
+                  <NuxtLink to="/fuel" class="text-sm text-primary hover:underline">
+                    View All
+                  </NuxtLink>
+                </div>
+              </template>
+              <div v-if="!fuelHistoryData.data?.length" class="text-center py-8">
+                <UIcon name="i-lucide-fuel" class="w-12 h-12 text-muted mx-auto mb-4" />
+                <p class="text-muted">
+                  No fuel transactions recorded yet.
+                </p>
+                <p class="text-sm text-muted mt-1">
+                  Record fuel fill-ups to track consumption and costs.
+                </p>
+                <NuxtLink to="/fuel/new" class="mt-4 inline-block">
+                  <UButton
+                    label="Record First Fuel Transaction"
+                    icon="i-lucide-plus"
+                    color="primary"
+                    size="sm"
+                  />
+                </NuxtLink>
+              </div>
+              <div v-else class="divide-y">
+                <div
+                  v-for="tx in fuelHistoryData.data"
+                  :key="tx.id"
+                  class="py-3 first:pt-0 last:pb-0"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <NuxtLink
+                          :to="`/fuel/${tx.id}`"
+                          class="font-medium text-primary hover:underline"
+                        >
+                          {{ parseFloat(tx.quantity).toLocaleString('en-AU', { maximumFractionDigits: 1 }) }} L
+                        </NuxtLink>
+                        <UBadge
+                          :color="tx.fuelType === 'diesel' ? 'info' : tx.fuelType === 'petrol' ? 'warning' : 'neutral'"
+                          variant="subtle"
+                          size="xs"
+                          class="capitalize"
+                        >
+                          {{ tx.fuelType }}
+                        </UBadge>
+                      </div>
+                      <div class="flex items-center gap-3 text-xs text-muted">
+                        <span>{{ formatDate(tx.transactionDate) }}</span>
+                        <span v-if="tx.vendor">{{ tx.vendor }}</span>
+                        <span v-if="tx.odometer">{{ parseFloat(tx.odometer).toLocaleString() }} km</span>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p v-if="tx.totalCost" class="font-medium">
+                        {{ formatCurrency(parseFloat(tx.totalCost)) }}
+                      </p>
+                      <p v-if="tx.unitCost" class="text-xs text-muted">
+                        ${{ parseFloat(tx.unitCost).toFixed(3) }}/L
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </UCard>
+
+            <!-- Fuel Efficiency Info -->
+            <UCard v-if="fuelHistoryData.summary.fuelEfficiency">
+              <template #header>
+                <h3 class="font-medium">
+                  Fuel Efficiency
+                </h3>
+              </template>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <dt class="text-sm text-muted">
+                    Total Distance Tracked
+                  </dt>
+                  <dd class="text-lg font-medium">
+                    {{ fuelHistoryData.summary.fuelEfficiency.distance.toLocaleString() }} km
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-muted">
+                    Total Fuel Used
+                  </dt>
+                  <dd class="text-lg font-medium">
+                    {{ fuelHistoryData.summary.fuelEfficiency.totalFuel.toLocaleString('en-AU', { maximumFractionDigits: 1 }) }} L
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-sm text-muted">
+                    Average Consumption
+                  </dt>
+                  <dd class="text-lg font-medium">
+                    {{ fuelHistoryData.summary.fuelEfficiency.per100km.toFixed(1) }} L/100km
+                  </dd>
+                </div>
+              </div>
+            </UCard>
+          </template>
+
+          <div v-else class="text-center py-8">
+            <UIcon name="i-lucide-fuel" class="w-12 h-12 text-muted mx-auto mb-4" />
+            <p class="text-muted">
+              No fuel data available.
+            </p>
           </div>
         </div>
 

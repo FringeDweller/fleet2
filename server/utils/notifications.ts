@@ -61,3 +61,65 @@ export async function createScheduledMaintenanceNotification(params: {
     isRead: false,
   })
 }
+
+// Approval workflow notifications
+
+export async function createApprovalRequestedNotification(params: {
+  organisationId: string
+  userId: string
+  workOrderNumber: string
+  workOrderTitle: string
+  workOrderId: string
+  requestedByName: string
+  estimatedCost: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'work_order_approval_requested',
+    title: 'Approval Required',
+    body: `${params.requestedByName} requested approval for ${params.workOrderNumber}: ${params.workOrderTitle} (Est. cost: $${params.estimatedCost})`,
+    link: `/work-orders/${params.workOrderId}`,
+    isRead: false,
+  })
+}
+
+export async function createWorkOrderApprovedNotification(params: {
+  organisationId: string
+  userId: string
+  workOrderNumber: string
+  workOrderTitle: string
+  workOrderId: string
+  approvedByName: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'work_order_approved',
+    title: 'Work Order Approved',
+    body: `${params.approvedByName} approved ${params.workOrderNumber}: ${params.workOrderTitle}`,
+    link: `/work-orders/${params.workOrderId}`,
+    isRead: false,
+  })
+}
+
+export async function createWorkOrderRejectedNotification(params: {
+  organisationId: string
+  userId: string
+  workOrderNumber: string
+  workOrderTitle: string
+  workOrderId: string
+  rejectedByName: string
+  reason: string | null
+}) {
+  const reasonText = params.reason ? ` - Reason: ${params.reason}` : ''
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'work_order_rejected',
+    title: 'Work Order Rejected',
+    body: `${params.rejectedByName} rejected ${params.workOrderNumber}: ${params.workOrderTitle}${reasonText}`,
+    link: `/work-orders/${params.workOrderId}`,
+    isRead: false,
+  })
+}

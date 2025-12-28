@@ -14,7 +14,14 @@ interface WorkOrder {
   workOrderNumber: string
   title: string
   description: string | null
-  status: 'draft' | 'open' | 'in_progress' | 'pending_parts' | 'completed' | 'closed'
+  status:
+    | 'draft'
+    | 'pending_approval'
+    | 'open'
+    | 'in_progress'
+    | 'pending_parts'
+    | 'completed'
+    | 'closed'
   priority: 'low' | 'medium' | 'high' | 'critical'
   dueDate: string | null
   asset: {
@@ -171,6 +178,7 @@ async function archiveWorkOrder(id: string) {
 
 const statusColors = {
   draft: 'neutral',
+  pending_approval: 'warning',
   open: 'info',
   in_progress: 'warning',
   pending_parts: 'warning',
@@ -187,6 +195,7 @@ const priorityColors = {
 
 const statusLabels = {
   draft: 'Draft',
+  pending_approval: 'Pending Approval',
   open: 'Open',
   in_progress: 'In Progress',
   pending_parts: 'Pending Parts',
@@ -359,6 +368,14 @@ const pagination = ref({
 
         <template #right>
           <UButton
+            label="Pending Approvals"
+            icon="i-lucide-clock"
+            color="warning"
+            variant="outline"
+            class="mr-2"
+            @click="router.push('/work-orders/approvals')"
+          />
+          <UButton
             label="Assignments"
             icon="i-lucide-users"
             color="neutral"
@@ -407,6 +424,7 @@ const pagination = ref({
             :items="[
               { label: 'All Statuses', value: 'all' },
               { label: 'Draft', value: 'draft' },
+              { label: 'Pending Approval', value: 'pending_approval' },
               { label: 'Open', value: 'open' },
               { label: 'In Progress', value: 'in_progress' },
               { label: 'Pending Parts', value: 'pending_parts' },

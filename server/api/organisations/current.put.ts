@@ -12,6 +12,13 @@ const updateOrganisationSchema = z.object({
     .regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid color format')
     .optional(),
   preventNegativeStock: z.boolean().optional(),
+  // Work order approval settings
+  workOrderApprovalThreshold: z
+    .string()
+    .regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format')
+    .nullable()
+    .optional(),
+  requireApprovalForAllWorkOrders: z.boolean().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -74,6 +81,8 @@ export default defineEventHandler(async (event) => {
       logoUrl: currentOrg.logoUrl,
       primaryColor: currentOrg.primaryColor,
       preventNegativeStock: currentOrg.preventNegativeStock,
+      workOrderApprovalThreshold: currentOrg.workOrderApprovalThreshold,
+      requireApprovalForAllWorkOrders: currentOrg.requireApprovalForAllWorkOrders,
     },
     newValues: updates,
     ipAddress: headers['x-forwarded-for']?.split(',')[0] || headers['x-real-ip'] || null,
