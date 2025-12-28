@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
       eq(schema.workOrders.organisationId, session.user.organisationId),
     ),
     with: {
-      assignedTo: {
+      assignee: {
         columns: {
           hourlyRate: true,
         },
@@ -54,9 +54,9 @@ export default defineEventHandler(async (event) => {
 
   // Calculate labor cost - actual duration (minutes) * hourly rate / 60
   let laborCost = 0
-  if (workOrder.actualDuration && workOrder.assignedTo?.hourlyRate) {
+  if (workOrder.actualDuration && workOrder.assignee?.hourlyRate) {
     const hours = workOrder.actualDuration / 60
-    const hourlyRate = Number.parseFloat(workOrder.assignedTo.hourlyRate)
+    const hourlyRate = Number.parseFloat(workOrder.assignee.hourlyRate)
     laborCost = hours * hourlyRate
   }
 

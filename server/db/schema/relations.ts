@@ -483,3 +483,172 @@ export const locationRecordsRelations = relations(locationRecords, ({ one }) => 
     references: [operatorSessions.id],
   }),
 }))
+
+// Users Relations
+export const usersRelations = relations(users, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [users.organisationId],
+    references: [organisations.id],
+  }),
+  role: one(roles, {
+    fields: [users.roleId],
+    references: [roles.id],
+  }),
+  workOrders: many(workOrders),
+  notifications: many(notifications),
+  sessions: many(sessions),
+}))
+
+// Roles Relations
+export const rolesRelations = relations(roles, ({ many }) => ({
+  users: many(users),
+}))
+
+// Task Template Parts Relations
+export const taskTemplatePartsRelations = relations(taskTemplateParts, ({ one }) => ({
+  template: one(taskTemplates, {
+    fields: [taskTemplateParts.templateId],
+    references: [taskTemplates.id],
+  }),
+  part: one(parts, {
+    fields: [taskTemplateParts.partId],
+    references: [parts.id],
+  }),
+}))
+
+// Task Templates Relations
+export const taskTemplatesRelations = relations(taskTemplates, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [taskTemplates.organisationId],
+    references: [organisations.id],
+  }),
+  group: one(taskGroups, {
+    fields: [taskTemplates.groupId],
+    references: [taskGroups.id],
+  }),
+  templateParts: many(taskTemplateParts),
+  overrides: many(taskOverrides),
+  maintenanceSchedules: many(maintenanceSchedules),
+}))
+
+// Task Groups Relations
+export const taskGroupsRelations = relations(taskGroups, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [taskGroups.organisationId],
+    references: [organisations.id],
+  }),
+  parent: one(taskGroups, {
+    fields: [taskGroups.parentId],
+    references: [taskGroups.id],
+    relationName: 'taskGroupParentChild',
+  }),
+  children: many(taskGroups, {
+    relationName: 'taskGroupParentChild',
+  }),
+  templates: many(taskTemplates),
+}))
+
+// Assets Relations
+export const assetsRelations = relations(assets, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [assets.organisationId],
+    references: [organisations.id],
+  }),
+  category: one(assetCategories, {
+    fields: [assets.categoryId],
+    references: [assetCategories.id],
+  }),
+  workOrders: many(workOrders),
+  defects: many(defects),
+  documents: many(assetDocuments),
+  locationHistory: many(assetLocationHistory),
+  maintenanceSchedules: many(maintenanceSchedules),
+  operatorSessions: many(operatorSessions),
+  fuelTransactions: many(fuelTransactions),
+  locationRecords: many(locationRecords),
+  compatibleParts: many(assetParts),
+}))
+
+// Asset Categories Relations
+export const assetCategoriesRelations = relations(assetCategories, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [assetCategories.organisationId],
+    references: [organisations.id],
+  }),
+  parent: one(assetCategories, {
+    fields: [assetCategories.parentId],
+    references: [assetCategories.id],
+    relationName: 'assetCategoryParentChild',
+  }),
+  children: many(assetCategories, {
+    relationName: 'assetCategoryParentChild',
+  }),
+  assets: many(assets),
+  compatibleParts: many(assetCategoryParts),
+  maintenanceSchedules: many(maintenanceSchedules),
+  taskOverrides: many(taskOverrides),
+}))
+
+// Work Orders Relations
+export const workOrdersRelations = relations(workOrders, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [workOrders.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [workOrders.assetId],
+    references: [assets.id],
+  }),
+  template: one(taskTemplates, {
+    fields: [workOrders.templateId],
+    references: [taskTemplates.id],
+  }),
+  assignee: one(users, {
+    fields: [workOrders.assignedToId],
+    references: [users.id],
+    relationName: 'workOrderAssignee',
+  }),
+  createdBy: one(users, {
+    fields: [workOrders.createdById],
+    references: [users.id],
+    relationName: 'workOrderCreatedBy',
+  }),
+  checklistItems: many(workOrderChecklistItems),
+  parts: many(workOrderParts),
+  photos: many(workOrderPhotos),
+  statusHistory: many(workOrderStatusHistory),
+  approvals: many(workOrderApprovals),
+  defects: many(defects),
+}))
+
+// Asset Documents Relations
+export const assetDocumentsRelations = relations(assetDocuments, ({ one }) => ({
+  asset: one(assets, {
+    fields: [assetDocuments.assetId],
+    references: [assets.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [assetDocuments.uploadedById],
+    references: [users.id],
+  }),
+}))
+
+// Asset Location History Relations
+export const assetLocationHistoryRelations = relations(assetLocationHistory, ({ one }) => ({
+  asset: one(assets, {
+    fields: [assetLocationHistory.assetId],
+    references: [assets.id],
+  }),
+  updatedBy: one(users, {
+    fields: [assetLocationHistory.updatedById],
+    references: [users.id],
+  }),
+}))
+
+// Sessions Relations
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+  user: one(users, {
+    fields: [sessions.userId],
+    references: [users.id],
+  }),
+}))

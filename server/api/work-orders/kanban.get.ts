@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
           model: true,
         },
       },
-      assignedTo: {
+      assignee: {
         columns: {
           id: true,
           firstName: true,

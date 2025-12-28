@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     with: {
       asset: true,
       template: true,
-      assignedTo: {
+      assignee: {
         columns: {
           id: true,
           firstName: true,

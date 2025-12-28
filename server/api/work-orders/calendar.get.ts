@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
           model: true,
         },
       },
-      assignedTo: {
+      assignee: {
         columns: {
           id: true,
           firstName: true,
@@ -118,6 +118,6 @@ export default defineEventHandler(async (event) => {
     startedAt: wo.startedAt,
     completedAt: wo.completedAt,
     asset: wo.asset,
-    assignedTo: wo.assignedTo,
+    assignee: wo.assignee,
   }))
 })

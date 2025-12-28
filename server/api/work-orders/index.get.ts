@@ -91,7 +91,7 @@ export default defineEventHandler(async (event) => {
     where: and(...conditions),
     with: {
       asset: true,
-      assignedTo: {
+      assignee: {
         columns: {
           id: true,
           firstName: true,
