@@ -21,6 +21,9 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'work_order_approved',
   'work_order_rejected',
   'defect_reported',
+  'geofence_entry',
+  'geofence_exit',
+  'after_hours_movement',
   'system',
 ])
 

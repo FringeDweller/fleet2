@@ -123,3 +123,59 @@ export async function createWorkOrderRejectedNotification(params: {
     isRead: false,
   })
 }
+
+// Geofence alert notifications
+
+export async function createGeofenceEntryNotification(params: {
+  organisationId: string
+  userId: string
+  assetNumber: string
+  geofenceName: string
+  alertId: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'geofence_entry',
+    title: 'Geofence Entry Alert',
+    body: `${params.assetNumber} entered ${params.geofenceName}`,
+    link: `/geofence-alerts/${params.alertId}`,
+    isRead: false,
+  })
+}
+
+export async function createGeofenceExitNotification(params: {
+  organisationId: string
+  userId: string
+  assetNumber: string
+  geofenceName: string
+  alertId: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'geofence_exit',
+    title: 'Geofence Exit Alert',
+    body: `${params.assetNumber} exited ${params.geofenceName}`,
+    link: `/geofence-alerts/${params.alertId}`,
+    isRead: false,
+  })
+}
+
+export async function createAfterHoursMovementNotification(params: {
+  organisationId: string
+  userId: string
+  assetNumber: string
+  geofenceName: string
+  alertId: string
+}) {
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'after_hours_movement',
+    title: 'After-Hours Movement Alert',
+    body: `${params.assetNumber} detected moving in ${params.geofenceName} during after-hours`,
+    link: `/geofence-alerts/${params.alertId}`,
+    isRead: false,
+  })
+}

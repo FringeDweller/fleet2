@@ -120,6 +120,13 @@
       "when": 1766896792502,
       "tag": "0016_broad_firelord",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1766901904273,
+      "tag": "0017_broad_jack_power",
+      "breakpoints": true
     }
   ]
 }

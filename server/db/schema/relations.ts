@@ -7,7 +7,10 @@ import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
 import { defects } from './defects'
+import { fuelAuthorizations } from './fuel-authorizations'
 import { fuelTransactions } from './fuel-transactions'
+import { geofenceAlertSettings, geofenceAlerts } from './geofence-alerts'
+import { geofences } from './geofences'
 import { inventoryCountItems } from './inventory-count-items'
 import { inventoryCountSessions } from './inventory-count-sessions'
 import { inventoryTransfers } from './inventory-transfers'
@@ -54,6 +57,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   defects: many(defects),
   approvals: many(workOrderApprovals),
   operatorCertifications: many(operatorCertifications),
+  geofences: many(geofences),
+  geofenceAlerts: many(geofenceAlerts),
+  geofenceAlertSettings: many(geofenceAlertSettings),
 }))
 
 // Work Order Approvals Relations
@@ -447,6 +453,7 @@ export const operatorSessionsRelations = relations(operatorSessions, ({ one, man
     references: [users.id],
   }),
   fuelTransactions: many(fuelTransactions),
+  fuelAuthorizations: many(fuelAuthorizations),
   locationRecords: many(locationRecords),
 }))
 
@@ -467,6 +474,30 @@ export const fuelTransactionsRelations = relations(fuelTransactions, ({ one }) =
   user: one(users, {
     fields: [fuelTransactions.userId],
     references: [users.id],
+  }),
+}))
+
+// Fuel Authorizations Relations
+export const fuelAuthorizationsRelations = relations(fuelAuthorizations, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [fuelAuthorizations.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [fuelAuthorizations.assetId],
+    references: [assets.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [fuelAuthorizations.operatorSessionId],
+    references: [operatorSessions.id],
+  }),
+  operator: one(users, {
+    fields: [fuelAuthorizations.operatorId],
+    references: [users.id],
+  }),
+  fuelTransaction: one(fuelTransactions, {
+    fields: [fuelAuthorizations.fuelTransactionId],
+    references: [fuelTransactions.id],
   }),
 }))
 
@@ -664,6 +695,52 @@ export const assetLocationHistoryRelations = relations(assetLocationHistory, ({ 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, {
     fields: [sessions.userId],
+    references: [users.id],
+  }),
+}))
+
+// Geofences Relations
+export const geofencesRelations = relations(geofences, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [geofences.organisationId],
+    references: [organisations.id],
+  }),
+  alertSettings: many(geofenceAlertSettings),
+  alerts: many(geofenceAlerts),
+}))
+
+// Geofence Alert Settings Relations
+export const geofenceAlertSettingsRelations = relations(geofenceAlertSettings, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [geofenceAlertSettings.organisationId],
+    references: [organisations.id],
+  }),
+  geofence: one(geofences, {
+    fields: [geofenceAlertSettings.geofenceId],
+    references: [geofences.id],
+  }),
+}))
+
+// Geofence Alerts Relations
+export const geofenceAlertsRelations = relations(geofenceAlerts, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [geofenceAlerts.organisationId],
+    references: [organisations.id],
+  }),
+  geofence: one(geofences, {
+    fields: [geofenceAlerts.geofenceId],
+    references: [geofences.id],
+  }),
+  asset: one(assets, {
+    fields: [geofenceAlerts.assetId],
+    references: [assets.id],
+  }),
+  operatorSession: one(operatorSessions, {
+    fields: [geofenceAlerts.operatorSessionId],
+    references: [operatorSessions.id],
+  }),
+  acknowledgedBy: one(users, {
+    fields: [geofenceAlerts.acknowledgedById],
     references: [users.id],
   }),
 }))
