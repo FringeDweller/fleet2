@@ -268,6 +268,49 @@ const {
   lazy: true,
 })
 
+// Fetch operation status (US-9.6)
+interface OperationStatusResponse {
+  canOperate: boolean
+  isBlocked: boolean
+  hasActiveOverride: boolean
+  blockingDefects: Array<{
+    id: string
+    title: string
+    description: string | null
+    severity: 'minor' | 'major' | 'critical'
+    status: string
+    category: string | null
+    reportedAt: string
+    reportedBy: { id: string; firstName: string; lastName: string } | null
+  }>
+  activeBlocks: Array<{
+    id: string
+    blockingSeverity: string
+    blockedAt: string
+    overriddenAt: string | null
+    overrideReason: string | null
+    defect: { id: string; title: string; severity: string } | null
+    overriddenBy: { id: string; firstName: string; lastName: string } | null
+  }>
+  message: string | null
+  asset: { id: string; assetNumber: string; status: string }
+  settings: { blockingEnabled: boolean; blockingSeverities: string[] }
+}
+
+const {
+  data: operationStatus,
+  status: operationStatusStatus,
+  refresh: refreshOperationStatus,
+} = await useFetch<OperationStatusResponse>(`/api/assets/${route.params.id}/operation-status`, {
+  lazy: true,
+})
+
+// Override modal state (US-9.6)
+const showOverrideModal = ref(false)
+const overrideReason = ref('')
+const isOverriding = ref(false)
+const { isSupervisor } = usePermissions()
+
 // Fetch compatible parts
 const {
   data: compatiblePartsData,
@@ -782,6 +825,49 @@ const formatCurrency = (value: number | string | null | undefined) => {
 const isWritingNfc = ref(false)
 const nfcEnrollmentStatus = ref<'idle' | 'writing' | 'success' | 'error'>('idle')
 
+// Override operation block (US-9.6)
+async function overrideBlock() {
+  if (!overrideReason.value.trim() || overrideReason.value.length < 10) {
+    toast.add({
+      title: 'Error',
+      description: 'Please provide a reason with at least 10 characters.',
+      color: 'error',
+    })
+    return
+  }
+
+  isOverriding.value = true
+  try {
+    await $fetch(`/api/assets/${route.params.id}/override-block`, {
+      method: 'POST',
+      body: {
+        reason: overrideReason.value,
+      },
+    })
+
+    toast.add({
+      title: 'Operation Authorized',
+      description: 'The vehicle operation block has been overridden.',
+      color: 'success',
+      icon: 'i-lucide-shield-check',
+    })
+
+    showOverrideModal.value = false
+    overrideReason.value = ''
+    refreshOperationStatus()
+    refreshDefects()
+  } catch (err: unknown) {
+    const error = err as { data?: { statusMessage?: string } }
+    toast.add({
+      title: 'Override Failed',
+      description: error.data?.statusMessage || 'Failed to override block.',
+      color: 'error',
+    })
+  } finally {
+    isOverriding.value = false
+  }
+}
+
 async function enrollNfcTag() {
   if (!asset.value) return
 
@@ -1020,6 +1106,104 @@ async function enrollNfcTag() {
           </div>
         </div>
 
+        <!-- Operation Status Banner (US-9.6) -->
+        <div v-if="operationStatusStatus !== 'pending' && operationStatus?.isBlocked" class="mb-4">
+          <UAlert
+            color="error"
+            variant="solid"
+            icon="i-lucide-octagon-x"
+          >
+            <template #title>
+              <div class="flex items-center gap-2">
+                <span class="font-bold">NOT SAFE TO OPERATE</span>
+                <UBadge v-if="operationStatus.hasActiveOverride" color="warning" variant="solid" size="sm">
+                  Override Active
+                </UBadge>
+              </div>
+            </template>
+            <template #description>
+              <div class="space-y-3">
+                <p>{{ operationStatus.message }}</p>
+
+                <!-- Blocking defects summary -->
+                <div v-if="operationStatus.blockingDefects.length > 0" class="space-y-2">
+                  <p class="font-medium text-sm">Blocking Defects:</p>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="defect in operationStatus.blockingDefects.slice(0, 3)"
+                      :key="defect.id"
+                      class="flex items-center gap-2 text-sm"
+                    >
+                      <UBadge
+                        :color="defect.severity === 'critical' ? 'error' : 'warning'"
+                        variant="solid"
+                        size="xs"
+                        class="capitalize"
+                      >
+                        {{ defect.severity }}
+                      </UBadge>
+                      <NuxtLink :to="`/defects/${defect.id}`" class="hover:underline">
+                        {{ defect.title }}
+                      </NuxtLink>
+                    </li>
+                    <li v-if="operationStatus.blockingDefects.length > 3" class="text-sm text-white/80">
+                      and {{ operationStatus.blockingDefects.length - 3 }} more...
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Override info if active -->
+                <div v-if="operationStatus.hasActiveOverride" class="bg-white/10 rounded-lg p-3 mt-2">
+                  <p class="text-sm">
+                    <UIcon name="i-lucide-shield-check" class="w-4 h-4 inline mr-1" />
+                    <strong>Operation Authorized:</strong>
+                    {{ operationStatus.activeBlocks.find(b => b.overriddenAt)?.overrideReason || 'No reason provided' }}
+                  </p>
+                  <p class="text-xs mt-1 opacity-80">
+                    Authorized by
+                    {{ operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy
+                      ? `${operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy?.firstName} ${operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy?.lastName}`
+                      : 'Supervisor'
+                    }}
+                  </p>
+                </div>
+
+                <!-- Override button for supervisors -->
+                <div v-if="isSupervisor && !operationStatus.hasActiveOverride" class="flex gap-2 mt-3">
+                  <UButton
+                    label="Supervisor Override"
+                    icon="i-lucide-shield-check"
+                    color="neutral"
+                    variant="solid"
+                    size="sm"
+                    @click="showOverrideModal = true"
+                  />
+                  <NuxtLink to="/defects" class="inline-block">
+                    <UButton
+                      label="View All Defects"
+                      icon="i-lucide-arrow-right"
+                      color="neutral"
+                      variant="outline"
+                      size="sm"
+                    />
+                  </NuxtLink>
+                </div>
+              </div>
+            </template>
+          </UAlert>
+        </div>
+
+        <!-- Operation Override Active Notice -->
+        <div v-else-if="operationStatusStatus !== 'pending' && operationStatus?.hasActiveOverride && !operationStatus?.isBlocked" class="mb-4">
+          <UAlert
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-shield-check"
+            :title="operationStatus.message || 'Operation authorized via supervisor override'"
+            description="This vehicle has active defects but operation has been authorized by a supervisor."
+          />
+        </div>
+
         <!-- Tabs -->
         <UTabs
           v-model="activeTab"
@@ -1169,6 +1353,13 @@ async function enrollNfcTag() {
             Scan this code to quickly access this asset
           </p>
         </UCard>
+
+        <!-- Custom Forms Section (US-13.2) -->
+        <AssignedFormsSection
+          v-if="activeTab === 'details'"
+          target-type="asset"
+          :entity-id="asset.id"
+        />
 
         <!-- NFC Enrollment Card -->
         <UCard v-if="activeTab === 'details'">
@@ -2315,6 +2506,100 @@ async function enrollNfcTag() {
         }"
         @success="() => { refreshActiveSession(); handoverHistoryRef?.refresh(); }"
       />
+
+      <!-- Operation Override Modal (US-9.6) -->
+      <UModal v-model:open="showOverrideModal">
+        <template #content>
+          <UCard>
+            <template #header>
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                  <UIcon name="i-lucide-shield-alert" class="w-5 h-5 text-warning" />
+                </div>
+                <div>
+                  <h3 class="font-medium">Supervisor Override Required</h3>
+                  <p class="text-sm text-muted">Vehicle: {{ asset?.assetNumber }}</p>
+                </div>
+              </div>
+            </template>
+            <div class="space-y-4">
+              <UAlert
+                color="warning"
+                icon="i-lucide-alert-triangle"
+                title="Safety Warning"
+                description="This vehicle has active defects that normally prevent operation. By overriding, you take responsibility for authorizing its use."
+              />
+
+              <!-- Blocking defects summary -->
+              <div v-if="operationStatus?.blockingDefects?.length" class="bg-error/5 rounded-lg p-4">
+                <p class="font-medium text-sm mb-2">Active Blocking Defects:</p>
+                <ul class="space-y-1">
+                  <li
+                    v-for="defect in operationStatus.blockingDefects.slice(0, 5)"
+                    :key="defect.id"
+                    class="flex items-center gap-2 text-sm"
+                  >
+                    <UBadge
+                      :color="defect.severity === 'critical' ? 'error' : 'warning'"
+                      variant="subtle"
+                      size="xs"
+                      class="capitalize"
+                    >
+                      {{ defect.severity }}
+                    </UBadge>
+                    <span>{{ defect.title }}</span>
+                  </li>
+                  <li v-if="(operationStatus?.blockingDefects?.length || 0) > 5" class="text-sm text-muted">
+                    and {{ (operationStatus?.blockingDefects?.length || 0) - 5 }} more...
+                  </li>
+                </ul>
+              </div>
+
+              <UFormField
+                label="Override Reason"
+                description="Please provide a detailed reason for authorizing this vehicle's operation despite active defects."
+                required
+              >
+                <UTextarea
+                  v-model="overrideReason"
+                  placeholder="Enter reason for override (minimum 10 characters)..."
+                  :rows="3"
+                  class="w-full"
+                />
+                <p class="text-xs text-muted mt-1">
+                  {{ overrideReason.length }}/10 characters minimum
+                </p>
+              </UFormField>
+
+              <UAlert
+                color="info"
+                icon="i-lucide-info"
+                variant="subtle"
+                title="Audit Trail"
+                description="This override will be logged in the audit trail with your name, the reason provided, and timestamp."
+              />
+            </div>
+            <template #footer>
+              <div class="flex justify-end gap-2">
+                <UButton
+                  label="Cancel"
+                  color="neutral"
+                  variant="subtle"
+                  @click="showOverrideModal = false"
+                />
+                <UButton
+                  label="Authorize Operation"
+                  icon="i-lucide-shield-check"
+                  color="warning"
+                  :loading="isOverriding"
+                  :disabled="overrideReason.length < 10"
+                  @click="overrideBlock"
+                />
+              </div>
+            </template>
+          </UCard>
+        </template>
+      </UModal>
     </template>
   </UDashboardPanel>
 </template>

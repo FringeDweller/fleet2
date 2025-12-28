@@ -6,6 +6,9 @@ import { assetLocationHistory } from './asset-location-history'
 import { assetParts } from './asset-parts'
 import { assets } from './assets'
 import { auditLog } from './audit-log'
+import { customFormAssignments } from './custom-form-assignments'
+import { customFormSubmissions } from './custom-form-submissions'
+import { customFormVersions } from './custom-form-versions'
 import { customForms } from './custom-forms'
 import { defects } from './defects'
 import { fuelAuthorizations } from './fuel-authorizations'
@@ -27,6 +30,7 @@ import { jobSiteVisits } from './job-site-visits'
 import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
+import { operationBlocks } from './operation-blocks'
 import { operatorCertifications } from './operator-certifications'
 import { operatorSessions } from './operator-sessions'
 import { organisations } from './organisations'
@@ -73,7 +77,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   inspectionTemplates: many(inspectionTemplates),
   inspections: many(inspections),
   customForms: many(customForms),
+  customFormAssignments: many(customFormAssignments),
   jobSiteVisits: many(jobSiteVisits),
+  operationBlocks: many(operationBlocks),
 }))
 
 // Work Order Approvals Relations
@@ -338,6 +344,32 @@ export const defectsRelations = relations(defects, ({ one }) => ({
     relationName: 'defectResolvedBy',
   }),
 }))
+// Operation Blocks Relations (US-9.6)
+export const operationBlocksRelations = relations(operationBlocks, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [operationBlocks.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [operationBlocks.assetId],
+    references: [assets.id],
+  }),
+  defect: one(defects, {
+    fields: [operationBlocks.defectId],
+    references: [defects.id],
+  }),
+  resolvedBy: one(users, {
+    fields: [operationBlocks.resolvedById],
+    references: [users.id],
+    relationName: 'operationBlockResolvedBy',
+  }),
+  overriddenBy: one(users, {
+    fields: [operationBlocks.overriddenById],
+    references: [users.id],
+    relationName: 'operationBlockOverriddenBy',
+  }),
+}))
+
 // Task Overrides Relations
 export const taskOverridesRelations = relations(taskOverrides, ({ one }) => ({
   organisation: one(organisations, {
@@ -644,6 +676,7 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   fuelTransactions: many(fuelTransactions),
   locationRecords: many(locationRecords),
   compatibleParts: many(assetParts),
+  operationBlocks: many(operationBlocks),
 }))
 
 // Asset Categories Relations
@@ -875,7 +908,7 @@ export const jobSiteVisitsRelations = relations(jobSiteVisits, ({ one }) => ({
 }))
 
 // Custom Forms Relations
-export const customFormsRelations = relations(customForms, ({ one }) => ({
+export const customFormsRelations = relations(customForms, ({ one, many }) => ({
   organisation: one(organisations, {
     fields: [customForms.organisationId],
     references: [organisations.id],
@@ -889,6 +922,72 @@ export const customFormsRelations = relations(customForms, ({ one }) => ({
     fields: [customForms.updatedById],
     references: [users.id],
     relationName: 'customFormUpdatedBy',
+  }),
+  assignments: many(customFormAssignments),
+  versions: many(customFormVersions),
+  submissions: many(customFormSubmissions),
+}))
+
+// Custom Form Versions Relations
+export const customFormVersionsRelations = relations(customFormVersions, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [customFormVersions.organisationId],
+    references: [organisations.id],
+  }),
+  form: one(customForms, {
+    fields: [customFormVersions.formId],
+    references: [customForms.id],
+  }),
+  publishedBy: one(users, {
+    fields: [customFormVersions.publishedById],
+    references: [users.id],
+  }),
+  submissions: many(customFormSubmissions),
+}))
+
+// Custom Form Submissions Relations
+export const customFormSubmissionsRelations = relations(customFormSubmissions, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [customFormSubmissions.organisationId],
+    references: [organisations.id],
+  }),
+  form: one(customForms, {
+    fields: [customFormSubmissions.formId],
+    references: [customForms.id],
+  }),
+  version: one(customFormVersions, {
+    fields: [customFormSubmissions.versionId],
+    references: [customFormVersions.id],
+  }),
+  submittedBy: one(users, {
+    fields: [customFormSubmissions.submittedById],
+    references: [users.id],
+    relationName: 'formSubmittedBy',
+  }),
+  reviewedBy: one(users, {
+    fields: [customFormSubmissions.reviewedById],
+    references: [users.id],
+    relationName: 'formReviewedBy',
+  }),
+}))
+
+// Custom Form Assignments Relations
+export const customFormAssignmentsRelations = relations(customFormAssignments, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [customFormAssignments.organisationId],
+    references: [organisations.id],
+  }),
+  form: one(customForms, {
+    fields: [customFormAssignments.formId],
+    references: [customForms.id],
+  }),
+  categoryFilter: one(assetCategories, {
+    fields: [customFormAssignments.categoryFilterId],
+    references: [assetCategories.id],
+  }),
+  createdBy: one(users, {
+    fields: [customFormAssignments.createdById],
+    references: [users.id],
   }),
 }))
 

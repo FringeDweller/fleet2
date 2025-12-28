@@ -46,6 +46,13 @@ export const organisations = pgTable('organisations', {
   // Defect escalation settings (US-9.5)
   // If true, auto-create work orders when defects are created (for major/critical severity)
   autoCreateWorkOrderOnDefect: boolean('auto_create_work_order_on_defect').default(true).notNull(),
+  // Vehicle operation blocking settings (US-9.6)
+  // If true, vehicles with critical defects are blocked from operation
+  blockVehicleOnCriticalDefect: boolean('block_vehicle_on_critical_defect').default(true).notNull(),
+  // Defect severities that block vehicle operation (stored as JSON array)
+  // Default: ['critical'] - only critical defects block operation
+  // Options: 'minor', 'major', 'critical'
+  blockingDefectSeverities: text('blocking_defect_severities').default('["critical"]').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 })

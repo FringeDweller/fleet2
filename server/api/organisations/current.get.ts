@@ -16,5 +16,15 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  return organisation
+  // Parse blockingDefectSeverities from JSON string to array
+  return {
+    ...organisation,
+    blockingDefectSeverities: (() => {
+      try {
+        return JSON.parse(organisation.blockingDefectSeverities)
+      } catch {
+        return ['critical']
+      }
+    })(),
+  }
 })

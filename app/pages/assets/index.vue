@@ -21,6 +21,7 @@ interface Asset {
   description: string | null
   imageUrl: string | null
   isArchived: boolean
+  isOperationBlocked: boolean
   categoryId: string | null
   category: { id: string; name: string } | null
   createdAt: string
@@ -475,6 +476,22 @@ const columns: TableColumn<Asset>[] = [
     cell: ({ row }) => {
       const color = statusColors[row.original.status]
       return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () => row.original.status)
+    },
+  },
+  {
+    id: 'operationStatus',
+    header: 'Operation',
+    cell: ({ row }) => {
+      if (row.original.isOperationBlocked) {
+        return h('div', { class: 'flex items-center gap-1.5' }, [
+          h(
+            UBadge,
+            { color: 'error', variant: 'solid', size: 'xs', class: 'uppercase font-semibold' },
+            () => 'Blocked',
+          ),
+        ])
+      }
+      return h(UBadge, { color: 'success', variant: 'subtle', size: 'xs' }, () => 'OK')
     },
   },
   {

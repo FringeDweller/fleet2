@@ -3,6 +3,9 @@ import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import { requirePermission } from '../../utils/permissions'
 
+// Valid defect severities for blocking
+const validSeverities = ['minor', 'major', 'critical'] as const
+
 const updateOrganisationSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   description: z.string().nullable().optional(),
@@ -19,6 +22,16 @@ const updateOrganisationSchema = z.object({
     .nullable()
     .optional(),
   requireApprovalForAllWorkOrders: z.boolean().optional(),
+  // Defect escalation settings (US-9.5)
+  autoCreateWorkOrderOnDefect: z.boolean().optional(),
+  // Vehicle operation blocking settings (US-9.6)
+  blockVehicleOnCriticalDefect: z.boolean().optional(),
+  blockingDefectSeverities: z
+    .array(z.enum(validSeverities))
+    .min(1, 'At least one severity must be selected')
+    .optional(),
+  // Handover settings (US-8.5)
+  handoverThresholdMinutes: z.number().int().min(5).max(120).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -48,7 +61,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const updates = result.data
+  const { blockingDefectSeverities, ...otherUpdates } = result.data
+
+  // Prepare updates - convert blockingDefectSeverities array to JSON string
+  const updates = {
+    ...otherUpdates,
+    // Store severities as JSON string if provided
+    ...(blockingDefectSeverities !== undefined && {
+      blockingDefectSeverities: JSON.stringify(blockingDefectSeverities),
+    }),
+  }
 
   // Update organisation
   const [updatedOrg] = await db
@@ -83,11 +105,33 @@ export default defineEventHandler(async (event) => {
       preventNegativeStock: currentOrg.preventNegativeStock,
       workOrderApprovalThreshold: currentOrg.workOrderApprovalThreshold,
       requireApprovalForAllWorkOrders: currentOrg.requireApprovalForAllWorkOrders,
+      autoCreateWorkOrderOnDefect: currentOrg.autoCreateWorkOrderOnDefect,
+      blockVehicleOnCriticalDefect: currentOrg.blockVehicleOnCriticalDefect,
+      blockingDefectSeverities: currentOrg.blockingDefectSeverities,
+      handoverThresholdMinutes: currentOrg.handoverThresholdMinutes,
     },
-    newValues: updates,
+    newValues: {
+      ...updates,
+      // Include the original array format in the audit log for readability
+      ...(blockingDefectSeverities !== undefined && {
+        blockingDefectSeverities: blockingDefectSeverities,
+      }),
+    },
     ipAddress: headers['x-forwarded-for']?.split(',')[0] || headers['x-real-ip'] || null,
     userAgent: headers['user-agent'] || null,
   })
 
-  return updatedOrg
+  // Parse blockingDefectSeverities for response
+  const response = {
+    ...updatedOrg,
+    blockingDefectSeverities: (() => {
+      try {
+        return JSON.parse(updatedOrg.blockingDefectSeverities)
+      } catch {
+        return ['critical']
+      }
+    })(),
+  }
+
+  return response
 })

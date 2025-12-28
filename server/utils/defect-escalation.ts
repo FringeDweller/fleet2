@@ -38,6 +38,10 @@ interface DefectEscalationResult {
     priority: string
     status: string
   } | null
+  operationBlock: {
+    id: string
+    blockedAt: string
+  } | null
   supervisorsNotified: number
 }
 
@@ -153,10 +157,28 @@ export async function createDefectWithEscalation(
       (organisation.autoCreateWorkOrderOnDefect &&
         (input.severity === 'major' || input.severity === 'critical')))
 
+  // Check if this defect severity should block vehicle operation (US-9.6)
+  let blockingSeverities: string[] = []
+  const shouldCreateBlock =
+    organisation.blockVehicleOnCriticalDefect && organisation.blockingDefectSeverities
+  if (shouldCreateBlock) {
+    try {
+      blockingSeverities = JSON.parse(organisation.blockingDefectSeverities)
+    } catch {
+      blockingSeverities = ['critical']
+    }
+  }
+  const isBlockingSeverity = blockingSeverities.includes(input.severity)
+
   // Use a transaction to ensure consistency
-  const { defect: result, workOrder: workOrderResult } = await db.transaction(async (tx) => {
+  const {
+    defect: result,
+    workOrder: workOrderResult,
+    operationBlock: operationBlockResult,
+  } = await db.transaction(async (tx) => {
     let createdWorkOrderId: string | null = null
     let createdWorkOrder: DefectEscalationResult['workOrder'] = null
+    let createdOperationBlock: DefectEscalationResult['operationBlock'] = null
 
     // Create work order first if needed (so we can link defect to it)
     if (shouldCreateWorkOrder) {
@@ -233,6 +255,44 @@ export async function createDefectWithEscalation(
       throw new Error('Failed to create defect')
     }
 
+    // Create operation block if this is a blocking severity (US-9.6)
+    if (isBlockingSeverity) {
+      const [newBlock] = await tx
+        .insert(schema.operationBlocks)
+        .values({
+          organisationId: input.organisationId,
+          assetId: input.assetId,
+          defectId: newDefect.id,
+          blockingSeverity: input.severity,
+          isActive: true,
+          blockedAt: now,
+        })
+        .returning()
+
+      if (newBlock) {
+        createdOperationBlock = {
+          id: newBlock.id,
+          blockedAt: newBlock.blockedAt.toISOString(),
+        }
+
+        // Log the operation block in audit log
+        await tx.insert(schema.auditLog).values({
+          organisationId: input.organisationId,
+          userId: input.reportedById,
+          action: 'create_operation_block',
+          entityType: 'operation_block',
+          entityId: newBlock.id,
+          newValues: {
+            assetId: input.assetId,
+            defectId: newDefect.id,
+            severity: input.severity,
+            blockedAt: now.toISOString(),
+            reason: `Vehicle blocked due to ${input.severity} defect: ${input.title}`,
+          },
+        })
+      }
+    }
+
     // Create audit log entry
     await tx.insert(schema.auditLog).values({
       organisationId: input.organisationId,
@@ -243,10 +303,11 @@ export async function createDefectWithEscalation(
       newValues: {
         ...newDefect,
         workOrderCreated: !!createdWorkOrderId,
+        operationBlockCreated: !!createdOperationBlock,
       },
     })
 
-    return { defect: newDefect, workOrder: createdWorkOrder }
+    return { defect: newDefect, workOrder: createdWorkOrder, operationBlock: createdOperationBlock }
   })
 
   // Notify supervisors (outside transaction for performance)
@@ -283,6 +344,7 @@ export async function createDefectWithEscalation(
       status: result.status,
     },
     workOrder: workOrderResult,
+    operationBlock: operationBlockResult,
     supervisorsNotified,
   }
 }

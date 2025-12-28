@@ -724,6 +724,14 @@ const tabs = computed(() => [
               {{ workOrder.completionNotes }}
             </p>
           </UCard>
+
+          <!-- Custom Forms Section (US-13.2) -->
+          <div class="md:col-span-2 lg:col-span-3">
+            <AssignedFormsSection
+              target-type="work_order"
+              :entity-id="workOrder.id"
+            />
+          </div>
         </div>
 
         <!-- Checklist Tab -->

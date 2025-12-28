@@ -1,4 +1,17 @@
-import { and, asc, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm'
 import { db, schema } from '../../utils/db'
 import { requirePermission } from '../../utils/permissions'
 
@@ -145,8 +158,34 @@ export default defineEventHandler(async (event) => {
     offset,
   })
 
+  // Fetch operation block status for all assets in this page (US-9.6)
+  const assetIds = assets.map((a) => a.id)
+  let blockedAssetIds: string[] = []
+
+  if (assetIds.length > 0) {
+    // Get active operation blocks for these assets
+    const activeBlocks = await db.query.operationBlocks.findMany({
+      where: and(
+        eq(schema.operationBlocks.organisationId, user.organisationId),
+        inArray(schema.operationBlocks.assetId, assetIds),
+        eq(schema.operationBlocks.isActive, true),
+        isNull(schema.operationBlocks.overriddenAt),
+      ),
+      columns: {
+        assetId: true,
+      },
+    })
+    blockedAssetIds = [...new Set(activeBlocks.map((b) => b.assetId))]
+  }
+
+  // Augment assets with block status
+  const assetsWithBlockStatus = assets.map((asset) => ({
+    ...asset,
+    isOperationBlocked: blockedAssetIds.includes(asset.id),
+  }))
+
   return {
-    data: assets,
+    data: assetsWithBlockStatus,
     pagination: {
       total,
       limit,

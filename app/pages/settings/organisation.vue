@@ -15,14 +15,29 @@ interface Organisation {
   preventNegativeStock: boolean
   workOrderApprovalThreshold: string | null
   requireApprovalForAllWorkOrders: boolean
+  autoCreateWorkOrderOnDefect: boolean
+  blockVehicleOnCriticalDefect: boolean
+  blockingDefectSeverities: Array<'minor' | 'major' | 'critical'>
+  handoverThresholdMinutes: number
 }
+
+// Severity options for the multi-select
+const severityOptions = [
+  { value: 'minor', label: 'Minor', description: 'Low-priority issues that can wait' },
+  { value: 'major', label: 'Major', description: 'Important issues needing attention soon' },
+  {
+    value: 'critical',
+    label: 'Critical',
+    description: 'Safety-critical issues requiring immediate action',
+  },
+]
 
 const {
   data: organisation,
   refresh,
   status,
 } = await useFetch<Organisation>('/api/organisations/current', {
-  default: () => ({
+  default: (): Organisation => ({
     id: '',
     name: '',
     slug: '',
@@ -32,6 +47,10 @@ const {
     preventNegativeStock: false,
     workOrderApprovalThreshold: null,
     requireApprovalForAllWorkOrders: false,
+    autoCreateWorkOrderOnDefect: true,
+    blockVehicleOnCriticalDefect: true,
+    blockingDefectSeverities: ['critical'] as Array<'minor' | 'major' | 'critical'>,
+    handoverThresholdMinutes: 30,
   }),
 })
 
@@ -46,6 +65,12 @@ const organisationSchema = z.object({
     .nullable()
     .optional(),
   requireApprovalForAllWorkOrders: z.boolean(),
+  autoCreateWorkOrderOnDefect: z.boolean(),
+  blockVehicleOnCriticalDefect: z.boolean(),
+  blockingDefectSeverities: z
+    .array(z.enum(['minor', 'major', 'critical']))
+    .min(1, 'At least one severity must be selected'),
+  handoverThresholdMinutes: z.number().int().min(5).max(120),
 })
 
 type OrganisationSchema = z.output<typeof organisationSchema>
@@ -57,6 +82,10 @@ const formState = reactive<OrganisationSchema>({
   preventNegativeStock: false,
   workOrderApprovalThreshold: null,
   requireApprovalForAllWorkOrders: false,
+  autoCreateWorkOrderOnDefect: true,
+  blockVehicleOnCriticalDefect: true,
+  blockingDefectSeverities: ['critical'],
+  handoverThresholdMinutes: 30,
 })
 
 // Sync form state with fetched data
@@ -70,6 +99,10 @@ watch(
       formState.preventNegativeStock = org.preventNegativeStock
       formState.workOrderApprovalThreshold = org.workOrderApprovalThreshold
       formState.requireApprovalForAllWorkOrders = org.requireApprovalForAllWorkOrders
+      formState.autoCreateWorkOrderOnDefect = org.autoCreateWorkOrderOnDefect
+      formState.blockVehicleOnCriticalDefect = org.blockVehicleOnCriticalDefect
+      formState.blockingDefectSeverities = org.blockingDefectSeverities
+      formState.handoverThresholdMinutes = org.handoverThresholdMinutes
     }
   },
   { immediate: true },
@@ -276,6 +309,127 @@ async function onSubmit(event: FormSubmitEvent<OrganisationSchema>) {
         <p v-if="formState.requireApprovalForAllWorkOrders" class="text-sm text-muted -mt-2">
           The threshold is ignored when approval is required for all work orders.
         </p>
+
+        <USeparator />
+
+        <h3 class="text-base font-semibold text-highlighted py-4">
+          Defect Management Settings
+        </h3>
+
+        <UFormField
+          name="autoCreateWorkOrderOnDefect"
+          class="flex justify-between items-center gap-4"
+        >
+          <div>
+            <p class="text-sm font-medium text-highlighted">Auto-Create Work Orders for Defects</p>
+            <p class="text-sm text-muted mt-1">
+              Automatically create work orders when major or critical defects are reported.
+            </p>
+          </div>
+          <USwitch
+            v-model="formState.autoCreateWorkOrderOnDefect"
+            :disabled="!canWriteSettings"
+          />
+        </UFormField>
+
+        <USeparator />
+
+        <h3 class="text-base font-semibold text-highlighted py-4">
+          Vehicle Operation Blocking
+        </h3>
+        <p class="text-sm text-muted -mt-2 mb-4">
+          Control when vehicles are blocked from operation due to active defects.
+        </p>
+
+        <UFormField
+          name="blockVehicleOnCriticalDefect"
+          class="flex justify-between items-center gap-4"
+        >
+          <div>
+            <p class="text-sm font-medium text-highlighted">Enable Operation Blocking</p>
+            <p class="text-sm text-muted mt-1">
+              Block vehicles from operation when they have unresolved defects of the configured severity.
+            </p>
+          </div>
+          <USwitch
+            v-model="formState.blockVehicleOnCriticalDefect"
+            :disabled="!canWriteSettings"
+          />
+        </UFormField>
+
+        <template v-if="formState.blockVehicleOnCriticalDefect">
+          <USeparator class="my-2" />
+
+          <UFormField
+            name="blockingDefectSeverities"
+            label="Blocking Severities"
+            description="Select which defect severity levels will block vehicle operation."
+            class="flex max-sm:flex-col justify-between items-start gap-4"
+          >
+            <div class="space-y-3">
+              <div
+                v-for="option in severityOptions"
+                :key="option.value"
+                class="flex items-start gap-3"
+              >
+                <UCheckbox
+                  :model-value="formState.blockingDefectSeverities.includes(option.value as 'minor' | 'major' | 'critical')"
+                  :disabled="!canWriteSettings"
+                  @update:model-value="(checked: boolean | 'indeterminate') => {
+                    if (checked === true) {
+                      if (!formState.blockingDefectSeverities.includes(option.value as 'minor' | 'major' | 'critical')) {
+                        formState.blockingDefectSeverities.push(option.value as 'minor' | 'major' | 'critical')
+                      }
+                    } else if (checked === false) {
+                      const index = formState.blockingDefectSeverities.indexOf(option.value as 'minor' | 'major' | 'critical')
+                      if (index > -1 && formState.blockingDefectSeverities.length > 1) {
+                        formState.blockingDefectSeverities.splice(index, 1)
+                      }
+                    }
+                  }"
+                />
+                <div class="-mt-0.5">
+                  <p class="text-sm font-medium text-highlighted">{{ option.label }}</p>
+                  <p class="text-xs text-muted">{{ option.description }}</p>
+                </div>
+              </div>
+            </div>
+          </UFormField>
+
+          <UAlert
+            icon="i-lucide-shield-alert"
+            color="warning"
+            variant="soft"
+            class="mt-4"
+            title="Supervisor Override"
+            description="Supervisors, managers, and admins can override operation blocks when necessary. All overrides are logged in the audit trail."
+          />
+        </template>
+
+        <USeparator />
+
+        <h3 class="text-base font-semibold text-highlighted py-4">
+          Operator Handover Settings
+        </h3>
+
+        <UFormField
+          name="handoverThresholdMinutes"
+          label="Handover Window"
+          description="Time window in minutes within which operator sessions are considered a handover (linked together)."
+          class="flex max-sm:flex-col justify-between items-start gap-4"
+        >
+          <div class="flex items-center gap-2">
+            <UInput
+              v-model.number="formState.handoverThresholdMinutes"
+              :disabled="!canWriteSettings"
+              type="number"
+              :min="5"
+              :max="120"
+              class="w-24"
+            />
+            <span class="text-muted">minutes</span>
+          </div>
+        </UFormField>
       </UPageCard>
     </UForm>
   </div>
