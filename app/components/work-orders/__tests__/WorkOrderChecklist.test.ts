@@ -1,8 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock $fetch
+// Mock $fetch for API calls
 const mockFetch = vi.fn()
-vi.stubGlobal('$fetch', mockFetch)
 
 describe('WorkOrderChecklist Logic', () => {
   beforeEach(() => {
