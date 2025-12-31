@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 import { sub } from 'date-fns'
+import type { ExportColumn } from '~/composables/useReportExport'
 import type { Range } from '~/types'
 
 definePageMeta({
@@ -42,7 +43,6 @@ interface ReportResponse {
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 
-const toast = useToast()
 const router = useRouter()
 
 // Filter state
@@ -152,30 +152,31 @@ function getSortIcon(column: string) {
     : 'i-lucide-arrow-down-wide-narrow'
 }
 
-// Export to CSV
-async function exportToCSV() {
-  try {
-    const params = new URLSearchParams()
-    params.set('threshold', underutilisationThreshold.value.toString())
+// Export columns definition
+const exportColumns: ExportColumn[] = [
+  { key: 'assetNumber', header: 'Asset #', width: 15 },
+  { key: 'categoryName', header: 'Category', width: 20 },
+  { key: 'make', header: 'Make', width: 15 },
+  { key: 'model', header: 'Model', width: 15 },
+  { key: 'operationalHours', header: 'Hours', format: 'number', width: 12 },
+  { key: 'mileage', header: 'Mileage (km)', format: 'number', width: 15 },
+  { key: 'hoursVsAvgPct', header: 'Hours vs Avg %', format: 'percent', width: 15 },
+  { key: 'mileageVsAvgPct', header: 'Mileage vs Avg %', format: 'percent', width: 15 },
+  { key: 'status', header: 'Status', width: 12 },
+  { key: 'isUnderutilised', header: 'Underutilised', width: 12 },
+]
 
-    if (selectedCategoryId.value) {
-      params.set('categoryId', selectedCategoryId.value)
-    }
-
-    if (dateRange.value.start) {
-      params.set('startDate', dateRange.value.start.toISOString())
-    }
-
-    if (dateRange.value.end) {
-      params.set('endDate', dateRange.value.end.toISOString())
-    }
-
-    window.location.href = `/api/reports/asset-utilisation/export?${params.toString()}`
-    toast.add({ title: 'Export started', description: 'Your CSV download will begin shortly' })
-  } catch {
-    toast.add({ title: 'Error', description: 'Failed to export report', color: 'error' })
-  }
-}
+// Export summary data
+const exportSummary = computed(() => ({
+  'Total Assets': summary.value.totalAssets,
+  'Total Hours': summary.value.totalHours.toLocaleString(),
+  'Total Mileage': `${summary.value.totalMileage.toLocaleString()} km`,
+  'Avg Hours/Asset': summary.value.avgHoursPerAsset.toLocaleString(),
+  'Avg Mileage/Asset': `${summary.value.avgMileagePerAsset.toLocaleString()} km`,
+  'Underutilised Count': summary.value.underutilisedCount,
+  'Underutilised %': `${summary.value.underutilisedPct}%`,
+  Threshold: `${underutilisationThreshold.value}%`,
+}))
 
 // Clear filters
 function clearFilters() {
@@ -349,12 +350,15 @@ const columns: TableColumn<AssetUtilisation>[] = [
         </template>
 
         <template #right>
-          <UButton
-            label="Export CSV"
-            icon="i-lucide-download"
-            color="neutral"
-            variant="outline"
-            @click="exportToCSV"
+          <ReportsReportExportButton
+            :data="filteredAssets"
+            filename="asset-utilisation-report"
+            title="Asset Utilisation Report"
+            sheet-name="Asset Utilisation"
+            :columns="exportColumns"
+            :date-range="dateRange"
+            :summary="exportSummary"
+            :disabled="fetchStatus === 'pending'"
           />
         </template>
       </UDashboardNavbar>

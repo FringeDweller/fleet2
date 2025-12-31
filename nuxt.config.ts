@@ -40,9 +40,22 @@ export default defineNuxtConfig({
     redis: {
       url: '',
     },
+    // Encryption key for sensitive data (generate with: openssl rand -base64 32)
+    encryptionKey: '',
+    // Session configuration for nuxt-auth-utils (US-18.2.5 CSRF Protection)
+    // Cookie settings: sameSite=strict, secure in production, httpOnly
+    // These are configured via environment variables:
+    // NUXT_SESSION_PASSWORD (required, min 32 chars)
+    // NUXT_SESSION_MAX_AGE (default: 604800 = 7 days)
+    session: {
+      password: '', // Set via NUXT_SESSION_PASSWORD env var
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    },
     // Public keys exposed to client
     public: {
       appName: 'Fleet',
+      // Application URL for CSRF validation
+      appUrl: '',
       // Capacitor app configuration
       capacitor: {
         appId: 'com.fleet2.app',
@@ -58,6 +71,16 @@ export default defineNuxtConfig({
     '/api/**': {
       cors: true,
     },
+    // US-18.1.2: Static assets caching for performance
+    '/_nuxt/**': {
+      headers: {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
+    },
+    // Cache static pages
+    '/auth/**': {
+      swr: 3600, // 1 hour SWR cache
+    },
   },
 
   compatibilityDate: '2024-07-11',
@@ -66,6 +89,42 @@ export default defineNuxtConfig({
     experimental: {
       tasks: true,
     },
+    // US-18.1.1: Compression for API responses
+    compressPublicAssets: true,
+    minify: true,
+  },
+
+  // US-18.1.2: Build optimizations for faster page loads
+  vite: {
+    build: {
+      // Enable CSS code splitting
+      cssCodeSplit: true,
+      // Optimize chunk size
+      chunkSizeWarningLimit: 500,
+      rollupOptions: {
+        output: {
+          // Manual chunk splitting for better caching
+          manualChunks: {
+            // Vendor chunks for heavy dependencies
+            'vendor-vue': ['vue', 'vue-router'],
+            'vendor-charts': ['@unovis/ts', '@unovis/vue'],
+            'vendor-utils': ['date-fns', 'zod'],
+          },
+        },
+      },
+    },
+    // Optimize dependencies
+    optimizeDeps: {
+      include: ['vue', 'vue-router', 'date-fns', 'zod'],
+    },
+  },
+
+  // US-18.1.2: Experimental features for performance
+  experimental: {
+    // Enable payload extraction for smaller initial HTML
+    payloadExtraction: true,
+    // Enable component islands for partial hydration
+    componentIslands: true,
   },
 
   typescript: {

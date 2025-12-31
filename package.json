@@ -56,12 +56,15 @@
     "drizzle-orm": "^0.45.1",
     "html5-qrcode": "^2.3.8",
     "idb-keyval": "^6.2.2",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
     "nuxt": "^4.2.2",
     "nuxt-auth-utils": "^0.5.26",
     "pinia": "^3.0.4",
     "postgres": "^3.4.7",
     "qrcode": "^1.5.4",
     "vue3-grid-layout-next": "^1.0.7",
+    "xlsx": "^0.18.5",
     "zod": "^4.2.1"
   },
   "devDependencies": {

@@ -11,6 +11,7 @@
  */
 
 import { sub } from 'date-fns'
+import type { ExportColumn } from '~/composables/useReportExport'
 import type { Range } from '~/types'
 
 definePageMeta({
@@ -26,7 +27,6 @@ const selectedAssetId = ref('')
 const selectedCategoryId = ref('')
 const sortColumn = ref('totalCost')
 const sortDirection = ref<'asc' | 'desc'>('desc')
-const isExporting = ref(false)
 
 // Fetch query params
 const queryParams = computed(() => {
@@ -183,101 +183,31 @@ function handleSort(column: string) {
   }
 }
 
-// Export to CSV
-const toast = useToast()
+// Export columns definition
+const exportColumns: ExportColumn[] = [
+  { key: 'assetNumber', header: 'Asset Number', width: 15 },
+  { key: 'make', header: 'Make', width: 12 },
+  { key: 'model', header: 'Model', width: 12 },
+  { key: 'categoryName', header: 'Category', width: 15 },
+  { key: 'laborCost', header: 'Labor Cost', format: 'currency', width: 15 },
+  { key: 'partsCost', header: 'Parts Cost', format: 'currency', width: 15 },
+  { key: 'totalCost', header: 'Total Cost', format: 'currency', width: 15 },
+  { key: 'workOrderCount', header: 'Work Orders', format: 'number', width: 12 },
+  { key: 'hours', header: 'Hours', format: 'number', width: 10 },
+  { key: 'mileage', header: 'Mileage (km)', format: 'number', width: 12 },
+  { key: 'costPerHour', header: 'Cost/Hour', format: 'currency', width: 12 },
+  { key: 'costPerKm', header: 'Cost/km', format: 'currency', width: 12 },
+]
 
-async function exportToCSV() {
-  if (!reportData.value?.assetCosts?.length) {
-    toast.add({
-      title: 'No Data',
-      description: 'No data available to export',
-      color: 'warning',
-    })
-    return
-  }
-
-  isExporting.value = true
-
-  try {
-    // Build CSV content
-    const headers = [
-      'Asset Number',
-      'Make',
-      'Model',
-      'Category',
-      'Labor Cost',
-      'Parts Cost',
-      'Total Cost',
-      'Work Orders',
-      'Hours',
-      'Mileage (km)',
-      'Cost/Hour',
-      'Cost/km',
-    ]
-
-    const rows = sortedAssetCosts.value.map((asset) => [
-      asset.assetNumber,
-      asset.make || '',
-      asset.model || '',
-      asset.categoryName || '',
-      asset.laborCost.toFixed(2),
-      asset.partsCost.toFixed(2),
-      asset.totalCost.toFixed(2),
-      asset.workOrderCount.toString(),
-      asset.hours.toFixed(2),
-      asset.mileage.toFixed(2),
-      asset.costPerHour?.toFixed(4) || '',
-      asset.costPerKm?.toFixed(4) || '',
-    ])
-
-    // Add totals row
-    rows.push([
-      'TOTAL',
-      '',
-      '',
-      '',
-      reportData.value.totals.totalLabor.toFixed(2),
-      reportData.value.totals.totalParts.toFixed(2),
-      reportData.value.totals.grandTotal.toFixed(2),
-      reportData.value.totals.totalWorkOrders.toString(),
-      '',
-      '',
-      '',
-      '',
-    ])
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
-    ].join('\n')
-
-    // Create download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `maintenance-costs-report-${new Date().toISOString().split('T')[0]}.csv`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    toast.add({
-      title: 'Export Complete',
-      description: 'Report has been downloaded',
-      color: 'success',
-    })
-  } catch (error) {
-    console.error('Export failed:', error)
-    toast.add({
-      title: 'Export Failed',
-      description: 'Failed to export report',
-      color: 'error',
-    })
-  } finally {
-    isExporting.value = false
-  }
-}
+// Export summary data
+const exportSummary = computed(() => ({
+  'Total Labor Cost': formatCurrency(reportData.value?.totals?.totalLabor),
+  'Total Parts Cost': formatCurrency(reportData.value?.totals?.totalParts),
+  'Grand Total': formatCurrency(reportData.value?.totals?.grandTotal),
+  'Average Cost/Asset': formatCurrency(reportData.value?.totals?.avgCostPerAsset),
+  'Total Work Orders': reportData.value?.totals?.totalWorkOrders || 0,
+  'Total Assets': reportData.value?.totals?.assetCount || 0,
+}))
 
 const router = useRouter()
 </script>
@@ -295,13 +225,15 @@ const router = useRouter()
           />
         </template>
         <template #right>
-          <UButton
-            label="Export CSV"
-            icon="i-lucide-download"
-            color="neutral"
-            variant="outline"
-            :loading="isExporting"
-            @click="exportToCSV"
+          <ReportsReportExportButton
+            :data="sortedAssetCosts"
+            filename="maintenance-costs-report"
+            title="Maintenance Cost Report"
+            sheet-name="Maintenance Costs"
+            :columns="exportColumns"
+            :date-range="range"
+            :summary="exportSummary"
+            :disabled="status === 'pending'"
           />
         </template>
       </UDashboardNavbar>
