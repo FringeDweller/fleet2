@@ -210,6 +210,16 @@ function formatDate(dateString: string) {
                     onSelect: () => router.push(`/settings/custom-forms/${form.id}`),
                   },
                   {
+                    label: 'View Responses',
+                    icon: 'i-lucide-list',
+                    onSelect: () => router.push(`/settings/custom-forms/${form.id}/responses`),
+                  },
+                  {
+                    label: 'Analytics',
+                    icon: 'i-lucide-bar-chart-3',
+                    onSelect: () => router.push(`/settings/custom-forms/${form.id}/analytics`),
+                  },
+                  {
                     label: 'View Versions',
                     icon: 'i-lucide-history',
                     onSelect: () => router.push(`/settings/custom-forms/${form.id}/versions`),

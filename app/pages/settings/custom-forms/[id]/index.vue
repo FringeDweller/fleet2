@@ -312,6 +312,22 @@ function removeOption(index: number) {
             </UBadge>
 
             <UButton
+              icon="i-lucide-list"
+              title="View Responses"
+              color="neutral"
+              variant="ghost"
+              @click="router.push(`/settings/custom-forms/${formId}/responses`)"
+            />
+
+            <UButton
+              icon="i-lucide-bar-chart-3"
+              title="Analytics"
+              color="neutral"
+              variant="ghost"
+              @click="router.push(`/settings/custom-forms/${formId}/analytics`)"
+            />
+
+            <UButton
               :label="previewMode ? 'Edit' : 'Preview'"
               :icon="previewMode ? 'i-lucide-pencil' : 'i-lucide-eye'"
               color="neutral"
