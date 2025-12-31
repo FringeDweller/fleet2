@@ -1,6 +1,8 @@
 /**
  * Composable to fetch custom forms assigned to a specific entity
  */
+import type { CustomFormField, CustomFormSettings } from '~/types/custom-forms'
+
 export interface AssignedForm {
   id: string
   form: {
@@ -17,36 +19,6 @@ export interface AssignedForm {
     id: string
     name: string
   } | null
-}
-
-export interface CustomFormField {
-  id: string
-  fieldType: string
-  label: string
-  placeholder?: string
-  helpText?: string
-  required: boolean
-  position: number
-  options?: Array<{ label: string; value: string; color?: string }>
-  validation?: {
-    minLength?: number
-    maxLength?: number
-    min?: number
-    max?: number
-    pattern?: string
-    patternMessage?: string
-  }
-  defaultValue?: unknown
-  width?: 'full' | 'half' | 'third'
-}
-
-export interface CustomFormSettings {
-  allowDraft?: boolean
-  requireSignature?: boolean
-  allowMultipleSubmissions?: boolean
-  notifyOnSubmission?: string[]
-  submitButtonText?: string
-  successMessage?: string
 }
 
 export interface AssignedFormsResponse {

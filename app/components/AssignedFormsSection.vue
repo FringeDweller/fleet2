@@ -4,15 +4,62 @@ import type { AssignedForm, TargetType } from '~/composables/useAssignedForms'
 const props = defineProps<{
   targetType: TargetType
   entityId?: string
+  readonly?: boolean
 }>()
 
-const { assignedForms, hasAssignedForms, status } = useAssignedForms(
+const emit = defineEmits<{
+  formSubmitted: [formId: string, submissionId: string | undefined]
+}>()
+
+const { assignedForms, hasAssignedForms, status, refresh } = useAssignedForms(
   toRef(() => props.targetType),
   toRef(() => props.entityId),
 )
 
-// Track expanded forms
+// Fetch existing submissions for this context
+const { data: existingSubmissions, refresh: refreshSubmissions } = useFetch<{
+  data: Array<{
+    id: string
+    formId: string
+    status: 'draft' | 'submitted' | 'approved' | 'rejected'
+    submittedAt: string
+    form: { id: string; name: string } | null
+    submittedBy: { firstName: string; lastName: string } | null
+  }>
+}>('/api/custom-form-submissions/for-context', {
+  query: {
+    contextType: () => props.targetType,
+    contextId: () => props.entityId,
+  },
+  lazy: true,
+  immediate: !!props.entityId,
+})
+
+// Track expanded forms and active form modal
 const expandedForms = ref<Set<string>>(new Set())
+const activeFormId = ref<string | null>(null)
+const showFormModal = ref(false)
+
+// Get the active form's assignment
+const activeAssignment = computed(() => {
+  if (!activeFormId.value) return null
+  return assignedForms.value.find((a) => a.form?.id === activeFormId.value)
+})
+
+// Get submissions for a specific form
+function getSubmissionsForForm(formId: string) {
+  return (existingSubmissions.value?.data || []).filter((s) => s.formId === formId)
+}
+
+// Check if form has a draft submission
+function hasDraftSubmission(formId: string): boolean {
+  return getSubmissionsForForm(formId).some((s) => s.status === 'draft')
+}
+
+// Check if form has been submitted
+function hasSubmittedSubmission(formId: string): boolean {
+  return getSubmissionsForForm(formId).some((s) => s.status === 'submitted')
+}
 
 function toggleForm(formId: string) {
   if (expandedForms.value.has(formId)) {
@@ -24,6 +71,24 @@ function toggleForm(formId: string) {
 
 function isExpanded(formId: string): boolean {
   return expandedForms.value.has(formId)
+}
+
+function openForm(formId: string) {
+  activeFormId.value = formId
+  showFormModal.value = true
+}
+
+function closeForm() {
+  activeFormId.value = null
+  showFormModal.value = false
+}
+
+function handleFormSubmitted(submissionId: string | undefined) {
+  if (activeFormId.value) {
+    emit('formSubmitted', activeFormId.value, submissionId)
+  }
+  closeForm()
+  refreshSubmissions()
 }
 
 // Get field type icon
@@ -57,6 +122,22 @@ function getFieldTypeIcon(fieldType: string): string {
 // Format field type for display
 function formatFieldType(fieldType: string): string {
   return fieldType.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// Get submission status badge color
+function getStatusColor(status: string): 'neutral' | 'warning' | 'success' | 'error' {
+  switch (status) {
+    case 'draft':
+      return 'warning'
+    case 'submitted':
+      return 'success'
+    case 'approved':
+      return 'success'
+    case 'rejected':
+      return 'error'
+    default:
+      return 'neutral'
+  }
 }
 </script>
 
@@ -96,7 +177,7 @@ function formatFieldType(fieldType: string): string {
               class="w-4 h-4 text-muted"
             />
             <div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <span class="font-medium">{{ assignment.form?.name || 'Unknown Form' }}</span>
                 <UBadge
                   v-if="assignment.isRequired"
@@ -112,8 +193,27 @@ function formatFieldType(fieldType: string): string {
                   variant="subtle"
                   size="xs"
                 >
-                  Draft
+                  Form Draft
                 </UBadge>
+                <!-- Show submission status if exists -->
+                <template v-if="assignment.form">
+                  <UBadge
+                    v-if="hasSubmittedSubmission(assignment.form.id)"
+                    color="success"
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Submitted
+                  </UBadge>
+                  <UBadge
+                    v-else-if="hasDraftSubmission(assignment.form.id)"
+                    color="warning"
+                    variant="subtle"
+                    size="xs"
+                  >
+                    Draft Saved
+                  </UBadge>
+                </template>
               </div>
               <p v-if="assignment.form?.description" class="text-sm text-muted mt-0.5">
                 {{ assignment.form.description }}
@@ -127,11 +227,36 @@ function formatFieldType(fieldType: string): string {
           </div>
         </button>
 
-        <!-- Form fields preview (expanded) -->
+        <!-- Form details (expanded) -->
         <div
           v-if="assignment.form && isExpanded(assignment.form.id)"
           class="border-t border-default bg-muted/30 p-3"
         >
+          <!-- Previous submissions -->
+          <div v-if="getSubmissionsForForm(assignment.form.id).length > 0" class="mb-4">
+            <p class="text-xs text-muted uppercase tracking-wide mb-2">Previous Submissions</p>
+            <div class="space-y-2">
+              <div
+                v-for="submission in getSubmissionsForForm(assignment.form.id)"
+                :key="submission.id"
+                class="flex items-center justify-between p-2 bg-default rounded border border-default"
+              >
+                <div class="flex items-center gap-2">
+                  <UBadge :color="getStatusColor(submission.status)" variant="subtle" size="xs">
+                    {{ submission.status }}
+                  </UBadge>
+                  <span class="text-sm">
+                    {{ submission.submittedBy?.firstName }} {{ submission.submittedBy?.lastName }}
+                  </span>
+                </div>
+                <span class="text-xs text-muted">
+                  {{ new Date(submission.submittedAt).toLocaleDateString() }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form fields preview -->
           <p class="text-xs text-muted uppercase tracking-wide mb-3">Form Fields</p>
           <div class="space-y-2">
             <div
@@ -163,21 +288,50 @@ function formatFieldType(fieldType: string): string {
             </div>
           </div>
 
-          <div class="mt-4 pt-3 border-t border-default">
+          <div class="mt-4 pt-3 border-t border-default flex gap-2">
             <UButton
-              label="Fill Out Form"
+              v-if="!readonly && assignment.form.status === 'active'"
+              :label="hasDraftSubmission(assignment.form.id) ? 'Continue Draft' : 'Fill Out Form'"
               icon="i-lucide-edit"
               color="primary"
               size="sm"
+              @click.stop="openForm(assignment.form.id)"
+            />
+            <UButton
+              v-else-if="assignment.form.status !== 'active'"
+              label="Form Not Active"
+              icon="i-lucide-lock"
+              color="neutral"
+              variant="ghost"
+              size="sm"
               disabled
-            >
-              <template #trailing>
-                <UBadge color="neutral" variant="subtle" size="xs">Coming Soon</UBadge>
-              </template>
-            </UButton>
+            />
           </div>
         </div>
       </div>
     </div>
   </UCard>
+
+  <!-- Form Modal -->
+  <UModal
+    v-model:open="showFormModal"
+    :title="activeAssignment?.form?.name || 'Custom Form'"
+    fullscreen
+  >
+    <template #content>
+      <div class="p-6 max-w-4xl mx-auto">
+        <CustomFormRenderer
+          v-if="activeAssignment?.form"
+          :form-id="activeAssignment.form.id"
+          :fields="activeAssignment.form.fields"
+          :settings="activeAssignment.form.settings"
+          :context-type="targetType"
+          :context-id="entityId"
+          :readonly="readonly"
+          @submitted="handleFormSubmitted"
+          @cancel="closeForm"
+        />
+      </div>
+    </template>
+  </UModal>
 </template>
