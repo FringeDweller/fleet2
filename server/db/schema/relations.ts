@@ -10,6 +10,7 @@ import { customFormAssignments } from './custom-form-assignments'
 import { customFormSubmissions } from './custom-form-submissions'
 import { customFormVersions } from './custom-form-versions'
 import { customForms } from './custom-forms'
+import { customReports } from './custom-reports'
 import { dashboardLayouts } from './dashboard-layouts'
 import { defects } from './defects'
 import { diagnosticCodes } from './diagnostic-codes'
@@ -1261,6 +1262,18 @@ export const scheduledExportsRelations = relations(scheduledExports, ({ one }) =
   }),
   createdBy: one(users, {
     fields: [scheduledExports.createdById],
+    references: [users.id],
+  }),
+}))
+
+// Custom Reports Relations (US-14.7)
+export const customReportsRelations = relations(customReports, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [customReports.organisationId],
+    references: [organisations.id],
+  }),
+  user: one(users, {
+    fields: [customReports.userId],
     references: [users.id],
   }),
 }))

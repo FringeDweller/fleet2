@@ -21,6 +21,22 @@ const reports = [
     color: 'warning' as const,
   },
   {
+    title: 'Compliance',
+    description:
+      'Pre-start inspection rates, maintenance compliance, certification status, and overdue items.',
+    icon: 'i-lucide-shield-check',
+    to: '/reports/compliance',
+    color: 'error' as const,
+  },
+  {
+    title: 'Technician Performance',
+    description:
+      'WOs completed per technician, average completion time, first-time fix rate, and quality metrics.',
+    icon: 'i-lucide-hard-hat',
+    to: '/reports/technician-performance',
+    color: 'primary' as const,
+  },
+  {
     title: 'Fuel Analytics',
     description: 'Fuel consumption trends, efficiency metrics, and anomaly detection.',
     icon: 'i-lucide-fuel',
@@ -33,6 +49,14 @@ const reports = [
     icon: 'i-lucide-clipboard-list',
     to: '/reports/forms',
     color: 'info' as const,
+  },
+  {
+    title: 'Custom Report Builder',
+    description:
+      'Build your own reports by selecting data sources, columns, filters, and aggregations.',
+    icon: 'i-lucide-layout-dashboard',
+    to: '/reports/custom',
+    color: 'primary' as const,
   },
 ]
 </script>
@@ -64,6 +88,7 @@ const reports = [
                 'bg-warning-100 dark:bg-warning-900/30 text-warning-600 dark:text-warning-400': report.color === 'warning',
                 'bg-success-100 dark:bg-success-900/30 text-success-600 dark:text-success-400': report.color === 'success',
                 'bg-info-100 dark:bg-info-900/30 text-info-600 dark:text-info-400': report.color === 'info',
+                'bg-error-100 dark:bg-error-900/30 text-error-600 dark:text-error-400': report.color === 'error',
               }"
             >
               <UIcon :name="report.icon" class="w-6 h-6" />
