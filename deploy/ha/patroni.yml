@@ -1,0 +1,328 @@
+# Patroni Configuration Template for Fleet2 PostgreSQL High Availability
+#
+# Patroni manages automatic failover for PostgreSQL clusters using etcd for
+# distributed consensus. This configuration provides:
+# - Automatic leader election
+# - Streaming replication
+# - Automatic failover on primary failure
+# - Configurable failover policies
+#
+# Environment variables override these settings. See docker-compose.ha.yml
+# for the full list of PATRONI_* environment variables.
+#
+# Documentation: https://patroni.readthedocs.io/
+
+# =============================================================================
+# GLOBAL SETTINGS
+# =============================================================================
+
+# Cluster scope - must be the same for all nodes in the cluster
+# This is typically set via PATRONI_SCOPE environment variable
+scope: fleet-cluster
+
+# Namespace for etcd keys (optional, but recommended for multi-cluster setups)
+namespace: /fleet/
+
+# Node name - must be unique per node
+# This is set via PATRONI_NAME environment variable
+name: patroni1
+
+# =============================================================================
+# REST API CONFIGURATION
+# =============================================================================
+
+restapi:
+  # Listen address for Patroni REST API
+  # Set via PATRONI_RESTAPI_LISTEN environment variable
+  listen: 0.0.0.0:8008
+
+  # Address advertised to other cluster members
+  # Set via PATRONI_RESTAPI_CONNECT_ADDRESS environment variable
+  connect_address: patroni1:8008
+
+  # Authentication for REST API (optional but recommended for production)
+  # Uncomment and set credentials for production deployments
+  # authentication:
+  #   username: patroni
+  #   password: secret_patroni_password
+
+# =============================================================================
+# ETCD CONFIGURATION
+# =============================================================================
+
+# etcd v3 API configuration (recommended)
+etcd3:
+  # Comma-separated list of etcd hosts
+  # Set via PATRONI_ETCD3_HOSTS environment variable
+  hosts:
+    - etcd1:2379
+    - etcd2:2379
+    - etcd3:2379
+
+  # Protocol for etcd connections
+  protocol: http
+
+  # Authentication (if etcd requires authentication)
+  # Uncomment for production with secure etcd cluster
+  # username: etcd_user
+  # password: etcd_password
+
+  # TLS configuration (if using HTTPS)
+  # Uncomment for production with TLS-enabled etcd
+  # cacert: /etc/patroni/etcd-ca.crt
+  # cert: /etc/patroni/etcd-client.crt
+  # key: /etc/patroni/etcd-client.key
+
+# =============================================================================
+# BOOTSTRAP CONFIGURATION
+# =============================================================================
+
+bootstrap:
+  # Distributed Configuration Store (DCS) initialization settings
+  dcs:
+    # Time-to-live for leader lock in seconds
+    ttl: 30
+
+    # How often to update the leader lock
+    loop_wait: 10
+
+    # How long to wait before triggering failover after leader is unreachable
+    retry_timeout: 10
+
+    # Maximum replication lag in bytes before replica is considered unhealthy
+    maximum_lag_on_failover: 1048576  # 1MB
+
+    # Maximum lag for synchronous replication (if using synchronous_mode)
+    maximum_lag_on_syncnode: -1  # Disabled (unlimited)
+
+    # PostgreSQL-specific settings
+    postgresql:
+      # Use pg_rewind for faster replica recovery when possible
+      use_pg_rewind: true
+
+      # Allow automatic replica reinit if WAL is too far behind
+      use_slots: true
+
+      # Parameters applied to all cluster members
+      parameters:
+        # Connection limits
+        max_connections: 200
+        superuser_reserved_connections: 5
+
+        # Memory configuration
+        shared_buffers: 256MB
+        effective_cache_size: 768MB
+        work_mem: 16MB
+        maintenance_work_mem: 128MB
+
+        # WAL configuration for replication
+        wal_level: replica
+        max_wal_senders: 10
+        max_replication_slots: 10
+        wal_keep_size: 1GB
+
+        # Streaming replication
+        hot_standby: on
+        hot_standby_feedback: on
+
+        # Archiving (optional - for point-in-time recovery)
+        archive_mode: on
+        archive_command: '/bin/true'  # Replace with actual archive command for production
+        # archive_command: 'test ! -f /archive/%f && cp %p /archive/%f'
+
+        # Checkpoint configuration
+        checkpoint_timeout: 15min
+        checkpoint_completion_target: 0.9
+
+        # Background writer
+        bgwriter_delay: 200ms
+        bgwriter_lru_maxpages: 100
+        bgwriter_lru_multiplier: 2.0
+
+        # Logging
+        log_destination: stderr
+        logging_collector: off
+        log_min_duration_statement: 1000  # Log queries taking more than 1 second
+        log_checkpoints: on
+        log_connections: off
+        log_disconnections: off
+        log_lock_waits: on
+
+        # Performance tuning
+        random_page_cost: 1.1  # For SSD storage
+        effective_io_concurrency: 200  # For SSD storage
+
+        # Autovacuum
+        autovacuum: on
+        autovacuum_max_workers: 3
+        autovacuum_naptime: 1min
+        autovacuum_vacuum_scale_factor: 0.1
+        autovacuum_analyze_scale_factor: 0.05
+
+    # Synchronous replication settings (optional)
+    # Uncomment for synchronous replication (stronger durability, higher latency)
+    # synchronous_mode: false
+    # synchronous_mode_strict: false
+    # synchronous_node_count: 1
+
+  # Initialization method when creating a new cluster
+  method: initdb
+
+  # initdb settings
+  initdb:
+    - encoding: UTF8
+    - locale: en_US.UTF-8
+    - data-checksums
+
+  # Post-init scripts (optional)
+  # These run on the primary after initdb, useful for creating initial databases/users
+  post_init: /etc/patroni/post_init.sh
+
+  # pg_hba.conf rules for client authentication
+  pg_hba:
+    # Local connections
+    - local all all trust
+    - local replication all trust
+
+    # Host-based authentication for Docker network
+    - host all all 0.0.0.0/0 md5
+    - host replication replicator 0.0.0.0/0 md5
+
+    # Specific rules for internal services (adjust IP ranges as needed)
+    - host all all 172.28.0.0/16 md5
+    - host replication replicator 172.28.0.0/16 md5
+
+  # Users to create during bootstrap
+  users:
+    # Application user (superuser credentials from environment)
+    # Created via PATRONI_SUPERUSER_USERNAME and PATRONI_SUPERUSER_PASSWORD
+
+    # Replication user for streaming replication
+    replicator:
+      password: rep_secret_password  # Override via PATRONI_REPLICATION_PASSWORD
+      options:
+        - replication
+
+# =============================================================================
+# POSTGRESQL CONFIGURATION
+# =============================================================================
+
+postgresql:
+  # Listen address for PostgreSQL
+  # Set via PATRONI_POSTGRESQL_LISTEN environment variable
+  listen: 0.0.0.0:5432
+
+  # Address advertised to other cluster members
+  # Set via PATRONI_POSTGRESQL_CONNECT_ADDRESS environment variable
+  connect_address: patroni1:5432
+
+  # Data directory
+  # Set via PATRONI_POSTGRESQL_DATA_DIR environment variable
+  data_dir: /var/lib/postgresql/data
+
+  # PostgreSQL binaries location
+  bin_dir: /usr/lib/postgresql/17/bin
+
+  # Custom configuration directory (optional)
+  # config_dir: /etc/postgresql
+
+  # pg_ctl timeout
+  pgpass: /tmp/pgpass0
+
+  # Authentication settings
+  authentication:
+    superuser:
+      username: fleet  # Override via PATRONI_SUPERUSER_USERNAME
+      password: fleet_dev_password  # Override via PATRONI_SUPERUSER_PASSWORD
+    replication:
+      username: replicator  # Override via PATRONI_REPLICATION_USERNAME
+      password: rep_secret_password  # Override via PATRONI_REPLICATION_PASSWORD
+    rewind:
+      username: fleet  # User for pg_rewind
+      password: fleet_dev_password
+
+  # Custom PostgreSQL parameters that override bootstrap parameters
+  # These can be changed at runtime
+  parameters:
+    # Network
+    listen_addresses: '*'
+
+    # Logging (can override bootstrap settings)
+    log_line_prefix: '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+    # Statement statistics
+    shared_preload_libraries: 'pg_stat_statements'
+    pg_stat_statements.track: all
+    pg_stat_statements.max: 10000
+
+  # Callback scripts for failover events (optional)
+  # callbacks:
+  #   on_start: /etc/patroni/callbacks/on_start.sh
+  #   on_stop: /etc/patroni/callbacks/on_stop.sh
+  #   on_restart: /etc/patroni/callbacks/on_restart.sh
+  #   on_role_change: /etc/patroni/callbacks/on_role_change.sh
+
+  # Create physical replication slots for each cluster member
+  create_replica_methods:
+    - basebackup
+
+  # basebackup settings for creating replicas
+  basebackup:
+    - verbose
+    - max-rate: 100M
+    - checkpoint: fast
+
+# =============================================================================
+# WATCHDOG CONFIGURATION (Optional)
+# =============================================================================
+
+# Hardware watchdog for additional failover safety
+# Requires watchdog device access - disabled by default in Docker
+# watchdog:
+#   mode: required  # off, automatic, or required
+#   device: /dev/watchdog
+#   safety_margin: 5
+
+# =============================================================================
+# TAGS (Optional)
+# =============================================================================
+
+# Tags for this node - useful for custom failover logic
+tags:
+  # Prevent this node from becoming leader
+  nofailover: false
+
+  # Prevent this node from receiving load balancer traffic
+  noloadbalance: false
+
+  # Mark node for cloning only (won't become leader or receive traffic)
+  clonefrom: false
+
+  # Prevent synchronous replication to this node
+  nosync: false
+
+# =============================================================================
+# LOG CONFIGURATION
+# =============================================================================
+
+log:
+  # Log level: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+
+  # Log format
+  format: '%(asctime)s %(levelname)s: %(message)s'
+
+  # Date format
+  dateformat: '%Y-%m-%d %H:%M:%S'
+
+  # Log directory (optional - default is stderr)
+  # dir: /var/log/patroni
+
+  # Log file name pattern
+  # file_name: patroni.log
+
+  # Maximum log file size (optional)
+  # file_size: 25000000
+
+  # Number of log files to keep (optional)
+  # file_num: 4

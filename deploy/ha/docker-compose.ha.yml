@@ -1,0 +1,799 @@
+# Fleet2 High Availability Docker Compose Configuration
+#
+# This configuration provides:
+# - PostgreSQL streaming replication with Patroni for automatic failover
+# - etcd cluster for distributed consensus
+# - PgBouncer for connection pooling
+# - Redis Sentinel for Redis HA (optional)
+# - Enhanced health checks and restart policies
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f deploy/ha/docker-compose.ha.yml up -d
+#
+# Prerequisites:
+#   - Create SSL certificates for PostgreSQL replication
+#   - Configure etcd.env with cluster settings
+#   - Review and adjust resource limits for your environment
+
+services:
+  # =============================================================================
+  # ETCD CLUSTER - Distributed consensus for Patroni leader election
+  # =============================================================================
+
+  # etcd node 1 - Primary seed node
+  etcd1:
+    image: quay.io/coreos/etcd:v3.5.12
+    container_name: fleet-etcd1
+    hostname: etcd1
+    restart: unless-stopped
+    env_file:
+      - ./deploy/ha/etcd.env
+    environment:
+      - ETCD_NAME=etcd1
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd1:2380
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd1:2379
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - etcd1_data:/etcd-data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # etcd node 2
+  etcd2:
+    image: quay.io/coreos/etcd:v3.5.12
+    container_name: fleet-etcd2
+    hostname: etcd2
+    restart: unless-stopped
+    env_file:
+      - ./deploy/ha/etcd.env
+    environment:
+      - ETCD_NAME=etcd2
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd2:2380
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd2:2379
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - etcd2_data:/etcd-data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # etcd node 3
+  etcd3:
+    image: quay.io/coreos/etcd:v3.5.12
+    container_name: fleet-etcd3
+    hostname: etcd3
+    restart: unless-stopped
+    env_file:
+      - ./deploy/ha/etcd.env
+    environment:
+      - ETCD_NAME=etcd3
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd3:2380
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd3:2379
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:2380
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+    volumes:
+      - etcd3_data:/etcd-data
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # =============================================================================
+  # PATRONI POSTGRESQL CLUSTER - Automatic failover PostgreSQL
+  # =============================================================================
+
+  # PostgreSQL Primary (managed by Patroni)
+  patroni1:
+    image: patroni/patroni:3.2.2
+    container_name: fleet-patroni1
+    hostname: patroni1
+    restart: unless-stopped
+    environment:
+      - PATRONI_NAME=patroni1
+      - PATRONI_SCOPE=fleet-cluster
+      - PATRONI_ETCD3_HOSTS=etcd1:2379,etcd2:2379,etcd3:2379
+      - PATRONI_RESTAPI_CONNECT_ADDRESS=patroni1:8008
+      - PATRONI_RESTAPI_LISTEN=0.0.0.0:8008
+      - PATRONI_POSTGRESQL_CONNECT_ADDRESS=patroni1:5432
+      - PATRONI_POSTGRESQL_LISTEN=0.0.0.0:5432
+      - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data
+      - PATRONI_REPLICATION_USERNAME=${REPLICATION_USER:-replicator}
+      - PATRONI_REPLICATION_PASSWORD=${REPLICATION_PASSWORD:-rep_secret_password}
+      - PATRONI_SUPERUSER_USERNAME=${POSTGRES_USER:-fleet}
+      - PATRONI_SUPERUSER_PASSWORD=${POSTGRES_PASSWORD:-fleet_dev_password}
+      - PATRONI_POSTGRESQL_PARAMETERS_max_connections=200
+      - PATRONI_POSTGRESQL_PARAMETERS_shared_buffers=256MB
+      - PATRONI_POSTGRESQL_PARAMETERS_wal_level=replica
+      - PATRONI_POSTGRESQL_PARAMETERS_hot_standby=on
+      - PATRONI_POSTGRESQL_PARAMETERS_max_wal_senders=10
+      - PATRONI_POSTGRESQL_PARAMETERS_max_replication_slots=10
+      - PATRONI_POSTGRESQL_PARAMETERS_wal_keep_size=1GB
+      - PATRONI_POSTGRESQL_PARAMETERS_archive_mode=on
+      - PATRONI_POSTGRESQL_PARAMETERS_archive_command=/bin/true
+    volumes:
+      - patroni1_data:/var/lib/postgresql/data
+      - ./deploy/ha/patroni.yml:/etc/patroni/patroni.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+      etcd3:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # PostgreSQL Replica 1 (managed by Patroni)
+  patroni2:
+    image: patroni/patroni:3.2.2
+    container_name: fleet-patroni2
+    hostname: patroni2
+    restart: unless-stopped
+    environment:
+      - PATRONI_NAME=patroni2
+      - PATRONI_SCOPE=fleet-cluster
+      - PATRONI_ETCD3_HOSTS=etcd1:2379,etcd2:2379,etcd3:2379
+      - PATRONI_RESTAPI_CONNECT_ADDRESS=patroni2:8008
+      - PATRONI_RESTAPI_LISTEN=0.0.0.0:8008
+      - PATRONI_POSTGRESQL_CONNECT_ADDRESS=patroni2:5432
+      - PATRONI_POSTGRESQL_LISTEN=0.0.0.0:5432
+      - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data
+      - PATRONI_REPLICATION_USERNAME=${REPLICATION_USER:-replicator}
+      - PATRONI_REPLICATION_PASSWORD=${REPLICATION_PASSWORD:-rep_secret_password}
+      - PATRONI_SUPERUSER_USERNAME=${POSTGRES_USER:-fleet}
+      - PATRONI_SUPERUSER_PASSWORD=${POSTGRES_PASSWORD:-fleet_dev_password}
+      - PATRONI_POSTGRESQL_PARAMETERS_max_connections=200
+      - PATRONI_POSTGRESQL_PARAMETERS_shared_buffers=256MB
+      - PATRONI_POSTGRESQL_PARAMETERS_wal_level=replica
+      - PATRONI_POSTGRESQL_PARAMETERS_hot_standby=on
+      - PATRONI_POSTGRESQL_PARAMETERS_max_wal_senders=10
+      - PATRONI_POSTGRESQL_PARAMETERS_max_replication_slots=10
+    volumes:
+      - patroni2_data:/var/lib/postgresql/data
+      - ./deploy/ha/patroni.yml:/etc/patroni/patroni.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+      etcd3:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # PostgreSQL Replica 2 (managed by Patroni)
+  patroni3:
+    image: patroni/patroni:3.2.2
+    container_name: fleet-patroni3
+    hostname: patroni3
+    restart: unless-stopped
+    environment:
+      - PATRONI_NAME=patroni3
+      - PATRONI_SCOPE=fleet-cluster
+      - PATRONI_ETCD3_HOSTS=etcd1:2379,etcd2:2379,etcd3:2379
+      - PATRONI_RESTAPI_CONNECT_ADDRESS=patroni3:8008
+      - PATRONI_RESTAPI_LISTEN=0.0.0.0:8008
+      - PATRONI_POSTGRESQL_CONNECT_ADDRESS=patroni3:5432
+      - PATRONI_POSTGRESQL_LISTEN=0.0.0.0:5432
+      - PATRONI_POSTGRESQL_DATA_DIR=/var/lib/postgresql/data
+      - PATRONI_REPLICATION_USERNAME=${REPLICATION_USER:-replicator}
+      - PATRONI_REPLICATION_PASSWORD=${REPLICATION_PASSWORD:-rep_secret_password}
+      - PATRONI_SUPERUSER_USERNAME=${POSTGRES_USER:-fleet}
+      - PATRONI_SUPERUSER_PASSWORD=${POSTGRES_PASSWORD:-fleet_dev_password}
+      - PATRONI_POSTGRESQL_PARAMETERS_max_connections=200
+      - PATRONI_POSTGRESQL_PARAMETERS_shared_buffers=256MB
+      - PATRONI_POSTGRESQL_PARAMETERS_wal_level=replica
+      - PATRONI_POSTGRESQL_PARAMETERS_hot_standby=on
+      - PATRONI_POSTGRESQL_PARAMETERS_max_wal_senders=10
+      - PATRONI_POSTGRESQL_PARAMETERS_max_replication_slots=10
+    volumes:
+      - patroni3_data:/var/lib/postgresql/data
+      - ./deploy/ha/patroni.yml:/etc/patroni/patroni.yml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      etcd1:
+        condition: service_healthy
+      etcd2:
+        condition: service_healthy
+      etcd3:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # =============================================================================
+  # PGBOUNCER - Connection pooling with read/write split
+  # =============================================================================
+
+  # PgBouncer for write operations (connects to primary)
+  pgbouncer-primary:
+    image: bitnami/pgbouncer:1.22.1
+    container_name: fleet-pgbouncer-primary
+    hostname: pgbouncer-primary
+    restart: unless-stopped
+    environment:
+      - PGBOUNCER_DATABASE=fleet
+      - PGBOUNCER_PORT=6432
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=500
+      - PGBOUNCER_DEFAULT_POOL_SIZE=25
+      - PGBOUNCER_MIN_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_SIZE=5
+      - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
+      - PGBOUNCER_SERVER_IDLE_TIMEOUT=300
+      - PGBOUNCER_SERVER_LIFETIME=3600
+      - PGBOUNCER_QUERY_TIMEOUT=300
+      - PGBOUNCER_CLIENT_IDLE_TIMEOUT=300
+      - POSTGRESQL_HOST=haproxy-pg
+      - POSTGRESQL_PORT=5433
+      - POSTGRESQL_USERNAME=${POSTGRES_USER:-fleet}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD:-fleet_dev_password}
+      - POSTGRESQL_DATABASE=fleet
+      - PGBOUNCER_STATS_USERS=${POSTGRES_USER:-fleet}
+    volumes:
+      - ./deploy/ha/pgbouncer.ini:/opt/bitnami/pgbouncer/conf/pgbouncer.ini:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      haproxy-pg:
+        condition: service_healthy
+    ports:
+      - "${PGBOUNCER_PRIMARY_PORT:-64320}:6432"
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # PgBouncer for read operations (connects to replicas)
+  pgbouncer-replica:
+    image: bitnami/pgbouncer:1.22.1
+    container_name: fleet-pgbouncer-replica
+    hostname: pgbouncer-replica
+    restart: unless-stopped
+    environment:
+      - PGBOUNCER_DATABASE=fleet
+      - PGBOUNCER_PORT=6432
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=1000
+      - PGBOUNCER_DEFAULT_POOL_SIZE=50
+      - PGBOUNCER_MIN_POOL_SIZE=10
+      - PGBOUNCER_RESERVE_POOL_SIZE=10
+      - PGBOUNCER_RESERVE_POOL_TIMEOUT=3
+      - PGBOUNCER_SERVER_IDLE_TIMEOUT=300
+      - PGBOUNCER_SERVER_LIFETIME=3600
+      - PGBOUNCER_QUERY_TIMEOUT=120
+      - PGBOUNCER_CLIENT_IDLE_TIMEOUT=120
+      - POSTGRESQL_HOST=haproxy-pg
+      - POSTGRESQL_PORT=5434
+      - POSTGRESQL_USERNAME=${POSTGRES_USER:-fleet}
+      - POSTGRESQL_PASSWORD=${POSTGRES_PASSWORD:-fleet_dev_password}
+      - POSTGRESQL_DATABASE=fleet
+      - PGBOUNCER_STATS_USERS=${POSTGRES_USER:-fleet}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      haproxy-pg:
+        condition: service_healthy
+    ports:
+      - "${PGBOUNCER_REPLICA_PORT:-64321}:6432"
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+  # =============================================================================
+  # HAPROXY - PostgreSQL load balancer for Patroni cluster
+  # =============================================================================
+
+  haproxy-pg:
+    image: haproxy:2.9-alpine
+    container_name: fleet-haproxy-pg
+    hostname: haproxy-pg
+    restart: unless-stopped
+    volumes:
+      - ./deploy/ha/haproxy-pg.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      patroni1:
+        condition: service_healthy
+      patroni2:
+        condition: service_healthy
+      patroni3:
+        condition: service_healthy
+    ports:
+      - "${HAPROXY_PG_PRIMARY_PORT:-54330}:5433"
+      - "${HAPROXY_PG_REPLICA_PORT:-54331}:5434"
+      - "${HAPROXY_STATS_PORT:-8404}:8404"
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
+
+  # =============================================================================
+  # REDIS SENTINEL - High availability Redis
+  # =============================================================================
+
+  # Redis primary
+  redis-primary:
+    image: redis:8-alpine
+    container_name: fleet-redis-primary
+    hostname: redis-primary
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:-redis_secret_password}
+      --masterauth ${REDIS_PASSWORD:-redis_secret_password}
+    volumes:
+      - redis_primary_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Redis replica 1
+  redis-replica1:
+    image: redis:8-alpine
+    container_name: fleet-redis-replica1
+    hostname: redis-replica1
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --replicaof redis-primary 6379
+      --requirepass ${REDIS_PASSWORD:-redis_secret_password}
+      --masterauth ${REDIS_PASSWORD:-redis_secret_password}
+    volumes:
+      - redis_replica1_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 768M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+
+  # Redis Sentinel 1
+  redis-sentinel1:
+    image: redis:8-alpine
+    container_name: fleet-sentinel1
+    hostname: sentinel1
+    restart: unless-stopped
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./deploy/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - sentinel1_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+
+  # Redis Sentinel 2
+  redis-sentinel2:
+    image: redis:8-alpine
+    container_name: fleet-sentinel2
+    hostname: sentinel2
+    restart: unless-stopped
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./deploy/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - sentinel2_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+
+  # Redis Sentinel 3
+  redis-sentinel3:
+    image: redis:8-alpine
+    container_name: fleet-sentinel3
+    hostname: sentinel3
+    restart: unless-stopped
+    command: >
+      redis-sentinel /etc/redis/sentinel.conf
+    volumes:
+      - ./deploy/ha/sentinel.conf:/etc/redis/sentinel.conf:ro
+      - sentinel3_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.05'
+          memory: 16M
+
+  # =============================================================================
+  # APPLICATION INSTANCES - Updated for HA database
+  # =============================================================================
+
+  # App Instance 1
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app1
+    hostname: app1
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      # Primary connection for writes
+      - NUXT_DATABASE_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-primary:6432/fleet
+      # Replica connection for reads (optional - requires app-level read/write split)
+      - NUXT_DATABASE_READ_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-replica:6432/fleet
+      - NUXT_REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret_password}@redis-primary:6379
+      - NUXT_REDIS_SENTINEL_HOSTS=sentinel1:26379,sentinel2:26379,sentinel3:26379
+      - NUXT_REDIS_SENTINEL_NAME=fleet-redis
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      pgbouncer-primary:
+        condition: service_healthy
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # App Instance 2
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app2
+    hostname: app2
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_DATABASE_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-primary:6432/fleet
+      - NUXT_DATABASE_READ_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-replica:6432/fleet
+      - NUXT_REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret_password}@redis-primary:6379
+      - NUXT_REDIS_SENTINEL_HOSTS=sentinel1:26379,sentinel2:26379,sentinel3:26379
+      - NUXT_REDIS_SENTINEL_NAME=fleet-redis
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app2
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      pgbouncer-primary:
+        condition: service_healthy
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # App Instance 3 (Backup)
+  app3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app3
+    hostname: app3
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_DATABASE_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-primary:6432/fleet
+      - NUXT_DATABASE_READ_URL=postgresql://${POSTGRES_USER:-fleet}:${POSTGRES_PASSWORD:-fleet_dev_password}@pgbouncer-replica:6432/fleet
+      - NUXT_REDIS_URL=redis://:${REDIS_PASSWORD:-redis_secret_password}@redis-primary:6379
+      - NUXT_REDIS_SENTINEL_HOSTS=sentinel1:26379,sentinel2:26379,sentinel3:26379
+      - NUXT_REDIS_SENTINEL_NAME=fleet-redis
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app3
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      pgbouncer-primary:
+        condition: service_healthy
+      redis-primary:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # =============================================================================
+  # NGINX LOAD BALANCER - Enhanced for HA
+  # =============================================================================
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fleet-nginx
+    hostname: nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8280}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/ssl-params.conf:/etc/nginx/conf.d/ssl-params.conf:ro
+      - ./deploy/nginx/proxy-params.conf:/etc/nginx/conf.d/proxy-params.conf:ro
+      - ${SSL_CERT_PATH:-./deploy/nginx/ssl}:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+    networks:
+      - fleet-ha-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+
+# =============================================================================
+# NETWORKS
+# =============================================================================
+
+networks:
+  fleet-ha-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# VOLUMES
+# =============================================================================
+
+volumes:
+  # etcd cluster data
+  etcd1_data:
+    driver: local
+  etcd2_data:
+    driver: local
+  etcd3_data:
+    driver: local
+
+  # Patroni PostgreSQL data
+  patroni1_data:
+    driver: local
+  patroni2_data:
+    driver: local
+  patroni3_data:
+    driver: local
+
+  # Redis data
+  redis_primary_data:
+    driver: local
+  redis_replica1_data:
+    driver: local
+  sentinel1_data:
+    driver: local
+  sentinel2_data:
+    driver: local
+  sentinel3_data:
+    driver: local
+
+  # Nginx logs
+  nginx_logs:
+    driver: local

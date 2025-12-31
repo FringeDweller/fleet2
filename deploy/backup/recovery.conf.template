@@ -1,0 +1,184 @@
+# PostgreSQL Recovery Configuration Template for Fleet2
+# =====================================================
+#
+# This template provides recovery configuration settings for Point-in-Time
+# Recovery (PITR). Copy this file to $PGDATA/postgresql.auto.conf or include
+# in postgresql.conf before starting recovery.
+#
+# POSTGRESQL 12+ NOTES:
+#   - recovery.conf is deprecated in PostgreSQL 12+
+#   - Use postgresql.conf or postgresql.auto.conf for recovery settings
+#   - Create recovery.signal file to trigger recovery mode
+#   - Create standby.signal file for standby mode
+#
+# QUICK START:
+#   1. Stop PostgreSQL
+#   2. Copy base backup to $PGDATA
+#   3. Copy recovery settings to postgresql.auto.conf
+#   4. Create $PGDATA/recovery.signal
+#   5. Start PostgreSQL
+#
+# See deploy/scripts/pitr-restore.sh for automated recovery.
+
+# -----------------------------------------------------------------------------
+# Recovery Target Settings
+# -----------------------------------------------------------------------------
+
+# OPTION 1: Recover to specific point in time
+# Format: 'YYYY-MM-DD HH:MM:SS.ssssss+TZ'
+#recovery_target_time = '2025-01-15 14:30:00+00'
+
+# OPTION 2: Recover to specific transaction ID
+#recovery_target_xid = '1234567'
+
+# OPTION 3: Recover to named restore point
+# Created with: SELECT pg_create_restore_point('before_migration');
+#recovery_target_name = 'before_migration'
+
+# OPTION 4: Recover to specific LSN
+#recovery_target_lsn = '0/1000000'
+
+# OPTION 5: Recover to end of WAL (latest possible)
+# Don't set any recovery_target_* to recover to the end
+
+# -----------------------------------------------------------------------------
+# Recovery Action Settings
+# -----------------------------------------------------------------------------
+
+# What to do when recovery target is reached
+# Options: pause, promote, shutdown
+# - pause: Stop and wait (can inspect, then promote or continue)
+# - promote: Automatically become primary (exit recovery mode)
+# - shutdown: Clean shutdown when target reached
+recovery_target_action = 'pause'
+
+# Timeline to recover to
+# Options: 'latest' or specific timeline ID number
+recovery_target_timeline = 'latest'
+
+# Whether recovery target is inclusive
+# true: Include the target transaction/time
+# false: Stop just before the target
+recovery_target_inclusive = true
+
+# -----------------------------------------------------------------------------
+# WAL Restore Settings
+# -----------------------------------------------------------------------------
+
+# Command to retrieve archived WAL files
+# %f = file name, %p = destination path
+#
+# OPTION 1: Local archive
+restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'
+
+# OPTION 2: Compressed local archive
+#restore_command = 'gunzip < /var/lib/postgresql/wal_archive/%f.gz > %p'
+
+# OPTION 3: S3 archive
+#restore_command = 'aws s3 cp s3://fleet2-backups/wal-archive/%f %p --endpoint-url ${BACKUP_ENDPOINT:-https://s3.amazonaws.com}'
+
+# OPTION 4: S3 archive with compression
+#restore_command = 'aws s3 cp s3://fleet2-backups/wal-archive/%f.gz - --endpoint-url ${BACKUP_ENDPOINT:-https://s3.amazonaws.com} | gunzip > %p'
+
+# OPTION 5: S3 archive with date-based path (try multiple locations)
+#restore_command = '/usr/local/bin/restore-wal-from-s3.sh %f %p'
+
+# OPTION 6: Using pgBackRest
+#restore_command = 'pgbackrest --stanza=fleet2 archive-get %f "%p"'
+
+# Archive cleanup command (optional, run after recovery)
+# Remove WAL files no longer needed
+#archive_cleanup_command = 'pg_archivecleanup /var/lib/postgresql/wal_archive %r'
+
+# Recovery end command (optional, run when recovery ends)
+# Example: notify monitoring system
+#recovery_end_command = 'curl -X POST https://alerts.example.com/recovery-complete'
+
+# -----------------------------------------------------------------------------
+# Standby Mode Settings (for replication setup)
+# -----------------------------------------------------------------------------
+
+# Enable hot standby (allows read-only queries during recovery)
+#hot_standby = on
+
+# Primary server connection string for streaming replication
+#primary_conninfo = 'host=primary.example.com port=5432 user=replicator password=secret'
+
+# Slot name for replication (preserves WAL on primary)
+#primary_slot_name = 'fleet2_standby'
+
+# Trigger file to exit standby mode (PostgreSQL < 12)
+# For PostgreSQL 12+, use: pg_ctl promote
+#trigger_file = '/tmp/postgresql.trigger.5432'
+
+# Maximum delay before applying WAL (useful for delayed replica)
+#recovery_min_apply_delay = '1h'
+
+# -----------------------------------------------------------------------------
+# Recovery Monitoring
+# -----------------------------------------------------------------------------
+
+# Log recovery progress
+log_checkpoints = on
+
+# Log each WAL file restored
+#log_statement = 'all'
+
+# -----------------------------------------------------------------------------
+# S3 WAL Restore Script
+# -----------------------------------------------------------------------------
+# Create /usr/local/bin/restore-wal-from-s3.sh for flexible WAL retrieval:
+#
+# #!/bin/bash
+# set -e
+# WAL_NAME="$1"
+# DEST_PATH="$2"
+# BUCKET="${BACKUP_BUCKET:-fleet2-backups}"
+# ENDPOINT="${BACKUP_ENDPOINT:+--endpoint-url $BACKUP_ENDPOINT}"
+#
+# # Try multiple date paths (WAL might be in different date folders)
+# for days_ago in 0 1 2 3 4 5 6 7; do
+#     DATE=$(date -d "-${days_ago} days" +%Y/%m/%d 2>/dev/null || date -v-${days_ago}d +%Y/%m/%d)
+#
+#     # Try compressed first
+#     if aws s3 cp "s3://${BUCKET}/wal-archive/${DATE}/${WAL_NAME}.gz" - $ENDPOINT 2>/dev/null | gunzip > "$DEST_PATH" 2>/dev/null; then
+#         exit 0
+#     fi
+#
+#     # Try uncompressed
+#     if aws s3 cp "s3://${BUCKET}/wal-archive/${DATE}/${WAL_NAME}" "$DEST_PATH" $ENDPOINT 2>/dev/null; then
+#         exit 0
+#     fi
+# done
+#
+# # Try flat archive path
+# if aws s3 cp "s3://${BUCKET}/wal-archive/${WAL_NAME}.gz" - $ENDPOINT 2>/dev/null | gunzip > "$DEST_PATH" 2>/dev/null; then
+#     exit 0
+# fi
+# if aws s3 cp "s3://${BUCKET}/wal-archive/${WAL_NAME}" "$DEST_PATH" $ENDPOINT 2>/dev/null; then
+#     exit 0
+# fi
+#
+# exit 1
+
+# -----------------------------------------------------------------------------
+# Example Recovery Scenarios
+# -----------------------------------------------------------------------------
+#
+# SCENARIO 1: Recover from accidental data deletion at 14:30
+#   recovery_target_time = '2025-01-15 14:29:00+00'
+#   recovery_target_action = 'pause'
+#   recovery_target_inclusive = false
+#
+# SCENARIO 2: Recover to just before failed migration
+#   recovery_target_name = 'before_migration_v2'
+#   recovery_target_action = 'promote'
+#
+# SCENARIO 3: Recover to latest possible state
+#   # Don't set any recovery_target_* parameters
+#   recovery_target_action = 'promote'
+#
+# SCENARIO 4: Create delayed standby for disaster recovery
+#   primary_conninfo = 'host=primary user=replicator password=secret'
+#   recovery_min_apply_delay = '1h'
+#   hot_standby = on

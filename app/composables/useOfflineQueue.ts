@@ -129,6 +129,24 @@ const STORE_NAME = 'fleet-offline-queue'
 const MAX_RETRY_COUNT = 5
 const QUEUE_KEY_PREFIX = 'op_'
 
+// Sync progress type
+export interface SyncProgress {
+  completed: number
+  total: number
+  current: QueuedOperation | null
+}
+
+// Sync result type
+export interface SyncResult {
+  success: QueuedOperation[]
+  failed: Array<{ operation: QueuedOperation; error: string }>
+}
+
+// Sync callback types
+export type SyncProgressCallback = (progress: SyncProgress) => void
+export type SyncCompleteCallback = (result: SyncResult) => void
+export type SyncErrorCallback = (error: string, operation: QueuedOperation) => void
+
 // Create custom IndexedDB store for the offline queue
 let offlineStore: ReturnType<typeof createStore> | null = null
 
@@ -142,10 +160,21 @@ function getStore() {
 export function useOfflineQueue() {
   const isOnline = useOnline()
   const toast = useToast()
+  const networkStatus = useNetworkStatus()
 
   // Reactive state
   const queueCount = ref(0)
   const isInitialized = ref(false)
+  const syncInProgress = ref(false)
+  const lastSyncAt = ref<Date | null>(null)
+
+  // Sync callbacks registry
+  const syncCompleteCallbacks = new Set<SyncCompleteCallback>()
+  const syncProgressCallbacks = new Set<SyncProgressCallback>()
+  const syncErrorCallbacks = new Set<SyncErrorCallback>()
+
+  // Web Worker instance
+  let syncWorker: Worker | null = null
 
   /**
    * Initialize the queue count on mount
@@ -400,9 +429,362 @@ export function useOfflineQueue() {
     return summary
   }
 
+  /**
+   * Initialize the sync worker
+   */
+  const initializeSyncWorker = () => {
+    if (!import.meta.client || syncWorker) return
+
+    try {
+      // Create the sync worker
+      syncWorker = new Worker(new URL('../workers/sync.worker.ts', import.meta.url), {
+        type: 'module',
+      })
+
+      // Handle messages from worker
+      syncWorker.onmessage = async (event) => {
+        const { type, payload } = event.data
+
+        switch (type) {
+          case 'SYNC_PROGRESS': {
+            const progress: SyncProgress = payload
+            for (const callback of syncProgressCallbacks) {
+              try {
+                callback(progress)
+              } catch (err) {
+                console.error('[useOfflineQueue] Sync progress callback error:', err)
+              }
+            }
+            break
+          }
+
+          case 'SYNC_ITEM_COMPLETE': {
+            // Remove successfully synced item from queue
+            const { operationId } = payload
+            await removeFromQueue(operationId)
+            break
+          }
+
+          case 'SYNC_ITEM_FAILED': {
+            // Update item status and increment retry count
+            const { operationId, error } = payload
+            await updateQueuedItem(operationId, {
+              status: 'failed',
+              lastError: error,
+              lastAttemptAt: new Date().toISOString(),
+            })
+            await incrementRetryCount(operationId)
+
+            // Notify error callbacks
+            const failedOp = await getQueuedItem(operationId)
+            if (failedOp) {
+              for (const callback of syncErrorCallbacks) {
+                try {
+                  callback(error, failedOp)
+                } catch (err) {
+                  console.error('[useOfflineQueue] Sync error callback error:', err)
+                }
+              }
+            }
+            break
+          }
+
+          case 'SYNC_COMPLETE': {
+            const result: SyncResult = payload
+            syncInProgress.value = false
+            lastSyncAt.value = new Date()
+
+            // Refresh queue count
+            await initialize()
+
+            // Notify complete callbacks
+            for (const callback of syncCompleteCallbacks) {
+              try {
+                callback(result)
+              } catch (err) {
+                console.error('[useOfflineQueue] Sync complete callback error:', err)
+              }
+            }
+
+            // Show toast notification
+            if (result.success.length > 0 || result.failed.length > 0) {
+              const successCount = result.success.length
+              const failedCount = result.failed.length
+
+              if (failedCount === 0) {
+                toast.add({
+                  title: 'Sync Complete',
+                  description: `Successfully synced ${successCount} item${successCount !== 1 ? 's' : ''}`,
+                  color: 'success',
+                  icon: 'i-lucide-check-circle',
+                })
+              } else {
+                toast.add({
+                  title: 'Sync Partial',
+                  description: `Synced ${successCount}, failed ${failedCount}`,
+                  color: 'warning',
+                  icon: 'i-lucide-alert-triangle',
+                })
+              }
+            }
+            break
+          }
+
+          case 'SYNC_ERROR': {
+            const { error, operation } = payload
+            console.error('[useOfflineQueue] Sync error:', error, operation)
+            for (const callback of syncErrorCallbacks) {
+              try {
+                callback(error, operation)
+              } catch (err) {
+                console.error('[useOfflineQueue] Sync error callback error:', err)
+              }
+            }
+            break
+          }
+        }
+      }
+
+      syncWorker.onerror = (error) => {
+        console.error('[useOfflineQueue] Worker error:', error)
+        syncInProgress.value = false
+      }
+    } catch (err) {
+      console.error('[useOfflineQueue] Failed to initialize sync worker:', err)
+    }
+  }
+
+  /**
+   * Trigger synchronization of pending items
+   */
+  const triggerSync = async (): Promise<void> => {
+    if (!import.meta.client) return
+    if (syncInProgress.value) {
+      console.log('[useOfflineQueue] Sync already in progress')
+      return
+    }
+    if (!isOnline.value) {
+      console.log('[useOfflineQueue] Cannot sync while offline')
+      return
+    }
+
+    const pendingItems = await getPendingItems()
+    if (pendingItems.length === 0) {
+      console.log('[useOfflineQueue] No pending items to sync')
+      return
+    }
+
+    // Mark items as syncing
+    for (const item of pendingItems) {
+      await updateQueuedItem(item.id, { status: 'syncing' })
+    }
+
+    syncInProgress.value = true
+
+    // Initialize worker if needed
+    if (!syncWorker) {
+      initializeSyncWorker()
+    }
+
+    if (syncWorker) {
+      // Send items to worker for processing
+      syncWorker.postMessage({
+        type: 'START_SYNC',
+        payload: pendingItems,
+      })
+    } else {
+      // Fallback to main thread sync if worker fails
+      console.warn('[useOfflineQueue] Worker unavailable, syncing on main thread')
+      await syncOnMainThread(pendingItems)
+    }
+  }
+
+  /**
+   * Fallback sync on main thread (if worker unavailable)
+   */
+  const syncOnMainThread = async (items: QueuedOperation[]): Promise<void> => {
+    const result: SyncResult = { success: [], failed: [] }
+    const total = items.length
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i]
+      if (!item) continue
+
+      // Report progress
+      for (const callback of syncProgressCallbacks) {
+        try {
+          callback({ completed: i, total, current: item })
+        } catch (err) {
+          console.error('[useOfflineQueue] Progress callback error:', err)
+        }
+      }
+
+      try {
+        await syncSingleOperation(item)
+        await removeFromQueue(item.id)
+        result.success.push(item)
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err)
+        await updateQueuedItem(item.id, {
+          status: 'failed',
+          lastError: errorMessage,
+          lastAttemptAt: new Date().toISOString(),
+        })
+        await incrementRetryCount(item.id)
+        result.failed.push({ operation: item, error: errorMessage })
+
+        for (const callback of syncErrorCallbacks) {
+          try {
+            callback(errorMessage, item)
+          } catch (cbErr) {
+            console.error('[useOfflineQueue] Error callback error:', cbErr)
+          }
+        }
+      }
+    }
+
+    syncInProgress.value = false
+    lastSyncAt.value = new Date()
+
+    // Notify complete callbacks
+    for (const callback of syncCompleteCallbacks) {
+      try {
+        callback(result)
+      } catch (err) {
+        console.error('[useOfflineQueue] Complete callback error:', err)
+      }
+    }
+
+    // Refresh queue count
+    await initialize()
+  }
+
+  /**
+   * Sync a single operation (used by main thread fallback)
+   */
+  const syncSingleOperation = async (operation: QueuedOperation): Promise<void> => {
+    // Cast payload to a type that $fetch accepts
+    const payload = operation.payload as Record<string, unknown>
+
+    switch (operation.type) {
+      case 'work_order_create':
+        await $fetch('/api/work-orders', {
+          method: 'POST',
+          body: payload,
+        })
+        break
+
+      case 'work_order_update':
+        if (!operation.entityId) {
+          throw new Error('Entity ID required for work order update')
+        }
+        await fetch(`/api/work-orders/${operation.entityId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          credentials: 'include',
+        })
+        break
+
+      case 'inspection_start':
+        await $fetch('/api/inspections/start', {
+          method: 'POST',
+          body: payload,
+        })
+        break
+
+      case 'inspection_submit': {
+        const inspPayload = payload as { inspectionId: string; items: unknown[] }
+        await $fetch(`/api/inspections/${inspPayload.inspectionId}/items`, {
+          method: 'POST',
+          body: payload,
+        })
+        break
+      }
+
+      case 'fuel_entry_create':
+        await $fetch('/api/fuel/transactions', {
+          method: 'POST',
+          body: payload,
+        })
+        break
+
+      case 'custom_form_submit':
+        await $fetch('/api/custom-form-submissions', {
+          method: 'POST',
+          body: payload,
+        })
+        break
+
+      default:
+        throw new Error(`Unknown operation type: ${operation.type}`)
+    }
+  }
+
+  /**
+   * Register a callback for sync completion
+   */
+  const onSyncComplete = (callback: SyncCompleteCallback): (() => void) => {
+    syncCompleteCallbacks.add(callback)
+    return () => {
+      syncCompleteCallbacks.delete(callback)
+    }
+  }
+
+  /**
+   * Register a callback for sync progress updates
+   */
+  const onSyncProgress = (callback: SyncProgressCallback): (() => void) => {
+    syncProgressCallbacks.add(callback)
+    return () => {
+      syncProgressCallbacks.delete(callback)
+    }
+  }
+
+  /**
+   * Register a callback for sync errors
+   */
+  const onSyncError = (callback: SyncErrorCallback): (() => void) => {
+    syncErrorCallbacks.add(callback)
+    return () => {
+      syncErrorCallbacks.delete(callback)
+    }
+  }
+
+  /**
+   * Stop the sync worker and clean up
+   */
+  const stopSyncWorker = () => {
+    if (syncWorker) {
+      syncWorker.terminate()
+      syncWorker = null
+    }
+  }
+
   // Initialize on client-side
   if (import.meta.client) {
     initialize()
+
+    // Auto-sync when coming online
+    const unsubscribe = networkStatus.onStatusChange(({ isOnline: online, wasOnline }) => {
+      if (online && !wasOnline) {
+        // Just came online, trigger sync after a short delay
+        setTimeout(() => {
+          triggerSync().catch((err) => {
+            console.error('[useOfflineQueue] Auto-sync failed:', err)
+          })
+        }, 1000) // Wait 1 second for connection to stabilize
+      }
+    })
+
+    // Clean up on component unmount
+    onUnmounted(() => {
+      unsubscribe()
+      stopSyncWorker()
+      syncCompleteCallbacks.clear()
+      syncProgressCallbacks.clear()
+      syncErrorCallbacks.clear()
+    })
   }
 
   return {
@@ -410,6 +792,8 @@ export function useOfflineQueue() {
     queueCount: getQueueCount,
     isOnline,
     isInitialized: readonly(isInitialized),
+    syncInProgress: readonly(syncInProgress),
+    lastSyncAt: readonly(lastSyncAt),
 
     // Operations
     addToQueue,
@@ -422,6 +806,12 @@ export function useOfflineQueue() {
     incrementRetryCount,
     getPendingItems,
     getQueueSummary,
+
+    // Sync operations
+    triggerSync,
+    onSyncComplete,
+    onSyncProgress,
+    onSyncError,
 
     // Maintenance
     clearFailed,
