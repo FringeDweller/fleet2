@@ -283,7 +283,7 @@ function getBarWidth(percentage: number): string {
               <div>
                 <p class="text-sm text-muted">Pending Review</p>
                 <p class="text-2xl font-semibold">
-                  {{ stats.statusBreakdown.find(s => s.status === 'submitted')?.count || 0 }}
+                  {{ stats.statusBreakdown.find((s: StatusBreakdown) => s.status === 'submitted')?.count || 0 }}
                 </p>
               </div>
             </div>
@@ -343,7 +343,7 @@ function getBarWidth(percentage: number): string {
                 <div
                   class="w-full bg-primary rounded-t transition-all duration-300 min-h-[4px]"
                   :style="{
-                    height: `${Math.max((day.count / Math.max(...stats.submissionsByDate.map(d => d.count))) * 100, 2)}%`
+                    height: `${Math.max((day.count / Math.max(...stats.submissionsByDate.map((d: DateCount) => d.count))) * 100, 2)}%`
                   }"
                 />
                 <!-- Tooltip -->

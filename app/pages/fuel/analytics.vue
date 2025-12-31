@@ -71,11 +71,53 @@ interface Asset {
   model: string | null
 }
 
+// Per-asset analytics type
+interface PerAssetAnalytics {
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  totalLitres: number
+  totalCost: number
+  avgLitersPer100Km: number | null
+  transactionCount: number
+}
+
+// Comparison item type
+interface ComparisonItem {
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  efficiencyRank: number
+  avgLitersPer100Km: number | null
+  avgCostPerKm: number | null
+  vsFleetAvgL100Percent: number | null
+  efficiencyRating: string
+  totalDistanceKm: number
+  consumptionDataPoints: number
+}
+
+// Anomaly item type
+interface AnomalyItem {
+  transactionId: string
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  transactionDate: string
+  anomalyType: 'high_consumption' | 'low_consumption'
+  severity: 'warning' | 'critical'
+  litersPerHundredKm: number
+  expectedLitersPer100Km: number
+  deviationPercent: number
+}
+
 const { data: assetsData } = await useFetch<{ data: Asset[] }>('/api/assets', { lazy: true })
 
 const assetOptions = computed(() => [
   { label: 'All Assets', value: '' },
-  ...(assetsData.value?.data?.map((a) => ({
+  ...(assetsData.value?.data?.map((a: Asset) => ({
     label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
     value: a.id,
   })) || []),
@@ -311,10 +353,10 @@ const router = useRouter()
             :data="analyticsData?.perAsset?.slice(0, 10) || []"
             :columns="[
               { accessorKey: 'assetNumber', header: 'Asset' },
-              { accessorKey: 'make', header: 'Make/Model', cell: ({ row }) => `${row.original.make || ''} ${row.original.model || ''}`.trim() || '-' },
-              { accessorKey: 'totalLitres', header: 'Total Litres', cell: ({ row }) => formatNumber(row.original.totalLitres, 0) },
-              { accessorKey: 'totalCost', header: 'Total Cost', cell: ({ row }) => formatCurrency(row.original.totalCost) },
-              { accessorKey: 'avgLitersPer100Km', header: 'L/100km', cell: ({ row }) => formatNumber(row.original.avgLitersPer100Km, 1) },
+              { accessorKey: 'make', header: 'Make/Model', cell: ({ row }: { row: { original: PerAssetAnalytics } }) => `${row.original.make || ''} ${row.original.model || ''}`.trim() || '-' },
+              { accessorKey: 'totalLitres', header: 'Total Litres', cell: ({ row }: { row: { original: PerAssetAnalytics } }) => formatNumber(row.original.totalLitres, 0) },
+              { accessorKey: 'totalCost', header: 'Total Cost', cell: ({ row }: { row: { original: PerAssetAnalytics } }) => formatCurrency(row.original.totalCost) },
+              { accessorKey: 'avgLitersPer100Km', header: 'L/100km', cell: ({ row }: { row: { original: PerAssetAnalytics } }) => formatNumber(row.original.avgLitersPer100Km, 1) },
               { accessorKey: 'transactionCount', header: 'Transactions' },
             ]"
             :loading="analyticsStatus === 'pending'"
@@ -457,21 +499,21 @@ const router = useRouter()
           <UTable
             :data="comparisonData?.comparison || []"
             :columns="[
-              { accessorKey: 'efficiencyRank', header: 'Rank', cell: ({ row }) => `#${row.original.efficiencyRank}` },
+              { accessorKey: 'efficiencyRank', header: 'Rank', cell: ({ row }: { row: { original: ComparisonItem } }) => `#${row.original.efficiencyRank}` },
               {
                 accessorKey: 'assetNumber',
                 header: 'Asset',
-                cell: ({ row }) => h('div', {}, [
+                cell: ({ row }: { row: { original: ComparisonItem } }) => h('div', {}, [
                   h('p', { class: 'font-medium' }, row.original.assetNumber),
                   h('p', { class: 'text-sm text-muted' }, `${row.original.make || ''} ${row.original.model || ''}`.trim() || '-'),
                 ]),
               },
-              { accessorKey: 'avgLitersPer100Km', header: 'L/100km', cell: ({ row }) => formatNumber(row.original.avgLitersPer100Km, 1) },
-              { accessorKey: 'avgCostPerKm', header: 'Cost/km', cell: ({ row }) => row.original.avgCostPerKm ? `$${formatNumber(row.original.avgCostPerKm, 3)}` : '-' },
+              { accessorKey: 'avgLitersPer100Km', header: 'L/100km', cell: ({ row }: { row: { original: ComparisonItem } }) => formatNumber(row.original.avgLitersPer100Km, 1) },
+              { accessorKey: 'avgCostPerKm', header: 'Cost/km', cell: ({ row }: { row: { original: ComparisonItem } }) => row.original.avgCostPerKm ? `$${formatNumber(row.original.avgCostPerKm, 3)}` : '-' },
               {
                 accessorKey: 'vsFleetAvgL100Percent',
                 header: 'vs Fleet Avg',
-                cell: ({ row }) => {
+                cell: ({ row }: { row: { original: ComparisonItem } }) => {
                   const val = row.original.vsFleetAvgL100Percent
                   if (val === null) return '-'
                   const color = val < -5 ? 'text-success' : val > 5 ? 'text-error' : 'text-muted'
@@ -481,12 +523,12 @@ const router = useRouter()
               {
                 accessorKey: 'efficiencyRating',
                 header: 'Rating',
-                cell: ({ row }) => h(resolveComponent('UBadge'), {
+                cell: ({ row }: { row: { original: ComparisonItem } }) => h(resolveComponent('UBadge'), {
                   color: efficiencyColors[row.original.efficiencyRating] || 'neutral',
                   variant: 'subtle',
                 }, () => row.original.efficiencyRating),
               },
-              { accessorKey: 'totalDistanceKm', header: 'Distance', cell: ({ row }) => `${formatNumber(row.original.totalDistanceKm, 0)} km` },
+              { accessorKey: 'totalDistanceKm', header: 'Distance', cell: ({ row }: { row: { original: ComparisonItem } }) => `${formatNumber(row.original.totalDistanceKm, 0)} km` },
               { accessorKey: 'consumptionDataPoints', header: 'Data Points' },
             ]"
             :loading="comparisonStatus === 'pending'"
@@ -563,7 +605,7 @@ const router = useRouter()
               {
                 accessorKey: 'severity',
                 header: 'Severity',
-                cell: ({ row }) => h(resolveComponent('UBadge'), {
+                cell: ({ row }: { row: { original: AnomalyItem } }) => h(resolveComponent('UBadge'), {
                   color: row.original.severity === 'critical' ? 'error' : 'warning',
                   variant: 'subtle',
                 }, () => row.original.severity),
@@ -571,7 +613,7 @@ const router = useRouter()
               {
                 accessorKey: 'assetNumber',
                 header: 'Asset',
-                cell: ({ row }) => h('div', {}, [
+                cell: ({ row }: { row: { original: AnomalyItem } }) => h('div', {}, [
                   h('p', { class: 'font-medium' }, row.original.assetNumber),
                   h('p', { class: 'text-sm text-muted' }, `${row.original.make || ''} ${row.original.model || ''}`.trim() || '-'),
                 ]),
@@ -579,27 +621,27 @@ const router = useRouter()
               {
                 accessorKey: 'transactionDate',
                 header: 'Date',
-                cell: ({ row }) => format(new Date(row.original.transactionDate), 'dd MMM yyyy'),
+                cell: ({ row }: { row: { original: AnomalyItem } }) => format(new Date(row.original.transactionDate), 'dd MMM yyyy'),
               },
               {
                 accessorKey: 'anomalyType',
                 header: 'Type',
-                cell: ({ row }) => row.original.anomalyType === 'high_consumption' ? 'High Consumption' : 'Low Consumption',
+                cell: ({ row }: { row: { original: AnomalyItem } }) => row.original.anomalyType === 'high_consumption' ? 'High Consumption' : 'Low Consumption',
               },
               {
                 accessorKey: 'litersPerHundredKm',
                 header: 'Actual L/100km',
-                cell: ({ row }) => formatNumber(row.original.litersPerHundredKm, 1),
+                cell: ({ row }: { row: { original: AnomalyItem } }) => formatNumber(row.original.litersPerHundredKm, 1),
               },
               {
                 accessorKey: 'expectedLitersPer100Km',
                 header: 'Expected',
-                cell: ({ row }) => formatNumber(row.original.expectedLitersPer100Km, 1),
+                cell: ({ row }: { row: { original: AnomalyItem } }) => formatNumber(row.original.expectedLitersPer100Km, 1),
               },
               {
                 accessorKey: 'deviationPercent',
                 header: 'Deviation',
-                cell: ({ row }) => {
+                cell: ({ row }: { row: { original: AnomalyItem } }) => {
                   const val = row.original.deviationPercent
                   const color = val > 0 ? 'text-error' : 'text-success'
                   return h('span', { class: color }, `${val > 0 ? '+' : ''}${formatNumber(val, 0)}%`)

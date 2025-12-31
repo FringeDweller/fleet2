@@ -1,0 +1,253 @@
+# Alertmanager Configuration for Fleet2
+# Usage: Part of monitoring stack in deploy/docker-compose.monitoring.yml
+
+global:
+  # Default SMTP settings for email notifications
+  smtp_smarthost: '${SMTP_HOST}:587'
+  smtp_from: '${SMTP_FROM:-alerts@fleet2.example.com}'
+  smtp_auth_username: '${SMTP_USERNAME}'
+  smtp_auth_password: '${SMTP_PASSWORD}'
+  smtp_require_tls: true
+
+  # Slack settings
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+  # PagerDuty settings
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+  # Default resolve timeout
+  resolve_timeout: 5m
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Inhibition rules - prevent alert storms
+inhibit_rules:
+  # If all instances are down, inhibit individual instance alerts
+  - source_matchers:
+      - alertname="AllInstancesDown"
+    target_matchers:
+      - alertname="InstanceDown"
+    equal: ['team']
+
+  # If database is down, inhibit database pool alerts
+  - source_matchers:
+      - alertname="DatabaseDown"
+    target_matchers:
+      - alertname="DatabasePoolExhausted"
+    equal: ['team']
+
+  # Critical alerts inhibit warning alerts for same resource
+  - source_matchers:
+      - severity="critical"
+    target_matchers:
+      - severity="warning"
+    equal: ['alertname', 'instance']
+
+# Routing tree
+route:
+  # Default receiver
+  receiver: 'slack-default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'team', 'severity']
+
+  # Wait before sending first notification
+  group_wait: 30s
+
+  # Wait before sending updated notifications
+  group_interval: 5m
+
+  # Wait before resending
+  repeat_interval: 4h
+
+  # Child routes
+  routes:
+    # Critical alerts - PagerDuty + Slack + Email
+    - matchers:
+        - severity="critical"
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+      continue: true
+
+    # High priority warnings - Slack only
+    - matchers:
+        - severity="warning"
+      receiver: 'slack-warnings'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Info alerts - Slack only (low priority channel)
+    - matchers:
+        - severity="info"
+      receiver: 'slack-info'
+      group_wait: 5m
+      repeat_interval: 12h
+
+    # Team-specific routing
+    - matchers:
+        - team="platform"
+      receiver: 'platform-team'
+      routes:
+        - matchers:
+            - severity="critical"
+          receiver: 'platform-critical'
+
+    - matchers:
+        - team="backend"
+      receiver: 'backend-team'
+
+    # Silence during maintenance windows
+    # Use Alertmanager API or UI to create silences
+
+# Notification receivers
+receivers:
+  # Default Slack channel
+  - name: 'slack-default'
+    slack_configs:
+      - channel: '#alerts'
+        username: 'Fleet2 Alertmanager'
+        icon_emoji: ':warning:'
+        send_resolved: true
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+        actions:
+          - type: button
+            text: 'Runbook'
+            url: '{{ (index .Alerts 0).Annotations.runbook_url }}'
+          - type: button
+            text: 'Dashboard'
+            url: 'http://grafana.example.com/d/fleet2-overview'
+
+  # Critical alerts - multiple channels
+  - name: 'critical-alerts'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+        severity: critical
+        description: '{{ template "pagerduty.description" . }}'
+        details:
+          firing: '{{ template "pagerduty.firing" . }}'
+          num_firing: '{{ .Alerts.Firing | len }}'
+          num_resolved: '{{ .Alerts.Resolved | len }}'
+
+    slack_configs:
+      - channel: '#alerts-critical'
+        username: 'Fleet2 CRITICAL'
+        icon_emoji: ':rotating_light:'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+
+    email_configs:
+      - to: 'oncall@example.com'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] Fleet2 Alert: {{ .GroupLabels.alertname }}'
+        html: '{{ template "email.html" . }}'
+
+  # Warning alerts - Slack only
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#alerts-warnings'
+        username: 'Fleet2 Alertmanager'
+        icon_emoji: ':warning:'
+        send_resolved: true
+        color: 'warning'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+
+  # Info alerts - Low priority
+  - name: 'slack-info'
+    slack_configs:
+      - channel: '#alerts-info'
+        username: 'Fleet2 Alertmanager'
+        icon_emoji: ':information_source:'
+        send_resolved: false
+        color: '#439FE0'
+        title: '{{ template "slack.title" . }}'
+        text: '{{ template "slack.text" . }}'
+
+  # Platform team
+  - name: 'platform-team'
+    slack_configs:
+      - channel: '#platform-alerts'
+        username: 'Fleet2 Alertmanager'
+        send_resolved: true
+
+  # Platform critical - additional PagerDuty escalation
+  - name: 'platform-critical'
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_PLATFORM_KEY}'
+        severity: critical
+
+    slack_configs:
+      - channel: '#platform-alerts'
+        username: 'Fleet2 CRITICAL'
+        icon_emoji: ':rotating_light:'
+        send_resolved: true
+
+  # Backend team
+  - name: 'backend-team'
+    slack_configs:
+      - channel: '#backend-alerts'
+        username: 'Fleet2 Alertmanager'
+        send_resolved: true
+
+---
+# Notification Templates
+# Save to /etc/alertmanager/templates/default.tmpl
+
+# {{ define "slack.title" }}
+# [{{ .Status | toUpper }}{{ if eq .Status "firing" }}:{{ .Alerts.Firing | len }}{{ end }}] {{ .GroupLabels.alertname }}
+# {{ end }}
+
+# {{ define "slack.text" }}
+# {{ range .Alerts }}
+# *Alert:* {{ .Annotations.summary }}
+# *Description:* {{ .Annotations.description }}
+# *Severity:* {{ .Labels.severity }}
+# *Instance:* {{ .Labels.instance }}
+# {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+# {{ end }}
+# {{ end }}
+
+# {{ define "pagerduty.description" }}
+# {{ .GroupLabels.alertname }}: {{ (index .Alerts 0).Annotations.summary }}
+# {{ end }}
+
+# {{ define "pagerduty.firing" }}
+# {{ range .Alerts.Firing }}
+# - {{ .Annotations.summary }}
+# {{ end }}
+# {{ end }}
+
+# {{ define "email.html" }}
+# <!DOCTYPE html>
+# <html>
+# <head>
+#   <style>
+#     .alert-critical { color: #dc3545; }
+#     .alert-warning { color: #ffc107; }
+#     .alert-info { color: #17a2b8; }
+#   </style>
+# </head>
+# <body>
+#   <h2>Fleet2 Alert: {{ .GroupLabels.alertname }}</h2>
+#   <p><strong>Status:</strong> {{ .Status | toUpper }}</p>
+#   {{ range .Alerts }}
+#   <div>
+#     <h3>{{ .Annotations.summary }}</h3>
+#     <p>{{ .Annotations.description }}</p>
+#     <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+#     <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+#     {{ if .Annotations.runbook_url }}
+#     <p><a href="{{ .Annotations.runbook_url }}">View Runbook</a></p>
+#     {{ end }}
+#   </div>
+#   {{ end }}
+# </body>
+# </html>
+# {{ end }}

@@ -26,6 +26,7 @@ export const notificationTypeEnum = pgEnum('notification_type', [
   'after_hours_movement',
   'shift_handover', // US-8.5: Shift handover notifications for supervisors
   'fuel_anomaly', // US-11.5: Fuel consumption anomaly alerts
+  'document_expiring', // US-15.6: Document expiry alerts
   'system',
 ])
 

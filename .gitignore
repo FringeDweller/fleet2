@@ -23,6 +23,13 @@ build/
 *.pem
 *.key
 
+# SSL certificates (keep .gitkeep and scripts)
+deploy/nginx/ssl/*.pem
+deploy/nginx/ssl/*.key
+deploy/nginx/ssl/*.crt
+!deploy/nginx/ssl/.gitkeep
+!deploy/nginx/ssl/generate-dev-certs.sh
+
 # IDE and editors
 .idea/
 .vscode/
@@ -52,3 +59,21 @@ test-results/
 *.tmp
 *.temp
 .cache/
+
+# Capacitor native platform builds
+android/
+ios/
+*.keystore
+*.jks
+
+# Keep resources directory for icons/splash
+!resources/
+
+# Data directory (uploads, temp files, etc.)
+data/
+!data/.gitkeep
+!data/**/.gitkeep
+
+# Backup files
+backups/
+*.sql.gz

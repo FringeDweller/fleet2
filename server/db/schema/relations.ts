@@ -12,6 +12,10 @@ import { customFormVersions } from './custom-form-versions'
 import { customForms } from './custom-forms'
 import { defects } from './defects'
 import { diagnosticCodes } from './diagnostic-codes'
+import { documentFolders } from './document-folders'
+import { documentLinks } from './document-links'
+import { documentVersions } from './document-versions'
+import { documents } from './documents'
 import { dtcWorkOrderHistory, dtcWorkOrderRules } from './dtc-work-order-rules'
 import { fuelAlertSettings } from './fuel-alert-settings'
 import { fuelAuthorizations } from './fuel-authorizations'
@@ -44,12 +48,15 @@ import { partUsageHistory } from './part-usage-history'
 import { parts } from './parts'
 import { roles } from './roles'
 import { savedSearches } from './saved-searches'
+import { scheduledExports } from './scheduled-exports'
 import { sessions } from './sessions'
 import { storageLocations } from './storage-locations'
+import { systemSettings } from './system-settings'
 import { taskGroups } from './task-groups'
 import { taskOverrides } from './task-overrides'
 import { taskTemplateParts } from './task-template-parts'
 import { taskTemplates } from './task-templates'
+import { uploadChunks, uploadSessions } from './upload-chunks'
 import { users } from './users'
 import { workOrderApprovals } from './work-order-approvals'
 import { workOrderChecklistItems } from './work-order-checklist-items'
@@ -86,6 +93,8 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   obdDevices: many(obdDevices),
   operationBlocks: many(operationBlocks),
   diagnosticCodes: many(diagnosticCodes),
+  systemSettings: many(systemSettings),
+  scheduledExports: many(scheduledExports),
 }))
 
 // Work Order Approvals Relations
@@ -1127,6 +1136,118 @@ export const fuelAlertSettingsRelations = relations(fuelAlertSettings, ({ one })
   }),
   updatedBy: one(users, {
     fields: [fuelAlertSettings.updatedById],
+    references: [users.id],
+  }),
+}))
+
+// Document Folders Relations (US-15.2)
+export const documentFoldersRelations = relations(documentFolders, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [documentFolders.organisationId],
+    references: [organisations.id],
+  }),
+  parent: one(documentFolders, {
+    fields: [documentFolders.parentId],
+    references: [documentFolders.id],
+    relationName: 'folderParentChild',
+  }),
+  children: many(documentFolders, {
+    relationName: 'folderParentChild',
+  }),
+  documents: many(documents),
+  createdBy: one(users, {
+    fields: [documentFolders.createdById],
+    references: [users.id],
+  }),
+}))
+
+// Documents Relations (US-15.1)
+export const documentsRelations = relations(documents, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [documents.organisationId],
+    references: [organisations.id],
+  }),
+  folder: one(documentFolders, {
+    fields: [documents.folderId],
+    references: [documentFolders.id],
+  }),
+  versions: many(documentVersions),
+  links: many(documentLinks),
+  currentVersion: one(documentVersions, {
+    fields: [documents.currentVersionId],
+    references: [documentVersions.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [documents.uploadedById],
+    references: [users.id],
+  }),
+}))
+
+// Document Versions Relations (US-15.5)
+export const documentVersionsRelations = relations(documentVersions, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentVersions.documentId],
+    references: [documents.id],
+  }),
+  uploadedBy: one(users, {
+    fields: [documentVersions.uploadedById],
+    references: [users.id],
+  }),
+}))
+
+// Document Links Relations (US-15.3)
+export const documentLinksRelations = relations(documentLinks, ({ one }) => ({
+  document: one(documents, {
+    fields: [documentLinks.documentId],
+    references: [documents.id],
+  }),
+  linkedBy: one(users, {
+    fields: [documentLinks.linkedById],
+    references: [users.id],
+  }),
+}))
+
+// Upload Sessions Relations (US-15.1 - Chunked Uploads)
+export const uploadSessionsRelations = relations(uploadSessions, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [uploadSessions.organisationId],
+    references: [organisations.id],
+  }),
+  user: one(users, {
+    fields: [uploadSessions.userId],
+    references: [users.id],
+  }),
+  chunks: many(uploadChunks),
+}))
+
+// Upload Chunks Relations (US-15.1)
+export const uploadChunksRelations = relations(uploadChunks, ({ one }) => ({
+  session: one(uploadSessions, {
+    fields: [uploadChunks.sessionId],
+    references: [uploadSessions.id],
+  }),
+}))
+
+// System Settings Relations (US-17.4)
+export const systemSettingsRelations = relations(systemSettings, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [systemSettings.organisationId],
+    references: [organisations.id],
+  }),
+  updatedBy: one(users, {
+    fields: [systemSettings.updatedById],
+    references: [users.id],
+  }),
+}))
+
+// Scheduled Exports Relations (US-17.7)
+export const scheduledExportsRelations = relations(scheduledExports, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [scheduledExports.organisationId],
+    references: [organisations.id],
+  }),
+  createdBy: one(users, {
+    fields: [scheduledExports.createdById],
     references: [users.id],
   }),
 }))

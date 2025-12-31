@@ -68,7 +68,7 @@ const filteredAssets = computed(() => {
   if (!searchQuery.value) return assetsData.value.data
   const query = searchQuery.value.toLowerCase()
   return assetsData.value.data.filter(
-    (asset) =>
+    (asset: Asset) =>
       asset.assetNumber.toLowerCase().includes(query) ||
       asset.make?.toLowerCase().includes(query) ||
       asset.model?.toLowerCase().includes(query) ||
@@ -77,7 +77,7 @@ const filteredAssets = computed(() => {
 })
 
 const selectedAsset = computed(() =>
-  assetsData.value?.data.find((a) => a.id === selectedAssetId.value),
+  assetsData.value?.data.find((a: Asset) => a.id === selectedAssetId.value),
 )
 
 // NFC Scanning
@@ -278,12 +278,16 @@ function backToSelection() {
   capturedLocation.value = null
 }
 
-const statusColors = {
+const statusColors: Record<Asset['status'], 'success' | 'neutral' | 'warning' | 'error'> = {
   active: 'success',
   inactive: 'neutral',
   maintenance: 'warning',
   disposed: 'error',
-} as const
+}
+
+function getStatusColor(status: Asset['status']): 'success' | 'neutral' | 'warning' | 'error' {
+  return statusColors[status]
+}
 </script>
 
 <template>
@@ -456,7 +460,7 @@ const statusColors = {
                       <div class="flex items-center gap-2">
                         <span class="font-medium">{{ asset.assetNumber }}</span>
                         <UBadge
-                          :color="statusColors[asset.status]"
+                          :color="getStatusColor(asset.status)"
                           variant="subtle"
                           size="xs"
                           class="capitalize"

@@ -1,0 +1,86 @@
+# Fleet2 Backup Service - systemd service unit
+# =============================================
+#
+# This service runs the Fleet2 backup workflow.
+# It should be triggered by the backup.timer unit.
+#
+# Installation:
+#   1. Copy to systemd directory:
+#      sudo cp backup.service /etc/systemd/system/fleet2-backup.service
+#
+#   2. Reload systemd:
+#      sudo systemctl daemon-reload
+#
+#   3. Test the service:
+#      sudo systemctl start fleet2-backup.service
+#      sudo systemctl status fleet2-backup.service
+#
+# See backup.timer for scheduling configuration.
+#
+
+[Unit]
+Description=Fleet2 Database Backup
+Documentation=https://github.com/your-org/fleet2/docs/backup-configuration.md
+Wants=network-online.target postgresql.service
+After=network-online.target postgresql.service
+
+# Prevent starting if database is not available
+# Adjust the service name if using a different PostgreSQL instance
+# ConditionPathExists=/var/run/postgresql/.s.PGSQL.5432
+
+[Service]
+Type=oneshot
+
+# Security settings
+User=fleet2
+Group=fleet2
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+# Working directory
+WorkingDirectory=/opt/fleet2
+
+# Environment file containing database and S3 credentials
+EnvironmentFile=/etc/fleet2/backup.env
+
+# Allow writing to backup and log directories
+ReadWritePaths=/opt/fleet2/backups /var/log
+
+# Main backup command
+# --type can be overridden by the timer using Environment=BACKUP_TYPE=weekly
+ExecStart=/opt/fleet2/scripts/backup-cron.sh --type ${BACKUP_TYPE:-daily} --dir /opt/fleet2/backups --log /var/log/fleet-backup.log
+
+# Restart settings for transient failures
+# Note: For oneshot services, Restart only triggers on failure
+Restart=on-failure
+RestartSec=300
+# Maximum of 3 retries per day
+StartLimitIntervalSec=86400
+StartLimitBurst=3
+
+# Resource limits
+TimeoutStartSec=1800
+# Limit memory to prevent runaway processes
+MemoryMax=1G
+# CPU quota (50% of one core)
+CPUQuota=50%
+
+# Logging
+StandardOutput=append:/var/log/fleet-backup.log
+StandardError=append:/var/log/fleet-backup.log
+SyslogIdentifier=fleet2-backup
+
+# Success/failure exit status
+# Exit codes from backup-cron.sh:
+#   0 = success
+#   2 = database backup failed
+#   3 = S3 upload failed
+SuccessExitStatus=0
+
+[Install]
+# This is a timer-triggered service, not started at boot
+# WantedBy is typically not needed for timer-triggered services
+# but can be added if you want manual starts
+WantedBy=multi-user.target

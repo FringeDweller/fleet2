@@ -539,7 +539,7 @@ watch(activeTab, (newTab) => {
                 <div class="mt-1">
                   <UBadge
                     variant="subtle"
-                    :color="priorityColors[schedule.defaultPriority]"
+                    :color="priorityColors[schedule.defaultPriority as keyof typeof priorityColors]"
                     class="capitalize"
                   >
                     {{ schedule.defaultPriority }}

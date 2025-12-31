@@ -1,0 +1,92 @@
+# Fleet2 Backup Scheduler - Crontab Configuration
+# ================================================
+#
+# Installation:
+#   1. Copy this file or add entries to your crontab:
+#      crontab -e
+#
+#   2. Or install as a system cron job:
+#      sudo cp backup-scheduler.cron /etc/cron.d/fleet2-backup
+#      sudo chmod 644 /etc/cron.d/fleet2-backup
+#
+# Important: Adjust paths and user settings for your environment.
+#
+# Environment Setup:
+#   - DATABASE_URL must be set
+#   - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, BACKUP_BUCKET must be set
+#   - For system cron (/etc/cron.d/), specify the user after schedule
+#
+# Cron Expression Format:
+#   minute hour day-of-month month day-of-week command
+#
+# ================================================
+
+# Environment Variables
+# ---------------------
+# Set these environment variables for the backup scripts.
+# For user crontabs, you can source from a file or set inline.
+# For system crontabs (/etc/cron.d/), set them here:
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+MAILTO=""
+
+# Uncomment and adjust these for your environment:
+# DATABASE_URL=postgresql://user:pass@localhost:5432/fleet
+# AWS_ACCESS_KEY_ID=your_access_key
+# AWS_SECRET_ACCESS_KEY=your_secret_key
+# BACKUP_BUCKET=fleet2-backups
+# BACKUP_ENDPOINT=https://your-s3-endpoint.com
+# BACKUP_NOTIFY_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+# BACKUP_NOTIFY_EMAIL=admin@example.com
+
+# Fleet2 Project Path (adjust to your installation)
+FLEET2_HOME=/opt/fleet2
+
+# Backup Schedules
+# ----------------
+
+# Daily backup at 2:00 AM every day
+# Creates a database backup and uploads to S3 with daily retention (7 days)
+0 2 * * * root ${FLEET2_HOME}/scripts/backup-cron.sh --type daily --dir ${FLEET2_HOME}/backups --log /var/log/fleet-backup.log
+
+# Weekly backup at 3:00 AM every Sunday
+# Creates a database backup and uploads to S3 with weekly retention (28 days)
+0 3 * * 0 root ${FLEET2_HOME}/scripts/backup-cron.sh --type weekly --dir ${FLEET2_HOME}/backups --log /var/log/fleet-backup.log
+
+# Monthly backup at 4:00 AM on the 1st of each month
+# Creates a database backup and uploads to S3 with monthly retention (365 days)
+0 4 1 * * root ${FLEET2_HOME}/scripts/backup-cron.sh --type monthly --dir ${FLEET2_HOME}/backups --log /var/log/fleet-backup.log
+
+# ================================================
+# Alternative Configurations
+# ================================================
+
+# For high-availability setups, run backups at different times on different servers:
+# Primary server (runs at :00)
+# 0 2 * * * root ${FLEET2_HOME}/scripts/backup-cron.sh --type daily
+#
+# Secondary server (runs at :30, disabled by default)
+# 30 2 * * * root /bin/false && ${FLEET2_HOME}/scripts/backup-cron.sh --type daily
+
+# For user crontabs (without specifying user), remove 'root':
+# 0 2 * * * ${FLEET2_HOME}/scripts/backup-cron.sh --type daily
+
+# With environment sourced from file:
+# 0 2 * * * . /etc/fleet2/backup.env && ${FLEET2_HOME}/scripts/backup-cron.sh --type daily
+
+# ================================================
+# Verification
+# ================================================
+#
+# Test the backup script manually before scheduling:
+#   ${FLEET2_HOME}/scripts/backup-cron.sh --type daily --dry-run
+#
+# Check cron logs:
+#   tail -f /var/log/syslog | grep CRON
+#   journalctl -u cron.service -f
+#
+# Check backup logs:
+#   tail -f /var/log/fleet-backup.log
+#
+# ================================================

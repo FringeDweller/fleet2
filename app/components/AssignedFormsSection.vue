@@ -43,22 +43,32 @@ const showFormModal = ref(false)
 // Get the active form's assignment
 const activeAssignment = computed(() => {
   if (!activeFormId.value) return null
-  return assignedForms.value.find((a) => a.form?.id === activeFormId.value)
+  return assignedForms.value.find((a: AssignedForm) => a.form?.id === activeFormId.value)
 })
+
+// Submission type from the fetch response
+type FormSubmission = {
+  id: string
+  formId: string
+  status: 'draft' | 'submitted' | 'approved' | 'rejected'
+  submittedAt: string
+  form: { id: string; name: string } | null
+  submittedBy: { firstName: string; lastName: string } | null
+}
 
 // Get submissions for a specific form
 function getSubmissionsForForm(formId: string) {
-  return (existingSubmissions.value?.data || []).filter((s) => s.formId === formId)
+  return (existingSubmissions.value?.data || []).filter((s: FormSubmission) => s.formId === formId)
 }
 
 // Check if form has a draft submission
 function hasDraftSubmission(formId: string): boolean {
-  return getSubmissionsForForm(formId).some((s) => s.status === 'draft')
+  return getSubmissionsForForm(formId).some((s: FormSubmission) => s.status === 'draft')
 }
 
 // Check if form has been submitted
 function hasSubmittedSubmission(formId: string): boolean {
-  return getSubmissionsForForm(formId).some((s) => s.status === 'submitted')
+  return getSubmissionsForForm(formId).some((s: FormSubmission) => s.status === 'submitted')
 }
 
 function toggleForm(formId: string) {

@@ -180,14 +180,14 @@ const newOverrideChecklistItem = ref({
 
 // Asset/category options for dropdown
 const assetOptions = computed(() => {
-  return (assets.value || []).map((a) => ({
+  return (assets.value || []).map((a: Asset) => ({
     label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
     value: a.id,
   }))
 })
 
 const categoryOptions = computed(() => {
-  return (categories.value || []).map((c) => ({
+  return (categories.value || []).map((c: Category) => ({
     label: c.name,
     value: c.id,
   }))
@@ -281,14 +281,18 @@ function removeOverrideChecklistItem(id: string) {
 function copyFromTemplate() {
   if (!template.value) return
 
-  currentOverride.value.partsOverride = template.value.requiredParts.map((p) => ({
-    ...p,
-    id: crypto.randomUUID(),
-  }))
-  currentOverride.value.checklistOverride = template.value.checklistItems.map((i) => ({
-    ...i,
-    id: crypto.randomUUID(),
-  }))
+  currentOverride.value.partsOverride = template.value.requiredParts.map(
+    (p: TemplateRequiredPart) => ({
+      ...p,
+      id: crypto.randomUUID(),
+    }),
+  )
+  currentOverride.value.checklistOverride = template.value.checklistItems.map(
+    (i: TemplateChecklistItem) => ({
+      ...i,
+      id: crypto.randomUUID(),
+    }),
+  )
   currentOverride.value.estimatedDurationOverride = template.value.estimatedDuration
 
   toast.add({

@@ -80,12 +80,16 @@ const priorityColors: Record<string, 'neutral' | 'info' | 'warning' | 'error'> =
 
 const checklistProgress = computed(() => {
   if (!workOrder.value?.checklistItems.length) return null
-  const completed = workOrder.value.checklistItems.filter((i) => i.isCompleted).length
+  const completed = workOrder.value.checklistItems.filter(
+    (i: ChecklistItem) => i.isCompleted,
+  ).length
   const total = workOrder.value.checklistItems.length
   const requiredCompleted = workOrder.value.checklistItems.filter(
-    (i) => i.isRequired && i.isCompleted,
+    (i: ChecklistItem) => i.isRequired && i.isCompleted,
   ).length
-  const requiredTotal = workOrder.value.checklistItems.filter((i) => i.isRequired).length
+  const requiredTotal = workOrder.value.checklistItems.filter(
+    (i: ChecklistItem) => i.isRequired,
+  ).length
   return {
     completed,
     total,

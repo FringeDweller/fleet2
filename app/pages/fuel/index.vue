@@ -82,7 +82,7 @@ const { data: assetsData } = await useFetch<{ data: Asset[] }>('/api/assets', { 
 const assetOptions = computed(() => {
   return [
     { label: 'All Assets', value: '' },
-    ...(assetsData.value?.data?.map((a) => ({
+    ...(assetsData.value?.data?.map((a: Asset) => ({
       label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
       value: a.id,
     })) || []),
@@ -294,12 +294,20 @@ const pagination = ref({
 
 // Calculate summary stats
 const totalLitres = computed(() => {
-  return data.value?.data?.reduce((sum, t) => sum + parseFloat(t.quantity), 0) || 0
+  return (
+    data.value?.data?.reduce(
+      (sum: number, t: FuelTransaction) => sum + parseFloat(t.quantity),
+      0,
+    ) || 0
+  )
 })
 
 const totalCost = computed(() => {
   return (
-    data.value?.data?.reduce((sum, t) => sum + (t.totalCost ? parseFloat(t.totalCost) : 0), 0) || 0
+    data.value?.data?.reduce(
+      (sum: number, t: FuelTransaction) => sum + (t.totalCost ? parseFloat(t.totalCost) : 0),
+      0,
+    ) || 0
   )
 })
 </script>

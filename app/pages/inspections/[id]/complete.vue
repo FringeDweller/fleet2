@@ -184,7 +184,9 @@ const orderedItems = computed(() => {
 
 // Get response item for a checklist item
 function getResponseItem(checklistItemId: string): InspectionItemResponse | undefined {
-  return inspection.value?.items.find((item) => item.checklistItemId === checklistItemId)
+  return inspection.value?.items.find(
+    (item: InspectionItemResponse) => item.checklistItemId === checklistItemId,
+  )
 }
 
 // Get local state for an item

@@ -92,6 +92,11 @@ const summaryCards = computed<StatCard[]>(() => {
 })
 
 // Status breakdown for donut-style display
+interface StatusItem {
+  status: string
+  count: number
+}
+
 const statusBreakdown = computed(() => {
   if (!stats.value?.byStatus) return []
   const statusColors: Record<string, string> = {
@@ -104,7 +109,7 @@ const statusBreakdown = computed(() => {
     in_progress: 'In Progress',
     cancelled: 'Cancelled',
   }
-  return stats.value.byStatus.map((s) => ({
+  return stats.value.byStatus.map((s: StatusItem) => ({
     label: statusLabels[s.status] || s.status,
     value: s.count,
     color: statusColors[s.status] || 'bg-neutral',

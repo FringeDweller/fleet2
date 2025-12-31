@@ -72,10 +72,19 @@ const { data: partsData } = await useFetch<{ data: { id: string; name: string; s
   { lazy: true },
 )
 
+interface PartOption {
+  id: string
+  name: string
+  sku: string
+}
+
 const partOptions = computed(() => {
   return [
     { label: 'All Parts', value: '' },
-    ...(partsData.value?.data?.map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id })) || []),
+    ...(partsData.value?.data?.map((p: PartOption) => ({
+      label: `${p.sku} - ${p.name}`,
+      value: p.id,
+    })) || []),
   ]
 })
 
@@ -389,7 +398,7 @@ const pagination = ref({
         <UCard>
           <div class="text-center">
             <p class="text-2xl font-bold text-success">
-              {{ data?.data?.filter(m => parseFloat(m.quantityChange) > 0).length || 0 }}
+              {{ data?.data?.filter((m: Movement) => parseFloat(m.quantityChange) > 0).length || 0 }}
             </p>
             <p class="text-sm text-muted">
               Stock In
@@ -399,7 +408,7 @@ const pagination = ref({
         <UCard>
           <div class="text-center">
             <p class="text-2xl font-bold text-error">
-              {{ data?.data?.filter(m => parseFloat(m.quantityChange) < 0).length || 0 }}
+              {{ data?.data?.filter((m: Movement) => parseFloat(m.quantityChange) < 0).length || 0 }}
             </p>
             <p class="text-sm text-muted">
               Stock Out
@@ -409,7 +418,7 @@ const pagination = ref({
         <UCard>
           <div class="text-center">
             <p class="text-2xl font-bold">
-              {{ data?.data?.filter(m => m.usageType === 'work_order').length || 0 }}
+              {{ data?.data?.filter((m: Movement) => m.usageType === 'work_order').length || 0 }}
             </p>
             <p class="text-sm text-muted">
               Work Order Usage

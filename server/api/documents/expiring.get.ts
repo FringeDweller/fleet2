@@ -1,20 +1,22 @@
-import { and, eq, gte, isNotNull, lte } from 'drizzle-orm'
+/**
+ * US-15.6: Get expiring documents
+ * GET /api/documents/expiring?days=30
+ *
+ * Returns documents that will expire within the specified number of days.
+ * Includes expiry status and urgency level for each document.
+ */
+import { and, asc, eq, gte, isNotNull, lte } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
+import { requirePermission } from '../../utils/permissions'
 
 const querySchema = z.object({
   days: z.coerce.number().int().min(1).max(365).default(30),
 })
 
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  // Require assets:read permission to view expiring documents
+  const currentUser = await requirePermission(event, 'assets:read')
 
   const query = getQuery(event)
   const result = querySchema.safeParse(query)
@@ -58,19 +60,59 @@ export default defineEventHandler(async (event) => {
     .leftJoin(schema.users, eq(schema.assetDocuments.uploadedById, schema.users.id))
     .where(
       and(
-        eq(schema.assets.organisationId, session.user.organisationId),
+        eq(schema.assets.organisationId, currentUser.organisationId),
         isNotNull(schema.assetDocuments.expiryDate),
         gte(schema.assetDocuments.expiryDate, now),
         lte(schema.assetDocuments.expiryDate, futureDate),
       ),
     )
-    .orderBy(schema.assetDocuments.expiryDate)
+    .orderBy(asc(schema.assetDocuments.expiryDate))
 
-  const filteredDocuments = expiringDocuments
+  // Add expiry details to each document
+  const documentsWithDetails = expiringDocuments.map((doc) => {
+    const daysUntilExpiry = doc.expiryDate
+      ? Math.ceil((doc.expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : null
+
+    // Determine urgency level based on days until expiry
+    let urgency: 'critical' | 'warning' | 'info' = 'info'
+    if (daysUntilExpiry !== null) {
+      if (daysUntilExpiry <= 7) {
+        urgency = 'critical'
+      } else if (daysUntilExpiry <= 14) {
+        urgency = 'warning'
+      }
+    }
+
+    return {
+      id: doc.id,
+      assetId: doc.assetId,
+      name: doc.name,
+      filePath: doc.filePath,
+      fileType: doc.fileType,
+      fileSize: doc.fileSize,
+      description: doc.description,
+      documentType: doc.documentType,
+      expiryDate: doc.expiryDate,
+      uploadedById: doc.uploadedById,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
+      assetNumber: doc.assetNumber,
+      assetMake: doc.assetMake,
+      assetModel: doc.assetModel,
+      uploadedByName:
+        doc.uploadedByFirstName && doc.uploadedByLastName
+          ? `${doc.uploadedByFirstName} ${doc.uploadedByLastName}`
+          : null,
+      daysUntilExpiry,
+      expiryStatus: 'expiring_soon' as const,
+      urgency,
+    }
+  })
 
   return {
-    data: filteredDocuments,
-    count: filteredDocuments.length,
+    data: documentsWithDetails,
+    count: documentsWithDetails.length,
     days: result.data.days,
   }
 })

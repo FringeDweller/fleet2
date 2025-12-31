@@ -1,0 +1,129 @@
+# Fleet2 Load Balanced Production Stack
+# Usage: docker compose -f docker-compose.yml -f deploy/docker-compose.lb.yml up -d
+
+services:
+  # Nginx Load Balancer
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fleet-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-8280}:80"
+      - "${NGINX_HTTPS_PORT:-8443}:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/ssl-params.conf:/etc/nginx/conf.d/ssl-params.conf:ro
+      - ./deploy/nginx/proxy-params.conf:/etc/nginx/conf.d/proxy-params.conf:ro
+      - ${SSL_CERT_PATH:-./deploy/nginx/ssl}:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      app1:
+        condition: service_healthy
+      app2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - fleet-network
+
+  # App Instance 1
+  app1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app1
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_DATABASE_URL=${DATABASE_URL:-postgresql://fleet:fleet_dev_password@postgres:5432/fleet}
+      - NUXT_REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app1
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fleet-network
+
+  # App Instance 2
+  app2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app2
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_DATABASE_URL=${DATABASE_URL:-postgresql://fleet:fleet_dev_password@postgres:5432/fleet}
+      - NUXT_REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app2
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fleet-network
+
+  # App Instance 3 (Backup)
+  app3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fleet-app3
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NUXT_DATABASE_URL=${DATABASE_URL:-postgresql://fleet:fleet_dev_password@postgres:5432/fleet}
+      - NUXT_REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - NUXT_SESSION_PASSWORD=${SESSION_PASSWORD}
+      - INSTANCE_ID=app3
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - fleet-network
+
+  # Override postgres to join network
+  postgres:
+    networks:
+      - fleet-network
+
+  # Override redis to join network
+  redis:
+    networks:
+      - fleet-network
+
+networks:
+  fleet-network:
+    driver: bridge
+
+volumes:
+  nginx_logs:

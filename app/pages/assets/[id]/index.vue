@@ -696,10 +696,15 @@ function isDocumentExpired(expiryDate: string | null): boolean {
 
 const availableParts = computed(() => {
   if (!allPartsData.value?.data) return []
-  const assignedIds = new Set(compatiblePartsData.value?.data?.map((cp) => cp.partId) || [])
+  const assignedIds = new Set(
+    compatiblePartsData.value?.data?.map((cp: CompatiblePart) => cp.partId) || [],
+  )
   return allPartsData.value.data
-    .filter((p) => !assignedIds.has(p.id))
-    .map((p) => ({ label: `${p.sku} - ${p.name}`, value: p.id }))
+    .filter((p: { id: string; sku: string; name: string }) => !assignedIds.has(p.id))
+    .map((p: { id: string; sku: string; name: string }) => ({
+      label: `${p.sku} - ${p.name}`,
+      value: p.id,
+    }))
 })
 
 async function addPart() {
@@ -1085,7 +1090,7 @@ async function enrollNfcTag() {
               <h1 class="text-2xl font-bold">
                 {{ asset.assetNumber }}
               </h1>
-              <UBadge :color="statusColors[asset.status]" variant="subtle" class="capitalize">
+              <UBadge :color="statusColors[asset.status as keyof typeof statusColors]" variant="subtle" class="capitalize">
                 {{ asset.status }}
               </UBadge>
               <UBadge v-if="asset.isArchived" color="error" variant="subtle">
@@ -1157,12 +1162,12 @@ async function enrollNfcTag() {
                   <p class="text-sm">
                     <UIcon name="i-lucide-shield-check" class="w-4 h-4 inline mr-1" />
                     <strong>Operation Authorized:</strong>
-                    {{ operationStatus.activeBlocks.find(b => b.overriddenAt)?.overrideReason || 'No reason provided' }}
+                    {{ operationStatus.activeBlocks.find((b: OperationStatusResponse['activeBlocks'][number]) => b.overriddenAt)?.overrideReason || 'No reason provided' }}
                   </p>
                   <p class="text-xs mt-1 opacity-80">
                     Authorized by
-                    {{ operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy
-                      ? `${operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy?.firstName} ${operationStatus.activeBlocks.find(b => b.overriddenBy)?.overriddenBy?.lastName}`
+                    {{ operationStatus.activeBlocks.find((b: OperationStatusResponse['activeBlocks'][number]) => b.overriddenBy)?.overriddenBy
+                      ? `${operationStatus.activeBlocks.find((b: OperationStatusResponse['activeBlocks'][number]) => b.overriddenBy)?.overriddenBy?.firstName} ${operationStatus.activeBlocks.find((b: OperationStatusResponse['activeBlocks'][number]) => b.overriddenBy)?.overriddenBy?.lastName}`
                       : 'Supervisor'
                     }}
                   </p>
@@ -1210,6 +1215,7 @@ async function enrollNfcTag() {
           :items="[
             { label: 'Details', value: 'details', icon: 'i-lucide-info' },
             { label: 'Sessions', value: 'sessions', icon: 'i-lucide-users' },
+            { label: 'Live Data', value: 'livedata', icon: 'i-lucide-gauge' },
             { label: 'Location', value: 'location', icon: 'i-lucide-map-pin' },
             { label: 'Compatible Parts', value: 'parts', icon: 'i-lucide-package' },
             { label: 'Documents', value: 'documents', icon: 'i-lucide-file-text' },
@@ -1509,6 +1515,24 @@ async function enrollNfcTag() {
             ref="handoverHistoryRef"
             :asset-id="(route.params.id as string)"
           />
+        </div>
+
+        <!-- Live Data Tab (US-10.5) -->
+        <div v-if="activeTab === 'livedata'" class="space-y-6">
+          <UCard>
+            <template #header>
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="font-medium">Live Vehicle Data</h3>
+                  <p class="text-sm text-muted-foreground mt-1">
+                    Real-time OBD-II metrics from the vehicle
+                  </p>
+                </div>
+              </div>
+            </template>
+
+            <ObdLiveDataDashboard :asset-id="(route.params.id as string)" />
+          </UCard>
         </div>
 
         <!-- Location Tab -->

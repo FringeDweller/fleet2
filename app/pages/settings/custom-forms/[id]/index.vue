@@ -138,7 +138,7 @@ function editField(field: CustomFormField) {
 function saveField() {
   if (!editingField.value || !form.value) return
 
-  const index = form.value.fields.findIndex((f) => f.id === editingField.value!.id)
+  const index = form.value.fields.findIndex((f: CustomFormField) => f.id === editingField.value!.id)
   if (index >= 0) {
     form.value.fields[index] = { ...editingField.value }
   }
@@ -148,16 +148,16 @@ function saveField() {
 
 function removeField(fieldId: string) {
   if (!form.value) return
-  form.value.fields = form.value.fields.filter((f) => f.id !== fieldId)
+  form.value.fields = form.value.fields.filter((f: CustomFormField) => f.id !== fieldId)
   // Reorder positions
-  form.value.fields.forEach((f, i) => {
+  form.value.fields.forEach((f: CustomFormField, i: number) => {
     f.position = i
   })
 }
 
 function moveField(fieldId: string, direction: 'up' | 'down') {
   if (!form.value) return
-  const index = form.value.fields.findIndex((f) => f.id === fieldId)
+  const index = form.value.fields.findIndex((f: CustomFormField) => f.id === fieldId)
   if (index < 0) return
 
   if (direction === 'up' && index > 0) {
@@ -171,7 +171,7 @@ function moveField(fieldId: string, direction: 'up' | 'down') {
   }
 
   // Update positions
-  form.value.fields.forEach((f, i) => {
+  form.value.fields.forEach((f: CustomFormField, i: number) => {
     f.position = i
   })
 }

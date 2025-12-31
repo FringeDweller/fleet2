@@ -109,8 +109,8 @@ const typeLabels: Record<string, string> = {
 const parentOptions = computed(() => {
   const options = [{ label: 'No Parent (Root Location)', value: '' }]
   locations.value
-    .filter((loc) => loc.id !== currentLocation.value.id)
-    .forEach((loc) => {
+    .filter((loc: StorageLocation) => loc.id !== currentLocation.value.id)
+    .forEach((loc: StorageLocation) => {
       const parentName = loc.parent?.name ? ` (in ${loc.parent.name})` : ''
       options.push({
         label: `${loc.name}${parentName}`,

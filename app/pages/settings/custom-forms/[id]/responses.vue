@@ -110,7 +110,7 @@ const totalPages = computed(() => Math.ceil((responseData.value?.pagination.tota
 // Get filterable fields (dropdowns, radios, multi-selects)
 const filterableFields = computed(() => {
   if (!form.value?.fields) return []
-  return form.value.fields.filter((f) =>
+  return form.value.fields.filter((f: FormField) =>
     ['dropdown', 'radio', 'multi_select', 'checkbox'].includes(f.fieldType),
   )
 })
@@ -118,7 +118,7 @@ const filterableFields = computed(() => {
 // Get options for selected field
 const selectedFieldOptions = computed(() => {
   if (!selectedFieldId.value || !form.value?.fields) return []
-  const field = form.value.fields.find((f) => f.id === selectedFieldId.value)
+  const field = form.value.fields.find((f: FormField) => f.id === selectedFieldId.value)
   if (field?.fieldType === 'checkbox') {
     return [
       { label: 'Yes', value: 'true' },
@@ -333,7 +333,7 @@ watch([debouncedSearch, selectedStatus, dateFrom, dateTo, fieldFiltersJson], () 
             v-model="selectedFieldId"
             :items="[
               { label: 'Select field...', value: undefined },
-              ...filterableFields.map(f => ({ label: f.label, value: f.id }))
+              ...filterableFields.map((f: FormField) => ({ label: f.label, value: f.id }))
             ]"
             class="w-48"
           />

@@ -154,7 +154,7 @@ const _useFleetMap = () => {
     if (!filters.value.search) return allAssets.value
     const searchLower = filters.value.search.toLowerCase()
     return allAssets.value.filter(
-      (asset) =>
+      (asset: MapAsset) =>
         asset.assetNumber.toLowerCase().includes(searchLower) ||
         asset.assetName.toLowerCase().includes(searchLower) ||
         asset.licensePlate?.toLowerCase().includes(searchLower) ||
@@ -166,10 +166,10 @@ const _useFleetMap = () => {
   const selectedAsset = computed(() => {
     if (!selectedAssetId.value) return null
     // First check positions (has full location data)
-    const position = positions.value.find((p) => p.assetId === selectedAssetId.value)
+    const position = positions.value.find((p: FleetPosition) => p.assetId === selectedAssetId.value)
     if (position) return position
     // Fallback to all assets
-    return allAssets.value.find((a) => a.assetId === selectedAssetId.value) || null
+    return allAssets.value.find((a: MapAsset) => a.assetId === selectedAssetId.value) || null
   })
 
   // Map center calculation (average of all positions)
@@ -178,8 +178,8 @@ const _useFleetMap = () => {
       // Default center (can be adjusted based on organisation location)
       return { lat: -27.4705, lng: 153.026 } // Brisbane, Australia
     }
-    const sumLat = positions.value.reduce((sum, p) => sum + p.latitude, 0)
-    const sumLng = positions.value.reduce((sum, p) => sum + p.longitude, 0)
+    const sumLat = positions.value.reduce((sum: number, p: FleetPosition) => sum + p.latitude, 0)
+    const sumLng = positions.value.reduce((sum: number, p: FleetPosition) => sum + p.longitude, 0)
     return {
       lat: sumLat / positions.value.length,
       lng: sumLng / positions.value.length,
@@ -189,8 +189,8 @@ const _useFleetMap = () => {
   // Map bounds calculation
   const mapBounds = computed(() => {
     if (positions.value.length === 0) return null
-    const lats = positions.value.map((p) => p.latitude)
-    const lngs = positions.value.map((p) => p.longitude)
+    const lats = positions.value.map((p: FleetPosition) => p.latitude)
+    const lngs = positions.value.map((p: FleetPosition) => p.longitude)
     return {
       north: Math.max(...lats),
       south: Math.min(...lats),

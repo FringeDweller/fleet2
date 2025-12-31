@@ -22,7 +22,16 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun run server/db/seed.ts",
     "prepare": "husky",
-    "validate": "bun run lint && bun run typecheck && bun run test && bun run build"
+    "validate": "bun run lint && bun run typecheck && bun run test && bun run build",
+    "cap:init": "nuxt generate && cap sync",
+    "cap:build": "nuxt generate && cap sync",
+    "cap:android": "cap open android",
+    "cap:ios": "cap open ios",
+    "cap:android:build": "nuxt generate && cap sync android && cap build android",
+    "cap:ios:build": "nuxt generate && cap sync ios && cap build ios",
+    "cap:sync": "cap sync",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios"
   },
   "lint-staged": {
     "*.{js,ts,vue,json,md,yml,yaml}": [
@@ -30,6 +39,10 @@
     ]
   },
   "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/network": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
     "@iconify-json/lucide": "^1.2.82",
     "@iconify-json/simple-icons": "^1.2.63",
     "@node-rs/argon2": "^2.0.2",
@@ -42,6 +55,7 @@
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "html5-qrcode": "^2.3.8",
+    "idb-keyval": "^6.2.2",
     "nuxt": "^4.2.2",
     "nuxt-auth-utils": "^0.5.26",
     "pinia": "^3.0.4",
@@ -51,6 +65,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/ios": "^8.0.0",
     "@nuxt/test-utils": "^3.21.0",
     "@playwright/test": "^1.57.0",
     "@types/node": "^25.0.3",

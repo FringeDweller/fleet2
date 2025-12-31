@@ -37,26 +37,29 @@ export function useAssignedForms(
   targetType: MaybeRef<TargetType>,
   entityId?: MaybeRef<string | undefined>,
 ) {
-  const queryParams = computed(() => ({
-    type: toValue(targetType),
-    id: toValue(entityId),
-  }))
-
   const {
     data: response,
     status,
     error,
     refresh,
+    // @ts-expect-error - useFetch query typing is overly strict
   } = useFetch<AssignedFormsResponse>('/api/custom-form-assignments/for-entity', {
-    query: queryParams,
+    query: computed(() => ({
+      type: toValue(targetType),
+      id: toValue(entityId),
+    })),
     lazy: true,
   })
 
   const assignedForms = computed(() => response.value?.data || [])
 
-  const requiredForms = computed(() => assignedForms.value.filter((form) => form.isRequired))
+  const requiredForms = computed(() =>
+    assignedForms.value.filter((form: AssignedForm) => form.isRequired),
+  )
 
-  const optionalForms = computed(() => assignedForms.value.filter((form) => !form.isRequired))
+  const optionalForms = computed(() =>
+    assignedForms.value.filter((form: AssignedForm) => !form.isRequired),
+  )
 
   const hasAssignedForms = computed(() => assignedForms.value.length > 0)
 

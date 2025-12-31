@@ -71,6 +71,13 @@ const links = [
       to: '/settings/form-assignments',
     },
   ],
+  [
+    {
+      label: 'System Configuration',
+      icon: 'i-lucide-sliders-horizontal',
+      to: '/admin/settings',
+    },
+  ],
 ] satisfies NavigationMenuItem[][]
 </script>
 

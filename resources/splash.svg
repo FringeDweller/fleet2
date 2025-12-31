@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" fill="none">
+  <!-- Background -->
+  <rect width="2732" height="2732" fill="#1b1718"/>
+
+  <!-- Center content group -->
+  <g transform="translate(1366, 1200)">
+    <!-- Truck icon centered -->
+    <g transform="translate(-320, -300)" fill="none" stroke="#3b82f6" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+      <!-- Truck body -->
+      <path d="M16 64h256v192H16z"/>
+      <!-- Cab -->
+      <path d="M272 128h96l64 64v64h-160z"/>
+      <!-- Wheels -->
+      <circle cx="96" cy="256" r="40" fill="#3b82f6"/>
+      <circle cx="352" cy="256" r="40" fill="#3b82f6"/>
+      <!-- Wheel centers -->
+      <circle cx="96" cy="256" r="16" fill="#1b1718"/>
+      <circle cx="352" cy="256" r="16" fill="#1b1718"/>
+    </g>
+
+    <!-- Fleet2 text -->
+    <text x="0" y="180" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="700" fill="white" text-anchor="middle">Fleet2</text>
+
+    <!-- Subtitle -->
+    <text x="0" y="260" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="400" fill="#9ca3af" text-anchor="middle">Asset Management System</text>
+  </g>
+</svg>

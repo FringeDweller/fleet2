@@ -262,3 +262,39 @@ export async function createFuelAnomalyNotification(params: {
     isRead: false,
   })
 }
+
+// Document Expiry notifications (US-15.6)
+
+export async function createDocumentExpiryNotification(params: {
+  organisationId: string
+  userId: string
+  documentName: string
+  documentId: string
+  assetId: string
+  assetNumber: string
+  daysUntilExpiry: number
+  expiryDate: Date
+}) {
+  let title: string
+
+  if (params.daysUntilExpiry <= 7) {
+    title = 'Document Expiring Soon - Critical'
+  } else if (params.daysUntilExpiry <= 14) {
+    title = 'Document Expiring - Warning'
+  } else {
+    title = 'Document Expiring Notice'
+  }
+
+  const formattedDate = params.expiryDate.toLocaleDateString()
+  const body = `Document "${params.documentName}" for asset ${params.assetNumber} expires in ${params.daysUntilExpiry} days (${formattedDate})`
+
+  return createNotification({
+    organisationId: params.organisationId,
+    userId: params.userId,
+    type: 'document_expiring',
+    title,
+    body,
+    link: `/assets/${params.assetId}?tab=documents`,
+    isRead: false,
+  })
+}

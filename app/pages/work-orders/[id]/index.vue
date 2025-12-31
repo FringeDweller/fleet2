@@ -367,7 +367,9 @@ function isOverdue(dueDate: string | null, status: string): boolean {
 
 const checklistProgress = computed(() => {
   if (!workOrder.value?.checklistItems.length) return null
-  const completed = workOrder.value.checklistItems.filter((i) => i.isCompleted).length
+  const completed = workOrder.value.checklistItems.filter(
+    (i: ChecklistItem) => i.isCompleted,
+  ).length
   const total = workOrder.value.checklistItems.length
   return { completed, total, percentage: Math.round((completed / total) * 100) }
 })
@@ -507,10 +509,10 @@ const tabs = computed(() => [
           <h1 class="text-2xl font-bold">
             {{ workOrder.title }}
           </h1>
-          <UBadge :color="statusColors[workOrder.status]" variant="subtle">
-            {{ statusLabels[workOrder.status] }}
+          <UBadge :color="statusColors[workOrder.status as keyof typeof statusColors]" variant="subtle">
+            {{ statusLabels[workOrder.status as keyof typeof statusLabels] }}
           </UBadge>
-          <UBadge :color="priorityColors[workOrder.priority]" variant="subtle" class="capitalize">
+          <UBadge :color="priorityColors[workOrder.priority as keyof typeof priorityColors]" variant="subtle" class="capitalize">
             {{ workOrder.priority }}
           </UBadge>
           <UBadge

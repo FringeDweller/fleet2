@@ -94,10 +94,17 @@ const categoryOptions = computed(() => {
   ]
 })
 
+interface AssetOption {
+  id: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+}
+
 const assetOptions = computed(() => {
   return [
     { label: 'All Assets', value: '' },
-    ...(assetsData.value?.data?.map((a) => ({
+    ...(assetsData.value?.data?.map((a: AssetOption) => ({
       label: `${a.assetNumber}${a.make || a.model ? ` - ${[a.make, a.model].filter(Boolean).join(' ')}` : ''}`,
       value: a.id,
     })) || []),

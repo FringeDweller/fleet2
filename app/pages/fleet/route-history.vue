@@ -95,18 +95,20 @@ const routeStatus = ref<'idle' | 'pending' | 'success' | 'error'>('idle')
 // Playback interval
 let playbackInterval: ReturnType<typeof setInterval> | null = null
 
+interface AssetItem {
+  id: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  year: number | null
+  licensePlate: string | null
+  imageUrl: string | null
+  status: string
+}
+
 // Fetch assets for selector
 const { data: assetsData, status: assetsStatus } = useFetch<{
-  data: Array<{
-    id: string
-    assetNumber: string
-    make: string | null
-    model: string | null
-    year: number | null
-    licensePlate: string | null
-    imageUrl: string | null
-    status: string
-  }>
+  data: AssetItem[]
   pagination: { total: number }
 }>('/api/assets', {
   query: {
@@ -120,7 +122,7 @@ const assets = computed(() => assetsData.value?.data || [])
 
 // Asset options for selector
 const assetOptions = computed(() =>
-  assets.value.map((a) => ({
+  assets.value.map((a: AssetItem) => ({
     label: `${a.assetNumber} - ${[a.year, a.make, a.model].filter(Boolean).join(' ')}`,
     value: a.id,
   })),

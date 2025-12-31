@@ -1,0 +1,14 @@
+# This directory contains SSL certificates
+# Do NOT commit actual certificates to version control
+
+# Required files:
+# - fullchain.pem: SSL certificate chain
+# - privkey.pem: Private key
+
+# For development, generate self-signed certs using the script:
+# ./generate-dev-certs.sh
+
+# For production, use certificates from:
+# - Let's Encrypt (certbot)
+# - Your organization's CA
+# - Commercial certificate providers

@@ -284,11 +284,11 @@ async function createWorkOrder() {
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
-              <UBadge :color="severityColors[defect.severity]" variant="subtle" class="capitalize">
+              <UBadge :color="severityColors[defect.severity as keyof typeof severityColors]" variant="subtle" class="capitalize">
                 {{ defect.severity }}
               </UBadge>
-              <UBadge :color="statusColors[defect.status]" variant="subtle">
-                {{ statusLabels[defect.status] }}
+              <UBadge :color="statusColors[defect.status as keyof typeof statusColors]" variant="subtle">
+                {{ statusLabels[defect.status as keyof typeof statusLabels] }}
               </UBadge>
               <span v-if="defect.category" class="text-sm text-muted">{{ defect.category }}</span>
             </div>

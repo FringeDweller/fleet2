@@ -76,7 +76,7 @@ const filterStatus = ref('')
 const filteredItems = computed(() => {
   if (!session.value?.items) return []
   if (!filterStatus.value) return session.value.items
-  return session.value.items.filter((item) => item.status === filterStatus.value)
+  return session.value.items.filter((item: CountItem) => item.status === filterStatus.value)
 })
 
 function openEditModal(item: CountItem) {

@@ -1,0 +1,69 @@
+# Fleet2 Backup Timer - systemd timer unit
+# =========================================
+#
+# This timer triggers the Fleet2 backup service on a schedule.
+# Systemd timers are preferred over cron for modern Linux systems.
+#
+# Installation:
+#   1. Copy timer and service to systemd directory:
+#      sudo cp backup.timer /etc/systemd/system/fleet2-backup.timer
+#      sudo cp backup.service /etc/systemd/system/fleet2-backup.service
+#
+#   2. Create environment file:
+#      sudo mkdir -p /etc/fleet2
+#      sudo tee /etc/fleet2/backup.env << EOF
+#      DATABASE_URL=postgresql://user:pass@localhost:5432/fleet
+#      AWS_ACCESS_KEY_ID=your_access_key
+#      AWS_SECRET_ACCESS_KEY=your_secret_key
+#      BACKUP_BUCKET=fleet2-backups
+#      BACKUP_TYPE=daily
+#      EOF
+#      sudo chmod 600 /etc/fleet2/backup.env
+#
+#   3. Reload systemd:
+#      sudo systemctl daemon-reload
+#
+#   4. Enable and start the timer:
+#      sudo systemctl enable fleet2-backup.timer
+#      sudo systemctl start fleet2-backup.timer
+#
+#   5. Verify timer is active:
+#      sudo systemctl list-timers fleet2-backup.timer
+#      sudo systemctl status fleet2-backup.timer
+#
+# For weekly/monthly backups, create separate timer files:
+#   - fleet2-backup-weekly.timer  (set OnCalendar=Sun 03:00)
+#   - fleet2-backup-monthly.timer (set OnCalendar=*-*-01 04:00)
+#
+
+[Unit]
+Description=Fleet2 Database Backup Timer
+Documentation=https://github.com/your-org/fleet2/docs/backup-configuration.md
+Requires=fleet2-backup.service
+
+[Timer]
+# Run daily at 2:00 AM local time
+# Format: DayOfWeek Year-Month-Day Hour:Minute:Second
+OnCalendar=*-*-* 02:00:00
+
+# Timezone for the schedule (defaults to system timezone)
+# Uncomment to use a specific timezone
+# OnCalendar=*-*-* 02:00:00 UTC
+
+# Randomize start time within 15 minutes to reduce load spikes
+# Useful for clustered deployments where multiple nodes backup
+RandomizedDelaySec=900
+
+# If the system was off when the timer should have triggered,
+# run the backup as soon as possible after boot
+Persistent=true
+
+# Accuracy of the timer (1 minute default)
+# Lower values = more precise but more CPU wake-ups
+AccuracySec=1min
+
+# Run immediately on first enable/start if last run was missed
+# OnBootSec=5min
+
+[Install]
+WantedBy=timers.target

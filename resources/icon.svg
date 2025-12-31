@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" fill="none">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#1b1718"/>
+
+  <!-- Truck icon (simplified for app icon) -->
+  <g transform="translate(192, 272)" fill="none" stroke="#3b82f6" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Truck body -->
+    <path d="M16 96h384v320H16z"/>
+    <!-- Cab -->
+    <path d="M400 224h128l96 96v96H400z"/>
+    <!-- Wheels -->
+    <circle cx="128" cy="416" r="64" fill="#3b82f6"/>
+    <circle cx="512" cy="416" r="64" fill="#3b82f6"/>
+    <!-- Wheel centers -->
+    <circle cx="128" cy="416" r="24" fill="#1b1718"/>
+    <circle cx="512" cy="416" r="24" fill="#1b1718"/>
+  </g>
+
+  <!-- Fleet2 text -->
+  <text x="512" y="720" font-family="system-ui, -apple-system, sans-serif" font-size="120" font-weight="700" fill="white" text-anchor="middle">Fleet2</text>
+</svg>

@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
+import { useNetworkStatusNotifications } from '~/composables/useNetworkStatus'
 
 const route = useRoute()
 const toast = useToast()
+
+// Enable network status notifications (shows toast when online/offline changes)
+useNetworkStatusNotifications()
 
 const open = ref(false)
 
@@ -146,6 +150,13 @@ const links = [
             open.value = false
           },
         },
+        {
+          label: 'Data Import',
+          to: '/admin/import',
+          onSelect: () => {
+            open.value = false
+          },
+        },
       ],
     },
   ],
@@ -250,7 +261,10 @@ onMounted(async () => {
       </template>
 
       <template #footer="{ collapsed }">
-        <UserMenu :collapsed="collapsed" />
+        <div class="flex items-center" :class="collapsed ? 'flex-col gap-2' : 'gap-2'">
+          <SyncQueueIndicator />
+          <UserMenu :collapsed="collapsed" class="flex-1" />
+        </div>
       </template>
     </UDashboardSidebar>
 

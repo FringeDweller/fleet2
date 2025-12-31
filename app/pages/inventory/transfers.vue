@@ -118,7 +118,7 @@ const locations = computed(() => locationsData.value?.data || [])
 
 const partOptions = computed(() => [
   { label: 'All Parts', value: '' },
-  ...parts.value.map((p) => ({
+  ...parts.value.map((p: Part) => ({
     label: `${p.sku} - ${p.name}`,
     value: p.id,
   })),
@@ -126,7 +126,7 @@ const partOptions = computed(() => [
 
 const locationOptions = computed(() => [
   { label: 'All Locations', value: '' },
-  ...locations.value.map((l) => ({
+  ...locations.value.map((l: StorageLocation) => ({
     label: l.code ? `${l.code} - ${l.name}` : l.name,
     value: l.id,
   })),
@@ -181,14 +181,14 @@ watch(
 
 const fromLocationOptions = computed(() => {
   if (!transferState.partId) {
-    return locations.value.map((l) => ({
+    return locations.value.map((l: StorageLocation) => ({
       label: l.code ? `${l.code} - ${l.name}` : l.name,
       value: l.id,
       disabled: true,
     }))
   }
 
-  return selectedPartLocations.value.map((l) => ({
+  return selectedPartLocations.value.map((l: LocationQuantity) => ({
     label: `${l.locationCode ? `${l.locationCode} - ` : ''}${l.locationName} (${l.quantity} available)`,
     value: l.locationId,
   }))
@@ -196,8 +196,8 @@ const fromLocationOptions = computed(() => {
 
 const toLocationOptions = computed(() => {
   return locations.value
-    .filter((l) => l.id !== transferState.fromLocationId)
-    .map((l) => ({
+    .filter((l: StorageLocation) => l.id !== transferState.fromLocationId)
+    .map((l: StorageLocation) => ({
       label: l.code ? `${l.code} - ${l.name}` : l.name,
       value: l.id,
     }))
@@ -211,7 +211,7 @@ const availableQuantity = computed(() => {
 
 const selectedPart = computed(() => {
   if (!transferState.partId) return null
-  return parts.value.find((p) => p.id === transferState.partId)
+  return parts.value.find((p: Part) => p.id === transferState.partId)
 })
 
 function openTransferModal() {
@@ -424,7 +424,7 @@ const columns: TableColumn<Transfer>[] = [
         <UCard>
           <div class="text-center">
             <p class="text-2xl font-bold">
-              {{ transfers.filter((t) => {
+              {{ transfers.filter((t: Transfer) => {
                 const date = new Date(t.createdAt)
                 const today = new Date()
                 return date.toDateString() === today.toDateString()

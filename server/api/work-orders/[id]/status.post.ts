@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, sum } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
+import { resolveDtcWorkOrderHistory } from '../../../utils/dtc-work-order-service'
 
 interface StockWarning {
   partId: string
@@ -393,6 +394,15 @@ export default defineEventHandler(async (event) => {
     workOrder.partsCost = partsCost.toFixed(2)
     workOrder.laborCost = laborCost.toFixed(2)
     workOrder.totalCost = totalCost.toFixed(2)
+
+    // Resolve any DTC work order history entries linked to this work order
+    // This allows new work orders to be created if the same DTC reoccurs
+    await resolveDtcWorkOrderHistory(id)
+  }
+
+  // Also resolve DTC history when closing a work order
+  if (result.data.status === 'closed') {
+    await resolveDtcWorkOrderHistory(id)
   }
 
   return {

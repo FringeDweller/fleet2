@@ -152,7 +152,7 @@ const targetTypeLabels: Record<string, string> = {
 }
 
 const formOptions = computed(() => {
-  return forms.value.map((form) => ({
+  return forms.value.map((form: CustomForm) => ({
     label: form.name,
     value: form.id,
   }))
