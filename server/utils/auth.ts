@@ -12,9 +12,214 @@ const ARGON2_OPTIONS = {
   parallelism: 1,
 }
 
-// Account lockout configuration
+// Account lockout configuration (per user/email)
 const MAX_FAILED_ATTEMPTS = 5
 const LOCKOUT_DURATION_MINUTES = 30
+
+// ---------------------------------------------------------------------------
+// Brute Force Protection (IP-based)
+// ---------------------------------------------------------------------------
+// Prevents attackers from trying multiple usernames from same IP
+// Uses exponential backoff for increasing delays
+
+/** Configuration for IP-based brute force protection */
+const BRUTE_FORCE_CONFIG = {
+  /** Initial number of allowed attempts before delays start */
+  initialAttempts: 5,
+  /** Maximum number of attempts before IP is blocked */
+  maxAttempts: 20,
+  /** Base delay in milliseconds for exponential backoff */
+  baseDelayMs: 1000,
+  /** Maximum delay in milliseconds (5 minutes) */
+  maxDelayMs: 5 * 60 * 1000,
+  /** Time window in milliseconds for tracking attempts (1 hour) */
+  windowMs: 60 * 60 * 1000,
+  /** Cleanup interval in milliseconds (5 minutes) */
+  cleanupIntervalMs: 5 * 60 * 1000,
+}
+
+/** In-memory store for tracking login attempts by IP */
+interface BruteForceEntry {
+  /** Number of failed attempts */
+  attempts: number
+  /** Timestamp of first attempt in current window */
+  firstAttemptAt: number
+  /** Timestamp of last attempt */
+  lastAttemptAt: number
+  /** Timestamp until which the IP is blocked */
+  blockedUntil: number | null
+}
+
+const bruteForceStore = new Map<string, BruteForceEntry>()
+
+// Cleanup interval reference
+let bruteForceCleanupInterval: ReturnType<typeof setInterval> | null = null
+
+/**
+ * Start the cleanup interval for expired brute force entries
+ */
+function startBruteForceCleanup() {
+  if (bruteForceCleanupInterval) return
+
+  bruteForceCleanupInterval = setInterval(() => {
+    const now = Date.now()
+    for (const [key, entry] of bruteForceStore.entries()) {
+      // Remove entries that have expired their window
+      if (now - entry.firstAttemptAt > BRUTE_FORCE_CONFIG.windowMs) {
+        bruteForceStore.delete(key)
+      }
+    }
+  }, BRUTE_FORCE_CONFIG.cleanupIntervalMs)
+}
+
+// Start cleanup on module load
+startBruteForceCleanup()
+
+/**
+ * Calculate delay using exponential backoff
+ * @param attempts Number of failed attempts
+ * @returns Delay in milliseconds
+ */
+function calculateBackoffDelay(attempts: number): number {
+  if (attempts <= BRUTE_FORCE_CONFIG.initialAttempts) {
+    return 0
+  }
+
+  // Exponential backoff: baseDelay * 2^(attempts - initialAttempts - 1)
+  const exponent = attempts - BRUTE_FORCE_CONFIG.initialAttempts - 1
+  const delay = BRUTE_FORCE_CONFIG.baseDelayMs * 2 ** exponent
+
+  return Math.min(delay, BRUTE_FORCE_CONFIG.maxDelayMs)
+}
+
+/**
+ * Check if a login attempt from the given IP should be blocked
+ * @param clientIp The client's IP address
+ * @returns Object with blocked status and remaining time if blocked
+ */
+export function checkBruteForce(clientIp: string): {
+  blocked: boolean
+  remainingMs?: number
+  message?: string
+} {
+  const now = Date.now()
+  const entry = bruteForceStore.get(clientIp)
+
+  if (!entry) {
+    return { blocked: false }
+  }
+
+  // Check if window has expired - reset if so
+  if (now - entry.firstAttemptAt > BRUTE_FORCE_CONFIG.windowMs) {
+    bruteForceStore.delete(clientIp)
+    return { blocked: false }
+  }
+
+  // Check if IP is blocked
+  if (entry.blockedUntil && now < entry.blockedUntil) {
+    const remainingMs = entry.blockedUntil - now
+    const remainingMinutes = Math.ceil(remainingMs / 60000)
+    return {
+      blocked: true,
+      remainingMs,
+      message: `Too many login attempts. Please try again in ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''}.`,
+    }
+  }
+
+  // Check if IP has exceeded max attempts
+  if (entry.attempts >= BRUTE_FORCE_CONFIG.maxAttempts) {
+    // Block for the maximum delay period
+    entry.blockedUntil = now + BRUTE_FORCE_CONFIG.maxDelayMs
+    bruteForceStore.set(clientIp, entry)
+
+    const remainingMinutes = Math.ceil(BRUTE_FORCE_CONFIG.maxDelayMs / 60000)
+    return {
+      blocked: true,
+      remainingMs: BRUTE_FORCE_CONFIG.maxDelayMs,
+      message: `Account temporarily locked due to too many login attempts. Please try again in ${remainingMinutes} minutes.`,
+    }
+  }
+
+  // Calculate required delay based on attempts
+  const requiredDelay = calculateBackoffDelay(entry.attempts)
+  const timeSinceLastAttempt = now - entry.lastAttemptAt
+
+  if (timeSinceLastAttempt < requiredDelay) {
+    const remainingMs = requiredDelay - timeSinceLastAttempt
+    const remainingSeconds = Math.ceil(remainingMs / 1000)
+    return {
+      blocked: true,
+      remainingMs,
+      message: `Please wait ${remainingSeconds} second${remainingSeconds > 1 ? 's' : ''} before trying again.`,
+    }
+  }
+
+  return { blocked: false }
+}
+
+/**
+ * Record a failed login attempt for the given IP
+ * @param clientIp The client's IP address
+ */
+export function recordFailedAttempt(clientIp: string): void {
+  const now = Date.now()
+  const existing = bruteForceStore.get(clientIp)
+
+  if (!existing || now - existing.firstAttemptAt > BRUTE_FORCE_CONFIG.windowMs) {
+    // Start new tracking window
+    bruteForceStore.set(clientIp, {
+      attempts: 1,
+      firstAttemptAt: now,
+      lastAttemptAt: now,
+      blockedUntil: null,
+    })
+  } else {
+    // Increment attempts in current window
+    existing.attempts++
+    existing.lastAttemptAt = now
+
+    // If max attempts exceeded, set block time
+    if (existing.attempts >= BRUTE_FORCE_CONFIG.maxAttempts) {
+      existing.blockedUntil = now + BRUTE_FORCE_CONFIG.maxDelayMs
+    }
+
+    bruteForceStore.set(clientIp, existing)
+  }
+}
+
+/**
+ * Reset brute force tracking for the given IP on successful login
+ * @param clientIp The client's IP address
+ */
+export function resetBruteForce(clientIp: string): void {
+  bruteForceStore.delete(clientIp)
+}
+
+/**
+ * Get brute force statistics (for monitoring)
+ */
+export function getBruteForceStats(): {
+  trackedIps: number
+  blockedIps: number
+  totalAttempts: number
+} {
+  const now = Date.now()
+  let blockedIps = 0
+  let totalAttempts = 0
+
+  for (const entry of bruteForceStore.values()) {
+    totalAttempts += entry.attempts
+    if (entry.blockedUntil && now < entry.blockedUntil) {
+      blockedIps++
+    }
+  }
+
+  return {
+    trackedIps: bruteForceStore.size,
+    blockedIps,
+    totalAttempts,
+  }
+}
 
 // Named to avoid conflict with nuxt-auth-utils exports
 export async function hashPasswordArgon2(password: string): Promise<string> {

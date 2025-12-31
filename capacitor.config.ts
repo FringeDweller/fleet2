@@ -28,6 +28,11 @@ const config: CapacitorConfig = {
       style: 'DARK',
       backgroundColor: '#1b1718',
     },
+    Keyboard: {
+      resize: 'body', // Resize the webview when keyboard opens
+      style: 'dark', // Match app theme
+      resizeOnFullScreen: true,
+    },
   },
   android: {
     buildOptions: {

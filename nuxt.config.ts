@@ -68,8 +68,25 @@ export default defineNuxtConfig({
   ssr: true,
 
   routeRules: {
+    // API CORS Security Headers
+    // In production, Access-Control-Allow-Origin should be the app's domain
+    // Environment variable NUXT_PUBLIC_APP_URL controls allowed origins
     '/api/**': {
       cors: true,
+      headers: {
+        // Allow specific HTTP methods for API
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+        // Allow common headers needed for API requests
+        'Access-Control-Allow-Headers':
+          'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-CSRF-Token',
+        // Allow credentials (cookies, authorization headers)
+        'Access-Control-Allow-Credentials': 'true',
+        // Cache preflight requests for 24 hours (86400 seconds)
+        'Access-Control-Max-Age': '86400',
+        // Expose rate limit headers to client
+        'Access-Control-Expose-Headers':
+          'X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After',
+      },
     },
     // US-18.1.2: Static assets caching for performance
     '/_nuxt/**': {
