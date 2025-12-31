@@ -75,6 +75,9 @@ const period = ref<Period>('daily')
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
         <HomeLowStock />
+        <HomeFuelAnomalies />
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
         <HomeSales :period="period" :range="range" />
       </div>
     </template>

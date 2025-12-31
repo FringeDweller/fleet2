@@ -55,6 +55,21 @@ const links = [
       icon: 'i-lucide-calendar-clock',
       to: '/settings/maintenance-schedules',
     },
+    {
+      label: 'DTC Work Order Rules',
+      icon: 'i-lucide-car',
+      to: '/settings/dtc-rules',
+    },
+    {
+      label: 'Fuel Alerts',
+      icon: 'i-lucide-fuel',
+      to: '/settings/fuel-alerts',
+    },
+    {
+      label: 'Form Assignments',
+      icon: 'i-lucide-file-text',
+      to: '/settings/form-assignments',
+    },
   ],
 ] satisfies NavigationMenuItem[][]
 </script>

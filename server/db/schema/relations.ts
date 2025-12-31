@@ -11,6 +11,9 @@ import { customFormSubmissions } from './custom-form-submissions'
 import { customFormVersions } from './custom-form-versions'
 import { customForms } from './custom-forms'
 import { defects } from './defects'
+import { diagnosticCodes } from './diagnostic-codes'
+import { dtcWorkOrderHistory, dtcWorkOrderRules } from './dtc-work-order-rules'
+import { fuelAlertSettings } from './fuel-alert-settings'
 import { fuelAuthorizations } from './fuel-authorizations'
 import { fuelTransactions } from './fuel-transactions'
 import { geofenceAlertSettings, geofenceAlerts } from './geofence-alerts'
@@ -30,6 +33,7 @@ import { jobSiteVisits } from './job-site-visits'
 import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
 import { notifications } from './notifications'
+import { obdDevices } from './obd-devices'
 import { operationBlocks } from './operation-blocks'
 import { operatorCertifications } from './operator-certifications'
 import { operatorSessions } from './operator-sessions'
@@ -79,7 +83,9 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   customForms: many(customForms),
   customFormAssignments: many(customFormAssignments),
   jobSiteVisits: many(jobSiteVisits),
+  obdDevices: many(obdDevices),
   operationBlocks: many(operationBlocks),
+  diagnosticCodes: many(diagnosticCodes),
 }))
 
 // Work Order Approvals Relations
@@ -676,7 +682,9 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
   fuelTransactions: many(fuelTransactions),
   locationRecords: many(locationRecords),
   compatibleParts: many(assetParts),
+  obdDevices: many(obdDevices),
   operationBlocks: many(operationBlocks),
+  diagnosticCodes: many(diagnosticCodes),
 }))
 
 // Asset Categories Relations
@@ -1025,3 +1033,100 @@ export const inspectionCheckpointScansRelations = relations(
     }),
   }),
 )
+
+// OBD Devices Relations (US-10.1, US-10.2)
+export const obdDevicesRelations = relations(obdDevices, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [obdDevices.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [obdDevices.assetId],
+    references: [assets.id],
+  }),
+  pairedBy: one(users, {
+    fields: [obdDevices.pairedById],
+    references: [users.id],
+  }),
+}))
+
+// DTC Work Order Rules Relations (US-10.7)
+export const dtcWorkOrderRulesRelations = relations(dtcWorkOrderRules, ({ one, many }) => ({
+  organisation: one(organisations, {
+    fields: [dtcWorkOrderRules.organisationId],
+    references: [organisations.id],
+  }),
+  createdBy: one(users, {
+    fields: [dtcWorkOrderRules.createdById],
+    references: [users.id],
+    relationName: 'dtcRuleCreatedBy',
+  }),
+  autoAssignTo: one(users, {
+    fields: [dtcWorkOrderRules.autoAssignToId],
+    references: [users.id],
+    relationName: 'dtcRuleAutoAssignTo',
+  }),
+  template: one(taskTemplates, {
+    fields: [dtcWorkOrderRules.templateId],
+    references: [taskTemplates.id],
+  }),
+  history: many(dtcWorkOrderHistory),
+}))
+
+// DTC Work Order History Relations (US-10.7)
+export const dtcWorkOrderHistoryRelations = relations(dtcWorkOrderHistory, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [dtcWorkOrderHistory.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [dtcWorkOrderHistory.assetId],
+    references: [assets.id],
+  }),
+  rule: one(dtcWorkOrderRules, {
+    fields: [dtcWorkOrderHistory.ruleId],
+    references: [dtcWorkOrderRules.id],
+  }),
+  workOrder: one(workOrders, {
+    fields: [dtcWorkOrderHistory.workOrderId],
+    references: [workOrders.id],
+  }),
+}))
+
+// Diagnostic Codes Relations (US-10.3, US-10.4)
+export const diagnosticCodesRelations = relations(diagnosticCodes, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [diagnosticCodes.organisationId],
+    references: [organisations.id],
+  }),
+  asset: one(assets, {
+    fields: [diagnosticCodes.assetId],
+    references: [assets.id],
+  }),
+  readByUser: one(users, {
+    fields: [diagnosticCodes.readByUserId],
+    references: [users.id],
+    relationName: 'dtcReadByUser',
+  }),
+  clearedByUser: one(users, {
+    fields: [diagnosticCodes.clearedByUserId],
+    references: [users.id],
+    relationName: 'dtcClearedByUser',
+  }),
+  workOrder: one(workOrders, {
+    fields: [diagnosticCodes.workOrderId],
+    references: [workOrders.id],
+  }),
+}))
+
+// Fuel Alert Settings Relations (US-11.5)
+export const fuelAlertSettingsRelations = relations(fuelAlertSettings, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [fuelAlertSettings.organisationId],
+    references: [organisations.id],
+  }),
+  updatedBy: one(users, {
+    fields: [fuelAlertSettings.updatedById],
+    references: [users.id],
+  }),
+}))
