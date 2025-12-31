@@ -29,6 +29,7 @@ const lookupConfigSchema = z.object({
   filters: z.record(z.string(), z.unknown()).optional(),
 })
 
+// Legacy single condition (backward compatibility)
 const conditionalVisibilitySchema = z.object({
   fieldId: z.string().min(1),
   operator: z.enum([
@@ -41,6 +42,46 @@ const conditionalVisibilitySchema = z.object({
     'is_not_empty',
   ]),
   value: z.unknown().optional(),
+})
+
+// New condition operators
+const conditionOperatorSchema = z.enum([
+  'equals',
+  'not_equals',
+  'contains',
+  'not_contains',
+  'greater_than',
+  'less_than',
+  'greater_than_or_equals',
+  'less_than_or_equals',
+  'is_empty',
+  'is_not_empty',
+  'starts_with',
+  'ends_with',
+  'in',
+  'not_in',
+])
+
+// Single condition in the advanced format
+const fieldConditionSchema = z.object({
+  id: z.string().min(1),
+  fieldId: z.string().min(1),
+  operator: conditionOperatorSchema,
+  value: z.unknown().optional(),
+})
+
+// Condition group with AND/OR logic
+const conditionGroupSchema = z.object({
+  id: z.string().min(1),
+  logic: z.enum(['and', 'or']),
+  conditions: z.array(fieldConditionSchema),
+})
+
+// Full conditional logic with multiple groups
+const conditionalLogicSchema = z.object({
+  enabled: z.boolean(),
+  logic: z.enum(['and', 'or']),
+  groups: z.array(conditionGroupSchema),
 })
 
 const fieldSchema = z.object({
@@ -103,8 +144,14 @@ const fieldSchema = z.object({
   // Validation
   validation: fieldValidationSchema.optional(),
 
-  // Conditional visibility
+  // Conditional visibility (legacy single condition)
   conditionalVisibility: conditionalVisibilitySchema.optional(),
+
+  // Advanced conditional visibility with multiple conditions and AND/OR logic
+  conditionalVisibilityAdvanced: conditionalLogicSchema.optional(),
+
+  // Conditional required - field becomes required based on conditions
+  conditionalRequired: conditionalLogicSchema.optional(),
 
   // Default value
   defaultValue: z.unknown().optional(),

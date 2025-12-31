@@ -66,6 +66,54 @@ export interface CustomFormFieldValidation {
 }
 
 /**
+ * Operators for conditional logic
+ */
+export type ConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'contains'
+  | 'not_contains'
+  | 'greater_than'
+  | 'less_than'
+  | 'greater_than_or_equals'
+  | 'less_than_or_equals'
+  | 'is_empty'
+  | 'is_not_empty'
+  | 'starts_with'
+  | 'ends_with'
+  | 'in'
+  | 'not_in'
+
+/**
+ * Single condition for conditional logic
+ */
+export interface FieldCondition {
+  id: string
+  fieldId: string
+  operator: ConditionOperator
+  value?: unknown
+}
+
+/**
+ * Condition group with AND/OR logic
+ */
+export interface ConditionGroup {
+  id: string
+  logic: 'and' | 'or'
+  conditions: FieldCondition[]
+}
+
+/**
+ * Configuration for conditional visibility and required
+ * Supports multiple condition groups combined with AND/OR
+ */
+export interface ConditionalLogic {
+  enabled: boolean
+  logic: 'and' | 'or'
+  groups: ConditionGroup[]
+}
+
+/**
  * Configuration for calculated fields
  */
 export interface CalculatedFieldConfig {
@@ -124,7 +172,7 @@ export interface CustomFormField {
   // Validation
   validation?: CustomFormFieldValidation
 
-  // Conditional visibility
+  // Conditional visibility (legacy single condition - kept for backward compatibility)
   conditionalVisibility?: {
     fieldId: string
     operator:
@@ -137,6 +185,12 @@ export interface CustomFormField {
       | 'is_not_empty'
     value?: unknown
   }
+
+  // Advanced conditional visibility with multiple conditions and AND/OR logic
+  conditionalVisibilityAdvanced?: ConditionalLogic
+
+  // Conditional required - field becomes required based on conditions
+  conditionalRequired?: ConditionalLogic
 
   // Default value
   defaultValue?: unknown

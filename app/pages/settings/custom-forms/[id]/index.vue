@@ -3,6 +3,8 @@ definePageMeta({
   middleware: 'auth',
 })
 
+import type { ConditionalLogic } from '~/composables/useConditionalLogic'
+
 interface CustomFormField {
   id: string
   fieldType: string
@@ -21,6 +23,8 @@ interface CustomFormField {
     pattern?: string
     patternMessage?: string
   }
+  conditionalVisibilityAdvanced?: ConditionalLogic
+  conditionalRequired?: ConditionalLogic
 }
 
 interface CustomFormVersion {
@@ -76,6 +80,7 @@ const isPublishing = ref(false)
 const publishModalOpen = ref(false)
 const versionHistoryOpen = ref(false)
 const publishChangelog = ref('')
+const previewMode = ref(false)
 
 // Field type options
 const fieldTypes = [
@@ -307,6 +312,15 @@ function removeOption(index: number) {
             </UBadge>
 
             <UButton
+              :label="previewMode ? 'Edit' : 'Preview'"
+              :icon="previewMode ? 'i-lucide-pencil' : 'i-lucide-eye'"
+              color="neutral"
+              variant="soft"
+              :disabled="!form || form.fields.length === 0"
+              @click="previewMode = !previewMode"
+            />
+
+            <UButton
               label="Save"
               icon="i-lucide-save"
               color="neutral"
@@ -343,23 +357,41 @@ function removeOption(index: number) {
 
       <!-- Form builder -->
       <div v-else class="flex h-full">
-        <!-- Field palette -->
-        <div class="w-64 border-r border-default p-4 overflow-y-auto">
-          <h3 class="font-medium text-sm text-muted mb-3">Add Fields</h3>
-          <div class="space-y-1">
-            <UButton
-              v-for="fieldType in fieldTypes"
-              :key="fieldType.value"
-              :label="fieldType.label"
-              :icon="fieldType.icon"
-              color="neutral"
-              variant="ghost"
-              block
-              class="justify-start"
-              @click="addField(fieldType.value)"
-            />
+        <!-- Preview Mode -->
+        <div v-if="previewMode" class="flex-1 p-6 overflow-y-auto">
+          <div class="max-w-3xl mx-auto">
+            <div class="flex items-center justify-between mb-6">
+              <div>
+                <h2 class="text-xl font-semibold">{{ form.name }}</h2>
+                <p v-if="form.description" class="text-muted mt-1">{{ form.description }}</p>
+              </div>
+              <UBadge color="info" variant="subtle">
+                Preview Mode
+              </UBadge>
+            </div>
+            <FormsFormPreview :fields="form.fields" />
           </div>
         </div>
+
+        <!-- Edit Mode -->
+        <template v-else>
+          <!-- Field palette -->
+          <div class="w-64 border-r border-default p-4 overflow-y-auto">
+            <h3 class="font-medium text-sm text-muted mb-3">Add Fields</h3>
+            <div class="space-y-1">
+              <UButton
+                v-for="fieldType in fieldTypes"
+                :key="fieldType.value"
+                :label="fieldType.label"
+                :icon="fieldType.icon"
+                color="neutral"
+                variant="ghost"
+                block
+                class="justify-start"
+                @click="addField(fieldType.value)"
+              />
+            </div>
+          </div>
 
         <!-- Form canvas -->
         <div class="flex-1 p-6 overflow-y-auto bg-muted/20">
@@ -398,6 +430,26 @@ function removeOption(index: number) {
                         </UBadge>
                         <UBadge v-if="field.width && field.width !== 'full'" color="info" variant="subtle" size="xs">
                           {{ field.width }}
+                        </UBadge>
+                        <UBadge
+                          v-if="field.conditionalVisibilityAdvanced?.enabled"
+                          color="warning"
+                          variant="subtle"
+                          size="xs"
+                          class="gap-1"
+                        >
+                          <UIcon name="i-lucide-eye" class="w-3 h-3" />
+                          conditional
+                        </UBadge>
+                        <UBadge
+                          v-if="field.conditionalRequired?.enabled"
+                          color="error"
+                          variant="subtle"
+                          size="xs"
+                          class="gap-1"
+                        >
+                          <UIcon name="i-lucide-asterisk" class="w-3 h-3" />
+                          conditional required
                         </UBadge>
                       </div>
                       <p v-if="field.helpText" class="text-sm text-muted truncate mt-0.5">
@@ -489,11 +541,12 @@ function removeOption(index: number) {
             </UFormField>
           </div>
         </div>
+        </template>
       </div>
     </template>
 
     <!-- Field Edit Modal -->
-    <UModal v-model:open="fieldModalOpen" :ui="{ content: 'sm:max-w-lg' }">
+    <UModal v-model:open="fieldModalOpen" :ui="{ content: 'sm:max-w-2xl' }">
       <template #content>
         <UCard v-if="editingField">
           <template #header>
@@ -573,6 +626,49 @@ function removeOption(index: number) {
                     @click="removeOption(index)"
                   />
                 </div>
+              </div>
+            </div>
+
+            <!-- Conditional Logic Section -->
+            <div v-if="form && form.fields.length > 1">
+              <USeparator class="my-4" />
+              <div class="space-y-4">
+                <div class="flex items-center gap-2 text-sm font-medium">
+                  <UIcon name="i-lucide-git-branch" class="w-4 h-4 text-muted" />
+                  <span>Conditional Logic</span>
+                </div>
+
+                <!-- Conditional Visibility -->
+                <FormsConditionBuilder
+                  v-model="editingField.conditionalVisibilityAdvanced"
+                  :fields="form.fields.filter((f: CustomFormField) => f.id !== editingField!.id)"
+                  :current-field-id="editingField.id"
+                  label="Conditional Visibility"
+                  description="Show this field only when conditions are met"
+                />
+
+                <!-- Conditional Required -->
+                <FormsConditionBuilder
+                  v-model="editingField.conditionalRequired"
+                  :fields="form.fields.filter((f: CustomFormField) => f.id !== editingField!.id)"
+                  :current-field-id="editingField.id"
+                  label="Conditional Required"
+                  description="Make this field required when conditions are met"
+                />
+
+                <!-- Preview of conditions -->
+                <FormsConditionPreview
+                  v-if="editingField.conditionalVisibilityAdvanced?.enabled"
+                  :conditional-logic="editingField.conditionalVisibilityAdvanced"
+                  :fields="form.fields"
+                  type="visibility"
+                />
+                <FormsConditionPreview
+                  v-if="editingField.conditionalRequired?.enabled"
+                  :conditional-logic="editingField.conditionalRequired"
+                  :fields="form.fields"
+                  type="required"
+                />
               </div>
             </div>
           </div>
