@@ -8,6 +8,12 @@ export default defineVitestConfig({
         domEnvironment: 'happy-dom',
       },
     },
+    css: true,
+    server: {
+      deps: {
+        inline: ['vue3-grid-layout-next'],
+      },
+    },
     include: ['**/*.{test,spec}.{js,ts,jsx,tsx}'],
     exclude: ['node_modules', '.nuxt', '.output', 'e2e/**'],
     coverage: {

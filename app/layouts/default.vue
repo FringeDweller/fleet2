@@ -115,6 +115,37 @@ const links = [
       },
     },
     {
+      label: 'Reports',
+      icon: 'i-lucide-bar-chart-3',
+      to: '/reports',
+      defaultOpen: false,
+      type: 'trigger',
+      children: [
+        {
+          label: 'Overview',
+          to: '/reports',
+          exact: true,
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Asset Utilisation',
+          to: '/reports/asset-utilisation',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+        {
+          label: 'Maintenance Costs',
+          to: '/reports/maintenance-costs',
+          onSelect: () => {
+            open.value = false
+          },
+        },
+      ],
+    },
+    {
       label: 'Settings',
       to: '/settings',
       icon: 'i-lucide-settings',

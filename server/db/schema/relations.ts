@@ -10,6 +10,7 @@ import { customFormAssignments } from './custom-form-assignments'
 import { customFormSubmissions } from './custom-form-submissions'
 import { customFormVersions } from './custom-form-versions'
 import { customForms } from './custom-forms'
+import { dashboardLayouts } from './dashboard-layouts'
 import { defects } from './defects'
 import { diagnosticCodes } from './diagnostic-codes'
 import { documentFolders } from './document-folders'
@@ -621,6 +622,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   notifications: many(notifications),
   sessions: many(sessions),
   certifications: many(operatorCertifications),
+  dashboardLayout: one(dashboardLayouts, {
+    fields: [users.id],
+    references: [dashboardLayouts.userId],
+  }),
+}))
+
+// Dashboard Layouts Relations (US-14.2)
+export const dashboardLayoutsRelations = relations(dashboardLayouts, ({ one }) => ({
+  user: one(users, {
+    fields: [dashboardLayouts.userId],
+    references: [users.id],
+  }),
 }))
 
 // Roles Relations

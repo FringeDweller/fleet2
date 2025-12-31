@@ -61,6 +61,7 @@
     "pinia": "^3.0.4",
     "postgres": "^3.4.7",
     "qrcode": "^1.5.4",
+    "vue3-grid-layout-next": "^1.0.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {

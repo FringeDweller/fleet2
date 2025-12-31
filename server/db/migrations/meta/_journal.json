@@ -183,6 +183,13 @@
       "when": 1767161107338,
       "tag": "0025_lonely_kylun",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1767178070510,
+      "tag": "0026_purple_skrulls",
+      "breakpoints": true
     }
   ]
 }
