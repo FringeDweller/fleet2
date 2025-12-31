@@ -56,6 +56,38 @@ interface CustomReportAggregation {
   alias?: string
 }
 
+interface CustomReportColumn {
+  field: string
+  label: string
+  visible: boolean
+  order: number
+}
+
+interface CustomReportDefinition {
+  columns: CustomReportColumn[]
+  filters?: CustomReportFilter[]
+  dateRange?: {
+    field: string
+    startDate?: string
+    endDate?: string
+  }
+  groupBy?: string[]
+  aggregations?: CustomReportAggregation[]
+  orderBy?: {
+    field: string
+    direction: 'asc' | 'desc'
+  }
+}
+
+interface CustomReport {
+  id: string
+  name: string
+  description: string | null
+  dataSource: string
+  isShared: boolean
+  definition: CustomReportDefinition
+}
+
 // Route params
 const route = useRoute()
 const router = useRouter()
@@ -109,7 +141,7 @@ async function loadReport() {
 
   isLoading.value = true
   try {
-    const report = await $fetch(`/api/reports/custom/${reportId.value}`)
+    const report = await $fetch<CustomReport>(`/api/reports/custom/${reportId.value}`)
     if (report) {
       reportName.value = report.name
       reportDescription.value = report.description || ''
@@ -230,9 +262,10 @@ function clearAllColumns() {
 }
 
 function addFilter() {
-  if (filterableColumns.value.length === 0) return
+  const firstColumn = filterableColumns.value[0]
+  if (!firstColumn) return
   filters.value.push({
-    field: filterableColumns.value[0].field,
+    field: firstColumn.field,
     operator: 'eq',
     value: '',
   })
@@ -254,9 +287,10 @@ function getFilterColumnOptions(fieldName: string): string[] {
 }
 
 function addAggregation() {
-  if (aggregatableColumns.value.length === 0) return
+  const firstColumn = aggregatableColumns.value[0]
+  if (!firstColumn) return
   aggregations.value.push({
-    field: aggregatableColumns.value[0].field,
+    field: firstColumn.field,
     type: 'sum',
   })
 }
@@ -848,7 +882,7 @@ const steps = [
               label="Description (optional)"
               placeholder="Describe what this report shows..."
               class="mt-4"
-              rows="2"
+              :rows="2"
             />
           </UCard>
 
