@@ -1,5 +1,7 @@
 import { and, eq } from 'drizzle-orm'
+import { cacheKey } from '../../utils/cache'
 import { db, schema } from '../../utils/db'
+import { cache } from '../../utils/redis'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -20,6 +22,10 @@ export default defineEventHandler(async (event) => {
     .where(
       and(eq(schema.notifications.userId, session.user.id), eq(schema.notifications.isRead, false)),
     )
+
+  // US-18.1.1: Invalidate unread count cache
+  const countKey = cacheKey('COUNT', 'notifications-unread', session.user.id, {})
+  await cache.del(countKey)
 
   return { success: true }
 })

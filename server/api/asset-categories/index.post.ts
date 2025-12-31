@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { invalidateResource } from '../../utils/cache'
 import { db, schema } from '../../utils/db'
 
 const maintenanceScheduleSchema = z.object({
@@ -89,6 +90,9 @@ export default defineEventHandler(async (event) => {
     entityId: category!.id,
     newValues: { name: result.data.name, parentId: result.data.parentId },
   })
+
+  // US-18.1.1: Invalidate cache after modification
+  await invalidateResource('asset-categories', session.user.organisationId)
 
   return category
 })

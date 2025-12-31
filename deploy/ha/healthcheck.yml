@@ -1,0 +1,546 @@
+# =============================================================================
+# Fleet2 Container Health Check Configuration
+# =============================================================================
+#
+# This file defines health check policies for all Fleet2 services.
+# Include this in your main docker-compose.yml using:
+#
+#   docker compose -f docker-compose.yml -f deploy/ha/healthcheck.yml up -d
+#
+# Health Check Types:
+#   - Liveness: Is the container alive? (restart if not)
+#   - Readiness: Is the container ready to accept traffic? (remove from LB if not)
+#
+# Docker Compose combines these into a single healthcheck that affects:
+#   1. Service dependencies (condition: service_healthy)
+#   2. Container restart decisions
+#   3. Load balancer health status
+#
+# Configuration Parameters:
+#   - interval: Time between health checks
+#   - timeout: Maximum time for a single check
+#   - retries: Failures before marking unhealthy
+#   - start_period: Grace period for container startup
+#
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # APPLICATION CONTAINERS
+  # ===========================================================================
+  #
+  # Health checks for Nuxt application instances.
+  # These checks verify:
+  #   - HTTP server is responding
+  #   - Application routes are functional
+  #   - Database connectivity (via /api/health endpoint)
+  #
+  # Liveness: /api/health returns 200 (app is running)
+  # Readiness: implicitly checked via health endpoint (ready to serve)
+  #
+  # ===========================================================================
+
+  # Primary app instance health configuration
+  app1:
+    healthcheck:
+      # Use wget for health check (available in alpine images)
+      # The /api/health endpoint should verify DB and Redis connectivity
+      test: ["CMD", "wget", "-q", "--spider", "--timeout=5", "http://localhost:3000/api/health"]
+      # Check every 15 seconds - frequent enough to detect issues quickly
+      interval: 15s
+      # Individual check timeout - should be less than interval
+      timeout: 10s
+      # Number of consecutive failures before marking unhealthy
+      # 3 retries = 45 seconds before container is marked unhealthy
+      retries: 3
+      # Grace period for initial startup (build + migrations + warmup)
+      # Nuxt apps may take 30-60s to fully start
+      start_period: 60s
+    # Restart policy: always restart unless explicitly stopped
+    restart: unless-stopped
+    # Deploy settings for production (used by docker compose in swarm mode)
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # App instance 2 - identical configuration
+  app2:
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--timeout=5", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # App instance 3 - backup instance with same configuration
+  app3:
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--timeout=5", "http://localhost:3000/api/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ===========================================================================
+  # DATABASE CONTAINERS
+  # ===========================================================================
+  #
+  # PostgreSQL health checks verify:
+  #   - Database server is accepting connections
+  #   - Authentication is working
+  #   - Database exists and is accessible
+  #
+  # For single-node setup, use postgres container.
+  # For HA setup, use Patroni containers (defined in docker-compose.ha.yml).
+  #
+  # ===========================================================================
+
+  # Single-node PostgreSQL (development/staging)
+  postgres:
+    healthcheck:
+      # pg_isready checks if the server is accepting connections
+      # -U: username, -d: database name
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} -d ${POSTGRES_DB:-fleet}"]
+      # Database checks can be less frequent - 10s is reasonable
+      interval: 10s
+      timeout: 5s
+      # More retries for database - transient issues are common during backup
+      retries: 5
+      # PostgreSQL typically starts within 30s
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 60s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # ===========================================================================
+  # REDIS CONTAINERS
+  # ===========================================================================
+  #
+  # Redis health checks verify:
+  #   - Server is responding to PING
+  #   - Connection is established
+  #
+  # For single-node setup, use redis container.
+  # For HA setup, use Redis Sentinel (defined in docker-compose.ha.yml).
+  #
+  # ===========================================================================
+
+  # Single-node Redis (development/staging)
+  redis:
+    healthcheck:
+      # redis-cli ping returns PONG if server is healthy
+      # Note: If using password auth, add: -a ${REDIS_PASSWORD}
+      test: ["CMD", "redis-cli", "ping"]
+      # Redis is very fast, 10s interval is sufficient
+      interval: 10s
+      timeout: 5s
+      # Redis rarely fails transiently, 5 retries is generous
+      retries: 5
+      # Redis starts almost instantly
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ===========================================================================
+  # LOAD BALANCER / REVERSE PROXY
+  # ===========================================================================
+  #
+  # Nginx health checks verify:
+  #   - Configuration is valid
+  #   - Worker processes are running
+  #   - Can proxy requests to backends
+  #
+  # ===========================================================================
+
+  nginx:
+    healthcheck:
+      # Verify nginx config is valid and can reach backend
+      # Using nginx -t checks config syntax
+      # For deeper check, use curl to health endpoint
+      test: ["CMD-SHELL", "nginx -t && curl -sf http://localhost/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+
+  # ===========================================================================
+  # PATRONI (HA PostgreSQL)
+  # ===========================================================================
+  #
+  # Patroni health checks use pg_isready to verify PostgreSQL is accepting
+  # connections. The Patroni REST API provides additional cluster health
+  # information but pg_isready is sufficient for container health.
+  #
+  # These override the configurations in docker-compose.ha.yml if both are used.
+  #
+  # ===========================================================================
+
+  patroni1:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Patroni needs time to bootstrap or sync from primary
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  patroni2:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  patroni3:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fleet} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+
+  # ===========================================================================
+  # ETCD (Distributed Consensus)
+  # ===========================================================================
+  #
+  # etcd health checks verify the cluster endpoint is responsive.
+  # This is critical for Patroni leader election.
+  #
+  # ===========================================================================
+
+  etcd1:
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  etcd2:
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  etcd3:
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  # ===========================================================================
+  # PGBOUNCER (Connection Pooling)
+  # ===========================================================================
+  #
+  # PgBouncer health checks verify it can connect to the database.
+  #
+  # ===========================================================================
+
+  pgbouncer-primary:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  pgbouncer-replica:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 -U ${POSTGRES_USER:-fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  # ===========================================================================
+  # HAPROXY (PostgreSQL Load Balancer)
+  # ===========================================================================
+  #
+  # HAProxy health checks verify the configuration is valid.
+  #
+  # ===========================================================================
+
+  haproxy-pg:
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  # ===========================================================================
+  # REDIS SENTINEL (HA Redis)
+  # ===========================================================================
+  #
+  # Redis Sentinel monitors the Redis cluster and handles failover.
+  # Health checks verify Sentinel is responding.
+  #
+  # ===========================================================================
+
+  redis-primary:
+    healthcheck:
+      # For authenticated Redis, include -a password
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  redis-replica1:
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_secret_password}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  redis-sentinel1:
+    healthcheck:
+      # Sentinel uses port 26379
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  redis-sentinel2:
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+  redis-sentinel3:
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "26379", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 5
+        window: 60s
+
+# =============================================================================
+# HEALTH CHECK CONFIGURATION GUIDE
+# =============================================================================
+#
+# Tuning Health Checks:
+#
+# 1. INTERVAL - Time between checks
+#    - Shorter (5-10s): Faster failure detection, more resource usage
+#    - Longer (30-60s): Less overhead, slower detection
+#    - Recommendation: 10-15s for critical services, 30s for less critical
+#
+# 2. TIMEOUT - Max time for a check to complete
+#    - Should be less than interval
+#    - Consider network latency and service response time
+#    - Recommendation: 5-10s for most services
+#
+# 3. RETRIES - Failures before marking unhealthy
+#    - Lower (2-3): Faster failover, risk of false positives
+#    - Higher (5+): More tolerance, slower failover
+#    - Recommendation: 3-5 depending on service stability
+#
+# 4. START_PERIOD - Grace period after container start
+#    - Allow time for service initialization
+#    - Consider database migrations, cache warming
+#    - Recommendation: 30-60s for apps, 10-15s for infrastructure
+#
+# Readiness vs Liveness:
+#
+# Docker Compose doesn't distinguish between these, but you can implement:
+#
+# - Liveness (is it alive?):
+#   Simple check that process is running
+#   Example: curl localhost:3000 (any response = alive)
+#
+# - Readiness (can it serve traffic?):
+#   Full check including dependencies
+#   Example: curl localhost:3000/api/health (checks DB, Redis, etc.)
+#
+# Best Practices:
+#
+# 1. Use dedicated health endpoints that check dependencies
+# 2. Health endpoints should be fast (<1s response)
+# 3. Don't perform heavy operations in health checks
+# 4. Log health check failures for debugging
+# 5. Consider circuit breakers for dependency checks
+#
+# =============================================================================

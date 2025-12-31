@@ -1,4 +1,5 @@
 import { and, eq } from 'drizzle-orm'
+import { invalidateResource } from '../../utils/cache'
 import { db, schema } from '../../utils/db'
 
 export default defineEventHandler(async (event) => {
@@ -79,6 +80,9 @@ export default defineEventHandler(async (event) => {
     entityId: id,
     oldValues: { name: existing.name, isActive: true },
   })
+
+  // US-18.1.1: Invalidate cache after modification
+  await invalidateResource('asset-categories', session.user.organisationId)
 
   return { success: true, category: updated }
 })

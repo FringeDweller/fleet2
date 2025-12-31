@@ -1,6 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
+import { cacheKey } from '../../utils/cache'
 import { db, schema } from '../../utils/db'
+import { cache } from '../../utils/redis'
 
 const updateSchema = z.object({
   isRead: z.boolean(),
@@ -49,6 +51,10 @@ export default defineEventHandler(async (event) => {
       statusMessage: 'Notification not found',
     })
   }
+
+  // US-18.1.1: Invalidate unread count cache
+  const countKey = cacheKey('COUNT', 'notifications-unread', session.user.id, {})
+  await cache.del(countKey)
 
   return updated
 })

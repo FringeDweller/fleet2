@@ -1,6 +1,12 @@
 /**
  * US-18.1.3: DB Query Performance Monitoring
  * Tracks query execution times and identifies slow queries
+ *
+ * Features:
+ * - Real-time query timing and logging
+ * - Slow query detection and aggregation
+ * - Query pattern analysis for optimization hints
+ * - Exportable metrics for monitoring dashboards
  */
 
 import { PERFORMANCE_THRESHOLDS } from './performance'
@@ -11,6 +17,8 @@ interface QueryMetric {
   duration: number
   timestamp: number
   params?: unknown[]
+  table?: string
+  operation?: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'OTHER'
 }
 
 // In-memory ring buffer for query metrics
@@ -172,5 +180,122 @@ export async function monitorQuery<T>(queryName: string, queryFn: () => Promise<
     const duration = performance.now() - start
     recordQuery(`ERROR: ${queryName}`, duration)
     throw error
+  }
+}
+
+/**
+ * Extract table name from a query string
+ */
+function extractTableName(query: string): string | undefined {
+  // Match common SQL patterns
+  const fromMatch = query.match(/FROM\s+["']?(\w+)["']?/i)
+  if (fromMatch) return fromMatch[1]
+
+  const insertMatch = query.match(/INSERT\s+INTO\s+["']?(\w+)["']?/i)
+  if (insertMatch) return insertMatch[1]
+
+  const updateMatch = query.match(/UPDATE\s+["']?(\w+)["']?/i)
+  if (updateMatch) return updateMatch[1]
+
+  const deleteMatch = query.match(/DELETE\s+FROM\s+["']?(\w+)["']?/i)
+  if (deleteMatch) return deleteMatch[1]
+
+  return undefined
+}
+
+/**
+ * Extract operation type from a query string
+ */
+export function extractOperation(
+  query: string,
+): 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'OTHER' {
+  const upper = query.trim().toUpperCase()
+  if (upper.startsWith('SELECT')) return 'SELECT'
+  if (upper.startsWith('INSERT')) return 'INSERT'
+  if (upper.startsWith('UPDATE')) return 'UPDATE'
+  if (upper.startsWith('DELETE')) return 'DELETE'
+  return 'OTHER'
+}
+
+/**
+ * Get statistics grouped by table
+ */
+export function getQueryStatsByTable(): Array<{
+  table: string
+  count: number
+  avgDuration: number
+  slowCount: number
+}> {
+  const tableStats = new Map<string, { count: number; totalDuration: number; slowCount: number }>()
+
+  for (const metric of queryMetrics) {
+    const table = extractTableName(metric.query) || 'unknown'
+    const existing = tableStats.get(table) || { count: 0, totalDuration: 0, slowCount: 0 }
+    existing.count++
+    existing.totalDuration += metric.duration
+    if (metric.duration > PERFORMANCE_THRESHOLDS.DB_QUERY_MS) {
+      existing.slowCount++
+    }
+    tableStats.set(table, existing)
+  }
+
+  return Array.from(tableStats.entries())
+    .map(([table, stats]) => ({
+      table,
+      count: stats.count,
+      avgDuration: Math.round(stats.totalDuration / stats.count),
+      slowCount: stats.slowCount,
+    }))
+    .sort((a, b) => b.avgDuration - a.avgDuration)
+}
+
+/**
+ * Get recent slow queries with full details
+ */
+export function getRecentSlowQueries(limit: number = 20): Array<{
+  query: string
+  duration: number
+  table: string
+  timestamp: Date
+}> {
+  return queryMetrics
+    .filter((m) => m.duration > PERFORMANCE_THRESHOLDS.DB_QUERY_MS)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, limit)
+    .map((m) => ({
+      query: m.query.substring(0, 200),
+      duration: Math.round(m.duration),
+      table: extractTableName(m.query) || 'unknown',
+      timestamp: new Date(m.timestamp),
+    }))
+}
+
+/**
+ * Check if database performance is within thresholds
+ */
+export function isDatabaseHealthy(): {
+  healthy: boolean
+  issues: string[]
+} {
+  const summary = getQueryMetricsSummary()
+  const issues: string[] = []
+
+  // Check average query time
+  if (summary.averageQueryTime > PERFORMANCE_THRESHOLDS.DB_QUERY_MS) {
+    issues.push(
+      `Average query time (${summary.averageQueryTime}ms) exceeds threshold (${PERFORMANCE_THRESHOLDS.DB_QUERY_MS}ms)`,
+    )
+  }
+
+  // Check slow query ratio
+  const slowRatio =
+    summary.totalQueries > 0 ? (summary.slowQueries / summary.totalQueries) * 100 : 0
+  if (slowRatio > 10) {
+    issues.push(`Slow query ratio (${slowRatio.toFixed(1)}%) exceeds 10% threshold`)
+  }
+
+  return {
+    healthy: issues.length === 0,
+    issues,
   }
 }
