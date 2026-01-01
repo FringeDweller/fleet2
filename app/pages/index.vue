@@ -13,7 +13,7 @@ definePageMeta({
   middleware: 'auth',
 })
 
-const { isNotificationsSlideoverOpen } = useDashboard()
+const { isNotificationsSlideoverOpen, unreadNotificationCount } = useDashboard()
 const toast = useToast()
 
 // Editing state
@@ -313,9 +313,15 @@ const items = [
                 square
                 @click="isNotificationsSlideoverOpen = true"
               >
-                <UChip color="error" inset>
+                <div class="relative">
                   <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
-                </UChip>
+                  <span
+                    v-if="unreadNotificationCount > 0"
+                    class="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-4 h-4 px-1 text-[10px] font-medium text-white bg-error rounded-full"
+                  >
+                    {{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}
+                  </span>
+                </div>
               </UButton>
             </UTooltip>
 

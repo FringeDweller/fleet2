@@ -5,6 +5,18 @@ const _useDashboard = () => {
   const router = useRouter()
   const isNotificationsSlideoverOpen = ref(false)
 
+  // Fetch unread notification count
+  const { data: unreadCountData, refresh: refreshUnreadCount } = useFetch<{ count: number }>(
+    '/api/notifications/unread-count',
+    {
+      default: () => ({ count: 0 }),
+      lazy: true,
+      server: false,
+    },
+  )
+
+  const unreadNotificationCount = computed(() => unreadCountData.value?.count ?? 0)
+
   defineShortcuts({
     'g-h': () => router.push('/'),
     'g-i': () => router.push('/inbox'),
@@ -20,8 +32,17 @@ const _useDashboard = () => {
     },
   )
 
+  // Refresh unread count when slideover closes (user may have read notifications)
+  watch(isNotificationsSlideoverOpen, (isOpen, wasOpen) => {
+    if (wasOpen && !isOpen) {
+      refreshUnreadCount()
+    }
+  })
+
   return {
     isNotificationsSlideoverOpen,
+    unreadNotificationCount,
+    refreshUnreadCount,
   }
 }
 
