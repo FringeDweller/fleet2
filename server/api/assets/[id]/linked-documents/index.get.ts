@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
         },
       },
     },
-    orderBy: (links, { desc }) => [desc(links.createdAt)],
+    orderBy: (links, { desc }) => [desc(links.linkedAt)],
   })
 
   // Filter to only include documents from the same organisation and add preview info
@@ -101,7 +101,7 @@ export default defineEventHandler(async (event) => {
 
         return {
           linkId: link.id,
-          linkedAt: link.createdAt,
+          linkedAt: link.linkedAt,
           linkedBy: link.linkedBy,
           document: {
             ...link.document,

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lte, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, ilike, lte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../utils/db'
 import {
@@ -18,6 +18,8 @@ const querySchema = z.object({
   name: z.string().optional(),
   tags: z.union([z.string(), z.array(z.string())]).optional(),
   category: z.string().optional(),
+  // MIME type filter (e.g., 'application/pdf', 'image/png')
+  type: z.string().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   entityType: z.string().optional(),
@@ -25,9 +27,13 @@ const querySchema = z.object({
   folderId: z.string().uuid().optional(),
   // Search mode: 'all' matches all words, 'any' matches any word
   mode: z.enum(['all', 'any']).default('all'),
-  // Pagination
+  // Pagination - support both 'limit' and 'pageSize' for flexibility
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  // Sorting
+  sortBy: z.enum(['name', 'createdAt', 'updatedAt', 'fileSize', 'relevance']).default('relevance'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
   // Minimum relevance score (0-1)
   minScore: z.coerce.number().min(0).max(1).optional(),
 })
@@ -52,6 +58,7 @@ export default defineEventHandler(async (event) => {
     name,
     tags,
     category,
+    type: mimeType,
     dateFrom,
     dateTo,
     entityType,
@@ -59,9 +66,15 @@ export default defineEventHandler(async (event) => {
     folderId,
     mode,
     page,
-    limit,
+    limit: limitParam,
+    pageSize,
+    sortBy,
+    sortOrder,
     minScore,
   } = result.data
+
+  // Use pageSize if provided, otherwise limit, otherwise default to 20
+  const limit = pageSize ?? limitParam ?? 20
 
   // Build conditions
   const conditions = [eq(schema.documents.organisationId, user.organisationId)]
@@ -107,6 +120,18 @@ export default defineEventHandler(async (event) => {
   const validCategory = validateCategory(category)
   if (validCategory) {
     conditions.push(eq(schema.documents.category, validCategory))
+  }
+
+  // MIME type filter - supports exact match or prefix match (e.g., 'image/' for all images)
+  if (mimeType && mimeType.trim() !== '') {
+    const trimmedType = mimeType.trim()
+    if (trimmedType.endsWith('/')) {
+      // Prefix match for type categories (e.g., 'image/', 'application/')
+      conditions.push(ilike(schema.documents.mimeType, `${trimmedType}%`))
+    } else {
+      // Exact match for specific types
+      conditions.push(eq(schema.documents.mimeType, trimmedType))
+    }
   }
 
   // Date range
@@ -187,9 +212,33 @@ export default defineEventHandler(async (event) => {
   const offset = (page - 1) * limit
   const totalPages = Math.ceil(total / limit)
 
-  // Fetch documents ordered by relevance
+  // Build relevance ranking expression
   const rankExpr = buildSearchRank(searchTerms)
 
+  // Build order by clause based on sortBy and sortOrder
+  const sortFn = sortOrder === 'asc' ? asc : desc
+  let orderByClause
+
+  switch (sortBy) {
+    case 'name':
+      orderByClause = sortFn(schema.documents.name)
+      break
+    case 'fileSize':
+      orderByClause = sortFn(schema.documents.fileSize)
+      break
+    case 'updatedAt':
+      orderByClause = sortFn(schema.documents.updatedAt)
+      break
+    case 'createdAt':
+      orderByClause = sortFn(schema.documents.createdAt)
+      break
+    default:
+      // For relevance, descending means highest relevance first
+      orderByClause = sortOrder === 'asc' ? asc(rankExpr) : desc(rankExpr)
+      break
+  }
+
+  // Fetch documents with sorting
   const documents = await db
     .select({
       id: schema.documents.id,
@@ -220,14 +269,15 @@ export default defineEventHandler(async (event) => {
       uploadedByFirstName: schema.users.firstName,
       uploadedByLastName: schema.users.lastName,
       uploadedByEmail: schema.users.email,
-      // Join folder info
+      // Join folder info (name and path)
       folderName: schema.documentFolders.name,
+      folderPath: schema.documentFolders.path,
     })
     .from(schema.documents)
     .leftJoin(schema.users, eq(schema.documents.uploadedById, schema.users.id))
     .leftJoin(schema.documentFolders, eq(schema.documents.folderId, schema.documentFolders.id))
     .where(whereClause)
-    .orderBy(desc(rankExpr))
+    .orderBy(orderByClause)
     .limit(limit)
     .offset(offset)
 
@@ -263,6 +313,7 @@ export default defineEventHandler(async (event) => {
       ? {
           id: doc.folderId,
           name: doc.folderName,
+          path: doc.folderPath,
         }
       : null,
   }))
@@ -272,7 +323,7 @@ export default defineEventHandler(async (event) => {
     pagination: {
       total,
       page,
-      limit,
+      pageSize: limit,
       totalPages,
       hasMore: page < totalPages,
     },
@@ -280,6 +331,10 @@ export default defineEventHandler(async (event) => {
       query: searchQuery,
       mode,
       matchCount: total,
+    },
+    sort: {
+      by: sortBy,
+      order: sortOrder,
     },
   }
 })

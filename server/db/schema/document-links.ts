@@ -8,6 +8,7 @@ export const documentLinkEntityTypeEnum = pgEnum('document_link_entity_type', [
   'part',
   'inspection',
   'operator',
+  'defect',
 ])
 
 export const documentLinks = pgTable(
@@ -19,10 +20,10 @@ export const documentLinks = pgTable(
       .references(() => documents.id, { onDelete: 'cascade' }),
     entityType: documentLinkEntityTypeEnum('entity_type').notNull(),
     entityId: uuid('entity_id').notNull(),
+    linkedAt: timestamp('linked_at', { withTimezone: true }).defaultNow().notNull(),
     linkedById: uuid('linked_by_id')
       .notNull()
       .references(() => users.id, { onDelete: 'restrict' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
     index('document_links_document_id_idx').on(table.documentId),

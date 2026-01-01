@@ -4,7 +4,7 @@ import { db, schema } from '../../../utils/db'
 
 const createLinkSchema = z.object({
   documentId: z.string().uuid(),
-  entityType: z.enum(['asset', 'work_order', 'part', 'inspection', 'operator']),
+  entityType: z.enum(['asset', 'work_order', 'part', 'inspection', 'operator', 'defect']),
   entityId: z.string().uuid(),
 })
 
@@ -114,7 +114,7 @@ export default defineEventHandler(async (event) => {
 
 // Helper function to verify entity exists in the organisation
 async function verifyEntityExists(
-  entityType: 'asset' | 'work_order' | 'part' | 'inspection' | 'operator',
+  entityType: 'asset' | 'work_order' | 'part' | 'inspection' | 'operator' | 'defect',
   entityId: string,
   organisationId: string,
 ): Promise<boolean> {
@@ -162,6 +162,16 @@ async function verifyEntityExists(
         columns: { id: true },
       })
       return !!operator
+    }
+    case 'defect': {
+      const defect = await db.query.defects.findFirst({
+        where: and(
+          eq(schema.defects.id, entityId),
+          eq(schema.defects.organisationId, organisationId),
+        ),
+        columns: { id: true },
+      })
+      return !!defect
     }
     default:
       return false

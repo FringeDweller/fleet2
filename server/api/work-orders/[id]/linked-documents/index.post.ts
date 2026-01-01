@@ -158,7 +158,7 @@ export default defineEventHandler(async (event) => {
 
   return {
     linkId: link.id,
-    linkedAt: link.createdAt,
+    linkedAt: link.linkedAt,
     linkedBy,
     document: {
       ...document,

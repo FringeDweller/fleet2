@@ -1,9 +1,8 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
-import { getPreviewUrl } from '../../../utils/document-preview'
 
-const querySchema = z.object({
+const linkDocumentSchema = z.object({
   entityType: z.enum(['asset', 'work_order', 'part', 'inspection', 'operator', 'defect']),
   entityId: z.string().uuid(),
 })
@@ -18,9 +17,17 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const user = session.user
-  const query = getQuery(event)
-  const result = querySchema.safeParse(query)
+  const documentId = getRouterParam(event, 'id')
+
+  if (!documentId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Document ID is required',
+    })
+  }
+
+  const body = await readBody(event)
+  const result = linkDocumentSchema.safeParse(body)
 
   if (!result.success) {
     throw createError({
@@ -32,91 +39,106 @@ export default defineEventHandler(async (event) => {
 
   const { entityType, entityId } = result.data
 
-  // Verify entity exists and belongs to organisation
-  const entityExists = await verifyEntityExists(entityType, entityId, user.organisationId)
+  // Verify document exists and belongs to organisation
+  const document = await db.query.documents.findFirst({
+    where: and(
+      eq(schema.documents.id, documentId),
+      eq(schema.documents.organisationId, session.user.organisationId),
+    ),
+    columns: { id: true, name: true },
+  })
 
-  if (!entityExists) {
+  if (!document) {
     throw createError({
       statusCode: 404,
-      statusMessage: `${entityType.charAt(0).toUpperCase() + entityType.slice(1).replace('_', ' ')} not found`,
+      statusMessage: 'Document not found',
     })
   }
 
-  // Get all document links for this entity with document details
-  const links = await db.query.documentLinks.findMany({
+  // Verify entity exists and belongs to organisation
+  const entityExists = await verifyEntityExists(entityType, entityId, session.user.organisationId)
+
+  if (!entityExists) {
+    const entityLabel = formatEntityLabel(entityType)
+    throw createError({
+      statusCode: 404,
+      statusMessage: `${entityLabel} not found`,
+    })
+  }
+
+  // Check if link already exists
+  const existingLink = await db.query.documentLinks.findFirst({
     where: and(
+      eq(schema.documentLinks.documentId, documentId),
       eq(schema.documentLinks.entityType, entityType),
       eq(schema.documentLinks.entityId, entityId),
     ),
-    with: {
-      document: {
-        columns: {
-          id: true,
-          name: true,
-          originalFilename: true,
-          filePath: true,
-          mimeType: true,
-          fileSize: true,
-          description: true,
-          category: true,
-          tags: true,
-          expiryDate: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-        with: {
-          uploadedBy: {
-            columns: {
-              id: true,
-              firstName: true,
-              lastName: true,
-            },
-          },
-        },
-      },
-      linkedBy: {
-        columns: {
-          id: true,
-          firstName: true,
-          lastName: true,
-        },
-      },
-    },
-    orderBy: (links, { desc }) => [desc(links.linkedAt)],
+    columns: { id: true },
   })
 
-  // Filter out links where document doesn't belong to organisation
-  const documentsWithPreview = await Promise.all(
-    links
-      .filter((link) => link.document)
-      .map(async (link) => {
-        // Verify document belongs to organisation
-        const doc = await db.query.documents.findFirst({
-          where: and(
-            eq(schema.documents.id, link.document.id),
-            eq(schema.documents.organisationId, user.organisationId),
-          ),
-          columns: { id: true },
-        })
+  if (existingLink) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: 'Document is already linked to this entity',
+    })
+  }
 
-        if (!doc) {
-          return null
-        }
+  // Create the link
+  const [link] = await db
+    .insert(schema.documentLinks)
+    .values({
+      documentId,
+      entityType,
+      entityId,
+      linkedById: session.user.id,
+    })
+    .returning()
 
-        return {
-          ...link,
-          document: {
-            ...link.document,
-            previewUrl: getPreviewUrl(link.document.mimeType, link.document.filePath),
-          },
-        }
-      }),
-  )
+  if (!link) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'Failed to create document link',
+    })
+  }
 
-  return documentsWithPreview.filter(Boolean)
+  // Create audit log
+  await db.insert(schema.auditLog).values({
+    organisationId: session.user.organisationId,
+    userId: session.user.id,
+    action: 'document_link.created',
+    entityType: 'document_link',
+    entityId: link.id,
+    newValues: {
+      documentId,
+      documentName: document.name,
+      linkedEntityType: entityType,
+      linkedEntityId: entityId,
+    },
+    ipAddress: getRequestIP(event),
+    userAgent: getHeader(event, 'user-agent'),
+  })
+
+  return link
 })
 
-// Helper function to verify entity exists in the organisation
+/**
+ * Format entity type for display in error messages
+ */
+function formatEntityLabel(entityType: string): string {
+  const labels: Record<string, string> = {
+    asset: 'Asset',
+    work_order: 'Work order',
+    part: 'Part',
+    inspection: 'Inspection',
+    operator: 'Operator',
+    defect: 'Defect',
+  }
+  return labels[entityType] || entityType.charAt(0).toUpperCase() + entityType.slice(1)
+}
+
+/**
+ * Verify entity exists in the organisation
+ */
 async function verifyEntityExists(
   entityType: 'asset' | 'work_order' | 'part' | 'inspection' | 'operator' | 'defect',
   entityId: string,
@@ -161,6 +183,7 @@ async function verifyEntityExists(
       return !!inspection
     }
     case 'operator': {
+      // Operators are users in the organisation
       const operator = await db.query.users.findFirst({
         where: and(eq(schema.users.id, entityId), eq(schema.users.organisationId, organisationId)),
         columns: { id: true },

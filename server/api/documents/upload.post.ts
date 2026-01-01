@@ -46,7 +46,7 @@ const ALLOWED_MIME_TYPES = [
 ] as const
 
 // Entity types that can have linked documents
-const ENTITY_TYPES = ['asset', 'work_order', 'part', 'inspection', 'operator'] as const
+const ENTITY_TYPES = ['asset', 'work_order', 'part', 'inspection', 'operator', 'defect'] as const
 
 // Document categories matching the schema enum
 const DOCUMENT_CATEGORIES = [
@@ -137,6 +137,15 @@ async function validateEntity(
         columns: { id: true },
       })
       return !!operator
+    }
+
+    case 'defect': {
+      const defect = await db.query.defects.findFirst({
+        where: (defects, { and, eq: eqOp }) =>
+          and(eqOp(defects.id, entityId), eqOp(defects.organisationId, organisationId)),
+        columns: { id: true },
+      })
+      return !!defect
     }
 
     default:
@@ -410,7 +419,7 @@ export default defineEventHandler(async (event) => {
             id: result.documentLink.id,
             entityType: result.documentLink.entityType,
             entityId: result.documentLink.entityId,
-            createdAt: result.documentLink.createdAt.toISOString(),
+            linkedAt: result.documentLink.linkedAt.toISOString(),
           }
         : null,
     }
