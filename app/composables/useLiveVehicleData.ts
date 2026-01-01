@@ -16,6 +16,7 @@ import {
   MIN_POLL_INTERVAL,
   type ObdPid,
   PID_COOLANT_TEMP,
+  PID_ENGINE_LOAD,
   PID_FUEL_LEVEL,
   PID_RPM,
   PID_SPEED,
@@ -46,6 +47,8 @@ export interface LiveVehicleDataState {
   fuelLevel: LiveVehicleMetric
   /** Throttle Position */
   throttle: LiveVehicleMetric
+  /** Engine Load */
+  engineLoad: LiveVehicleMetric
 }
 
 const _useLiveVehicleData = () => {
@@ -85,6 +88,7 @@ const _useLiveVehicleData = () => {
     coolantTemp: createMetricState(PID_COOLANT_TEMP),
     fuelLevel: createMetricState(PID_FUEL_LEVEL),
     throttle: createMetricState(PID_THROTTLE),
+    engineLoad: createMetricState(PID_ENGINE_LOAD),
   })
 
   // Subscribe to OBD service state changes
@@ -158,6 +162,12 @@ const _useLiveVehicleData = () => {
       metrics.throttle.value = data.throttle
       metrics.throttle.lastUpdated = now
       metrics.throttle.error = null
+    }
+
+    if (data.engineLoad !== undefined && data.engineLoad !== null) {
+      metrics.engineLoad.value = data.engineLoad
+      metrics.engineLoad.lastUpdated = now
+      metrics.engineLoad.error = null
     }
 
     lastPollTime.value = now
@@ -275,6 +285,7 @@ const _useLiveVehicleData = () => {
     { key: 'coolantTemp', ...metrics.coolantTemp },
     { key: 'fuelLevel', ...metrics.fuelLevel },
     { key: 'throttle', ...metrics.throttle },
+    { key: 'engineLoad', ...metrics.engineLoad },
   ])
 
   /**

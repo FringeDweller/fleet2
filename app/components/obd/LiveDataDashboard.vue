@@ -106,8 +106,9 @@ function getMetricIcon(key: string): string {
     coolantTemp: 'i-lucide-thermometer',
     fuelLevel: 'i-lucide-fuel',
     throttle: 'i-lucide-joystick',
+    engineLoad: 'i-lucide-activity',
   }
-  return icons[key] || 'i-lucide-activity'
+  return icons[key] || 'i-lucide-circle'
 }
 
 // Format metric for numeric view
@@ -226,7 +227,7 @@ function formatMetricNumeric(metric: LiveVehicleMetric): string {
     <!-- Gauges View -->
     <div
       v-if="isConnected && viewMode === 'gauges'"
-      class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
+      class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 lg:gap-6"
     >
       <div
         v-for="metric in metricsArray"
