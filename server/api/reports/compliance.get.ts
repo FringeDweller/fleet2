@@ -6,14 +6,19 @@
  * Query params:
  * - startDate: ISO date string
  * - endDate: ISO date string
+ * - vehicleId: (optional) filter by specific vehicle/asset (alias for assetId)
  * - assetId: (optional) filter by specific asset
  * - categoryId: (optional) filter by asset category
  *
  * Returns:
- * - preStartCompletionRate: percentage of required pre-start inspections completed
+ * - inspectionStatus: per-vehicle inspection completion metrics
+ * - registrationStatus: per-vehicle registration expiry status
+ * - insuranceStatus: per-vehicle insurance status
+ * - preStartCompliance: aggregate pre-start inspection metrics
  * - maintenanceCompliance: percentage of scheduled maintenance done on time
  * - certificationStatus: count of valid, expiring (within 30 days), expired certs
- * - overdueItems: list of overdue maintenance and expired certifications
+ * - overdueItems: list of overdue maintenance and expired documents
+ * - vehicleCompliance: per-vehicle compliance breakdown
  */
 
 import { and, count, eq, gte, isNotNull, isNull, lt, lte, or, type SQL, sql } from 'drizzle-orm'
@@ -32,9 +37,10 @@ interface OverdueMaintenanceItem {
   scheduleType: string
 }
 
-interface ExpiredCertificationItem {
+interface ExpiredDocumentItem {
   id: string
   documentName: string
+  documentType: string
   assetId: string | null
   assetNumber: string | null
   assetMake: string | null
@@ -43,6 +49,9 @@ interface ExpiredCertificationItem {
   daysExpired: number
   category: string
 }
+
+// Legacy alias for backward compatibility
+type ExpiredCertificationItem = ExpiredDocumentItem
 
 interface MaintenanceComplianceMetrics {
   totalScheduled: number
@@ -66,13 +75,74 @@ interface PreStartComplianceMetrics {
   assetsWithoutInspections: number
 }
 
+interface VehicleInspectionStatus {
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  lastInspectionDate: Date | null
+  inspectionCount: number
+  hasRecentInspection: boolean // within date range
+}
+
+interface VehicleDocumentStatus {
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  expiryDate: Date | null
+  status: 'valid' | 'expiring_soon' | 'expired' | 'missing'
+  daysUntilExpiry: number | null
+  documentName: string | null
+}
+
+interface VehicleComplianceRecord {
+  assetId: string
+  assetNumber: string
+  make: string | null
+  model: string | null
+  inspectionStatus: 'compliant' | 'non_compliant' | 'pending'
+  registrationStatus: 'valid' | 'expiring_soon' | 'expired' | 'missing'
+  insuranceStatus: 'valid' | 'expiring_soon' | 'expired' | 'missing'
+  registrationExpiry: Date | null
+  insuranceExpiry: Date | null
+  lastInspectionDate: Date | null
+  overallStatus: 'compliant' | 'at_risk' | 'non_compliant'
+}
+
 interface ComplianceReportResponse {
+  // Per-vehicle compliance (new)
+  vehicleCompliance: VehicleComplianceRecord[]
+
+  // Aggregate metrics
+  inspectionStatus: {
+    totalVehicles: number
+    vehiclesInspected: number
+    vehiclesNotInspected: number
+    complianceRate: number
+  }
+  registrationStatus: {
+    valid: number
+    expiringSoon: number
+    expired: number
+    missing: number
+  }
+  insuranceStatus: {
+    valid: number
+    expiringSoon: number
+    expired: number
+    missing: number
+  }
+
+  // Legacy fields for backward compatibility
   preStartCompliance: PreStartComplianceMetrics
   maintenanceCompliance: MaintenanceComplianceMetrics
   certificationStatus: CertificationStatusMetrics
   overdueItems: {
     maintenance: OverdueMaintenanceItem[]
-    certifications: ExpiredCertificationItem[]
+    certifications: ExpiredDocumentItem[]
+    registrations: ExpiredDocumentItem[]
+    insurance: ExpiredDocumentItem[]
   }
   summary: {
     overallComplianceScore: number
@@ -88,7 +158,8 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
   const query = getQuery(event)
   const startDate = query.startDate as string | undefined
   const endDate = query.endDate as string | undefined
-  const assetId = query.assetId as string | undefined
+  // Support both vehicleId (as per requirement) and assetId (legacy)
+  const assetId = (query.vehicleId as string | undefined) || (query.assetId as string | undefined)
   const categoryId = query.categoryId as string | undefined
 
   const now = new Date()
@@ -340,7 +411,7 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
   let validCount = 0
   let expiringSoonCount = 0
   let expiredCount = 0
-  const expiredCertifications: ExpiredCertificationItem[] = []
+  const expiredCertifications: ExpiredDocumentItem[] = []
 
   // Process linked certifications
   for (const cert of certWithAssets) {
@@ -356,6 +427,7 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
       expiredCertifications.push({
         id: cert.documentId,
         documentName: cert.documentName,
+        documentType: 'certification',
         assetId: cert.assetId,
         assetNumber: assetInfo?.assetNumber || null,
         assetMake: assetInfo?.make || null,
@@ -385,6 +457,7 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
       expiredCertifications.push({
         id: cert.id,
         documentName: cert.name,
+        documentType: 'certification',
         assetId: null,
         assetNumber: null,
         assetMake: null,
@@ -406,8 +479,250 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
     expired: expiredCount,
   }
 
+  // 4. Registration Status (from asset_documents with documentType = 'registration')
+  const registrationDocs = await db
+    .select({
+      id: schema.assetDocuments.id,
+      assetId: schema.assetDocuments.assetId,
+      name: schema.assetDocuments.name,
+      expiryDate: schema.assetDocuments.expiryDate,
+      documentType: schema.assetDocuments.documentType,
+    })
+    .from(schema.assetDocuments)
+    .innerJoin(schema.assets, eq(schema.assetDocuments.assetId, schema.assets.id))
+    .where(
+      and(
+        eq(schema.assets.organisationId, user.organisationId),
+        eq(schema.assetDocuments.documentType, 'registration'),
+        assetIds.length > 0 ? sql`${schema.assetDocuments.assetId} = ANY(${assetIds})` : undefined,
+      ),
+    )
+
+  const registrationByAsset = new Map<string, (typeof registrationDocs)[0]>()
+  for (const doc of registrationDocs) {
+    const existing = registrationByAsset.get(doc.assetId)
+    // Keep the most recent expiry date if multiple registrations exist
+    if (
+      !existing ||
+      (doc.expiryDate && (!existing.expiryDate || doc.expiryDate > existing.expiryDate))
+    ) {
+      registrationByAsset.set(doc.assetId, doc)
+    }
+  }
+
+  let regValidCount = 0
+  let regExpiringSoonCount = 0
+  let regExpiredCount = 0
+  let regMissingCount = 0
+  const expiredRegistrations: ExpiredDocumentItem[] = []
+
+  for (const asset of assets) {
+    const regDoc = registrationByAsset.get(asset.id)
+    if (!regDoc || !regDoc.expiryDate) {
+      regMissingCount++
+    } else if (regDoc.expiryDate < now) {
+      regExpiredCount++
+      const daysExpired = Math.ceil(
+        (now.getTime() - regDoc.expiryDate.getTime()) / (24 * 60 * 60 * 1000),
+      )
+      expiredRegistrations.push({
+        id: regDoc.id,
+        documentName: regDoc.name,
+        documentType: 'registration',
+        assetId: asset.id,
+        assetNumber: asset.assetNumber,
+        assetMake: asset.make,
+        assetModel: asset.model,
+        expiryDate: regDoc.expiryDate,
+        daysExpired,
+        category: 'registration',
+      })
+    } else if (regDoc.expiryDate <= thirtyDaysFromNow) {
+      regExpiringSoonCount++
+    } else {
+      regValidCount++
+    }
+  }
+
+  const registrationStatus = {
+    valid: regValidCount,
+    expiringSoon: regExpiringSoonCount,
+    expired: regExpiredCount,
+    missing: regMissingCount,
+  }
+
+  // 5. Insurance Status (from asset_documents with documentType = 'insurance')
+  const insuranceDocs = await db
+    .select({
+      id: schema.assetDocuments.id,
+      assetId: schema.assetDocuments.assetId,
+      name: schema.assetDocuments.name,
+      expiryDate: schema.assetDocuments.expiryDate,
+      documentType: schema.assetDocuments.documentType,
+    })
+    .from(schema.assetDocuments)
+    .innerJoin(schema.assets, eq(schema.assetDocuments.assetId, schema.assets.id))
+    .where(
+      and(
+        eq(schema.assets.organisationId, user.organisationId),
+        eq(schema.assetDocuments.documentType, 'insurance'),
+        assetIds.length > 0 ? sql`${schema.assetDocuments.assetId} = ANY(${assetIds})` : undefined,
+      ),
+    )
+
+  const insuranceByAsset = new Map<string, (typeof insuranceDocs)[0]>()
+  for (const doc of insuranceDocs) {
+    const existing = insuranceByAsset.get(doc.assetId)
+    // Keep the most recent expiry date if multiple insurance docs exist
+    if (
+      !existing ||
+      (doc.expiryDate && (!existing.expiryDate || doc.expiryDate > existing.expiryDate))
+    ) {
+      insuranceByAsset.set(doc.assetId, doc)
+    }
+  }
+
+  let insValidCount = 0
+  let insExpiringSoonCount = 0
+  let insExpiredCount = 0
+  let insMissingCount = 0
+  const expiredInsurance: ExpiredDocumentItem[] = []
+
+  for (const asset of assets) {
+    const insDoc = insuranceByAsset.get(asset.id)
+    if (!insDoc || !insDoc.expiryDate) {
+      insMissingCount++
+    } else if (insDoc.expiryDate < now) {
+      insExpiredCount++
+      const daysExpired = Math.ceil(
+        (now.getTime() - insDoc.expiryDate.getTime()) / (24 * 60 * 60 * 1000),
+      )
+      expiredInsurance.push({
+        id: insDoc.id,
+        documentName: insDoc.name,
+        documentType: 'insurance',
+        assetId: asset.id,
+        assetNumber: asset.assetNumber,
+        assetMake: asset.make,
+        assetModel: asset.model,
+        expiryDate: insDoc.expiryDate,
+        daysExpired,
+        category: 'insurance',
+      })
+    } else if (insDoc.expiryDate <= thirtyDaysFromNow) {
+      insExpiringSoonCount++
+    } else {
+      insValidCount++
+    }
+  }
+
+  const insuranceStatus = {
+    valid: insValidCount,
+    expiringSoon: insExpiringSoonCount,
+    expired: insExpiredCount,
+    missing: insMissingCount,
+  }
+
+  // 6. Build per-vehicle compliance records
+  // Get last inspection date for each asset
+  const lastInspectionByAsset = new Map<string, Date | null>()
+  if (assetIds.length > 0) {
+    const lastInspections = await db
+      .select({
+        assetId: schema.inspections.assetId,
+        lastDate: sql<Date>`MAX(${schema.inspections.completedAt})`,
+      })
+      .from(schema.inspections)
+      .where(
+        and(
+          eq(schema.inspections.organisationId, user.organisationId),
+          eq(schema.inspections.status, 'completed'),
+          sql`${schema.inspections.assetId} = ANY(${assetIds})`,
+        ),
+      )
+      .groupBy(schema.inspections.assetId)
+
+    for (const insp of lastInspections) {
+      lastInspectionByAsset.set(insp.assetId, insp.lastDate)
+    }
+  }
+
+  const vehicleCompliance: VehicleComplianceRecord[] = assets.map((asset) => {
+    const regDoc = registrationByAsset.get(asset.id)
+    const insDoc = insuranceByAsset.get(asset.id)
+    const lastInspection = lastInspectionByAsset.get(asset.id)
+    const hasRecentInspection = lastInspection && lastInspection >= effectiveStartDate
+
+    // Determine registration status
+    let regStatus: 'valid' | 'expiring_soon' | 'expired' | 'missing' = 'missing'
+    if (regDoc?.expiryDate) {
+      if (regDoc.expiryDate < now) regStatus = 'expired'
+      else if (regDoc.expiryDate <= thirtyDaysFromNow) regStatus = 'expiring_soon'
+      else regStatus = 'valid'
+    }
+
+    // Determine insurance status
+    let insStatus: 'valid' | 'expiring_soon' | 'expired' | 'missing' = 'missing'
+    if (insDoc?.expiryDate) {
+      if (insDoc.expiryDate < now) insStatus = 'expired'
+      else if (insDoc.expiryDate <= thirtyDaysFromNow) insStatus = 'expiring_soon'
+      else insStatus = 'valid'
+    }
+
+    // Determine inspection status
+    let inspStatus: 'compliant' | 'non_compliant' | 'pending' = 'pending'
+    if (hasRecentInspection) {
+      inspStatus = 'compliant'
+    } else if (lastInspection) {
+      inspStatus = 'non_compliant'
+    }
+
+    // Determine overall status
+    let overallStatus: 'compliant' | 'at_risk' | 'non_compliant' = 'compliant'
+    if (
+      regStatus === 'expired' ||
+      insStatus === 'expired' ||
+      regStatus === 'missing' ||
+      insStatus === 'missing'
+    ) {
+      overallStatus = 'non_compliant'
+    } else if (
+      regStatus === 'expiring_soon' ||
+      insStatus === 'expiring_soon' ||
+      inspStatus === 'non_compliant'
+    ) {
+      overallStatus = 'at_risk'
+    }
+
+    return {
+      assetId: asset.id,
+      assetNumber: asset.assetNumber,
+      make: asset.make,
+      model: asset.model,
+      inspectionStatus: inspStatus,
+      registrationStatus: regStatus,
+      insuranceStatus: insStatus,
+      registrationExpiry: regDoc?.expiryDate || null,
+      insuranceExpiry: insDoc?.expiryDate || null,
+      lastInspectionDate: lastInspection || null,
+      overallStatus,
+    }
+  })
+
+  // Aggregate inspection status
+  const inspectionStatusAgg = {
+    totalVehicles: assets.length,
+    vehiclesInspected: preStartCompliance.assetsWithInspections,
+    vehiclesNotInspected: preStartCompliance.assetsWithoutInspections,
+    complianceRate: preStartCompliance.completionRate,
+  }
+
   // Calculate overall compliance score (weighted average)
-  // Pre-start: 40%, Maintenance: 40%, Certifications: 20%
+  // Pre-start: 25%, Maintenance: 25%, Registration: 25%, Insurance: 25%
+  const regComplianceRate =
+    assets.length > 0 ? ((regValidCount + regExpiringSoonCount) / assets.length) * 100 : 100
+  const insComplianceRate =
+    assets.length > 0 ? ((insValidCount + insExpiringSoonCount) / assets.length) * 100 : 100
   const certComplianceRate =
     validCount + expiringSoonCount + expiredCount > 0
       ? (validCount / (validCount + expiringSoonCount + expiredCount)) * 100
@@ -415,32 +730,54 @@ export default defineEventHandler(async (event): Promise<ComplianceReportRespons
 
   const overallComplianceScore =
     Math.round(
-      (preStartCompliance.completionRate * 0.4 +
-        maintenanceCompliance.complianceRate * 0.4 +
-        certComplianceRate * 0.2) *
+      (preStartCompliance.completionRate * 0.25 +
+        maintenanceCompliance.complianceRate * 0.25 +
+        regComplianceRate * 0.25 +
+        insComplianceRate * 0.25) *
         10,
     ) / 10
 
   // Sort overdue items by severity (most overdue first)
   overdueMaintenanceItems.sort((a, b) => b.daysOverdue - a.daysOverdue)
   expiredCertifications.sort((a, b) => b.daysExpired - a.daysExpired)
+  expiredRegistrations.sort((a, b) => b.daysExpired - a.daysExpired)
+  expiredInsurance.sort((a, b) => b.daysExpired - a.daysExpired)
 
   // Critical items are those more than 7 days overdue/expired
   const criticalItems =
     overdueMaintenanceItems.filter((i) => i.daysOverdue > 7).length +
-    expiredCertifications.filter((i) => i.daysExpired > 7).length
+    expiredCertifications.filter((i) => i.daysExpired > 7).length +
+    expiredRegistrations.filter((i) => i.daysExpired > 7).length +
+    expiredInsurance.filter((i) => i.daysExpired > 7).length
+
+  const totalOverdueItems =
+    overdueMaintenanceItems.length +
+    expiredCertifications.length +
+    expiredRegistrations.length +
+    expiredInsurance.length
 
   return {
+    // Per-vehicle compliance
+    vehicleCompliance,
+
+    // Aggregate metrics
+    inspectionStatus: inspectionStatusAgg,
+    registrationStatus,
+    insuranceStatus,
+
+    // Legacy fields for backward compatibility
     preStartCompliance,
     maintenanceCompliance,
     certificationStatus,
     overdueItems: {
       maintenance: overdueMaintenanceItems.slice(0, 20), // Limit to top 20
       certifications: expiredCertifications.slice(0, 20),
+      registrations: expiredRegistrations.slice(0, 20),
+      insurance: expiredInsurance.slice(0, 20),
     },
     summary: {
       overallComplianceScore,
-      totalOverdueItems: overdueMaintenanceItems.length + expiredCertifications.length,
+      totalOverdueItems,
       criticalItems,
     },
   }

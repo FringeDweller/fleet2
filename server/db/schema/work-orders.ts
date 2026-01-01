@@ -64,6 +64,11 @@ export const workOrders = pgTable(
     notes: text('notes'),
     completionNotes: text('completion_notes'),
     signatureUrl: varchar('signature_url', { length: 500 }),
+    // Customer satisfaction rating (1-5 scale, optional)
+    customerRating: integer('customer_rating'),
+    customerFeedback: text('customer_feedback'),
+    ratedAt: timestamp('rated_at', { withTimezone: true }),
+    ratedById: uuid('rated_by_id').references(() => users.id, { onDelete: 'set null' }),
     isArchived: boolean('is_archived').default(false).notNull(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

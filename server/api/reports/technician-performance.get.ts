@@ -17,8 +17,11 @@
  * Metrics per technician:
  * - completedCount: count of completed work orders
  * - avgCompletionTime: average hours from created to completed
+ * - avgCustomerRating: average customer satisfaction rating (1-5 scale)
  * - firstTimeFixRate: percentage of WOs without rework (same asset within 30 days)
  * - reworkRate: percentage of WOs that required rework (quality score - lower is better)
+ *
+ * Access: Admin/Manager only (requires reports:read permission)
  */
 
 import { and, desc, eq, gte, isNotNull, lte, type SQL, sql } from 'drizzle-orm'
@@ -74,6 +77,13 @@ export default defineEventHandler(async (event) => {
         avg(
           extract(epoch from (${schema.workOrders.completedAt} - ${schema.workOrders.createdAt})) / 3600
         )::numeric
+      `,
+      // Customer rating metrics (1-5 scale)
+      avgCustomerRating: sql<number>`
+        avg(${schema.workOrders.customerRating})::numeric
+      `,
+      ratedCount: sql<number>`
+        count(${schema.workOrders.customerRating})::int
       `,
       totalLaborCost: sql<number>`coalesce(sum(${schema.workOrders.laborCost}), 0)::numeric`,
       totalPartsCost: sql<number>`coalesce(sum(${schema.workOrders.partsCost}), 0)::numeric`,
@@ -166,6 +176,10 @@ export default defineEventHandler(async (event) => {
     const firstTimeFixRate = completedCount > 0 ? (firstTimeFixCount / completedCount) * 100 : 0
     const reworkRate = completedCount > 0 ? (reworkCount / completedCount) * 100 : 0
     const avgCompletionHours = Number.parseFloat(String(row.avgCompletionHours)) || 0
+    const avgCustomerRating = row.avgCustomerRating
+      ? Math.round(Number.parseFloat(String(row.avgCustomerRating)) * 10) / 10
+      : null
+    const ratedCount = row.ratedCount || 0
 
     return {
       technicianId: row.technicianId,
@@ -175,6 +189,9 @@ export default defineEventHandler(async (event) => {
       fullName: `${row.firstName} ${row.lastName}`.trim(),
       completedCount,
       avgCompletionHours: Math.round(avgCompletionHours * 10) / 10,
+      // Customer rating (1-5 scale, null if no ratings)
+      avgCustomerRating,
+      ratedCount,
       firstTimeFixCount,
       reworkCount,
       firstTimeFixRate: Math.round(firstTimeFixRate * 10) / 10,
@@ -186,6 +203,12 @@ export default defineEventHandler(async (event) => {
   })
 
   // Calculate summary statistics
+  const totalRatedCount = technicians.reduce((sum, t) => sum + t.ratedCount, 0)
+  const totalRatingSum = technicians.reduce(
+    (sum, t) => sum + (t.avgCustomerRating || 0) * t.ratedCount,
+    0,
+  )
+
   const summary = {
     totalTechnicians: technicians.length,
     totalCompletedWOs: technicians.reduce((sum, t) => sum + t.completedCount, 0),
@@ -203,6 +226,10 @@ export default defineEventHandler(async (event) => {
               10,
           ) / 10
         : 0,
+    // Overall customer satisfaction rating (1-5 scale, null if no ratings)
+    overallCustomerRating:
+      totalRatedCount > 0 ? Math.round((totalRatingSum / totalRatedCount) * 10) / 10 : null,
+    totalRatedWOs: totalRatedCount,
     overallFirstTimeFixRate:
       technicians.length > 0
         ? Math.round(
@@ -237,6 +264,8 @@ export default defineEventHandler(async (event) => {
           extract(epoch from (${schema.workOrders.completedAt} - ${schema.workOrders.createdAt})) / 3600
         )::numeric
       `,
+      avgCustomerRating: sql<number>`avg(${schema.workOrders.customerRating})::numeric`,
+      ratedCount: sql<number>`count(${schema.workOrders.customerRating})::int`,
     })
     .from(schema.workOrders)
     .where(whereClause)
@@ -248,12 +277,23 @@ export default defineEventHandler(async (event) => {
     completedCount: row.completedCount,
     avgCompletionHours:
       Math.round((Number.parseFloat(String(row.avgCompletionHours)) || 0) * 10) / 10,
+    avgCustomerRating: row.avgCustomerRating
+      ? Math.round(Number.parseFloat(String(row.avgCustomerRating)) * 10) / 10
+      : null,
+    ratedCount: row.ratedCount || 0,
   }))
 
   // Get top performers (by first-time fix rate, min 5 completed WOs)
   const topPerformers = technicians
     .filter((t) => t.completedCount >= 5)
     .sort((a, b) => b.firstTimeFixRate - a.firstTimeFixRate)
+    .slice(0, 5)
+    .map((t) => t.technicianId)
+
+  // Get highest rated technicians (by customer rating, min 3 ratings)
+  const topRated = technicians
+    .filter((t) => t.ratedCount >= 3 && t.avgCustomerRating !== null)
+    .sort((a, b) => (b.avgCustomerRating || 0) - (a.avgCustomerRating || 0))
     .slice(0, 5)
     .map((t) => t.technicianId)
 
@@ -269,6 +309,7 @@ export default defineEventHandler(async (event) => {
     summary,
     trendData: trendDataFormatted,
     topPerformers,
+    topRated,
     needsAttention,
   }
 })

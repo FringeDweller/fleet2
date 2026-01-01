@@ -29,6 +29,8 @@ interface TechnicianPerformance {
   fullName: string
   completedCount: number
   avgCompletionHours: number
+  avgCustomerRating: number | null
+  ratedCount: number
   firstTimeFixCount: number
   reworkCount: number
   firstTimeFixRate: number
@@ -49,6 +51,8 @@ interface ReportSummary {
   totalCompletedWOs: number
   avgCompletedPerTechnician: number
   avgCompletionHours: number
+  overallCustomerRating: number | null
+  totalRatedWOs: number
   overallFirstTimeFixRate: number
   overallReworkRate: number
   totalCost: number
@@ -65,6 +69,7 @@ interface ReportResponse {
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UAvatar = resolveComponent('UAvatar')
+const UIcon = resolveComponent('UIcon')
 
 // Filter state
 const dateRange = ref<Range>({
@@ -114,6 +119,8 @@ const summary = computed(
       totalCompletedWOs: 0,
       avgCompletedPerTechnician: 0,
       avgCompletionHours: 0,
+      overallCustomerRating: null,
+      totalRatedWOs: 0,
       overallFirstTimeFixRate: 0,
       overallReworkRate: 0,
       totalCost: 0,
@@ -207,6 +214,18 @@ function formatHours(value: number | null | undefined): string {
   return `${value.toFixed(1)} hrs`
 }
 
+function formatRating(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+  return value.toFixed(1)
+}
+
+function getRatingColor(rating: number | null): 'success' | 'warning' | 'error' | 'neutral' {
+  if (rating === null) return 'neutral'
+  if (rating >= 4.5) return 'success'
+  if (rating >= 3.5) return 'warning'
+  return 'error'
+}
+
 function getPerformanceColor(rate: number): 'success' | 'warning' | 'error' {
   if (rate >= 90) return 'success'
   if (rate >= 70) return 'warning'
@@ -225,6 +244,8 @@ const exportColumns: ExportColumn[] = [
   { key: 'email', header: 'Email', width: 25 },
   { key: 'completedCount', header: 'WOs Completed', format: 'number', width: 15 },
   { key: 'avgCompletionHours', header: 'Avg Completion (hrs)', format: 'number', width: 18 },
+  { key: 'avgCustomerRating', header: 'Avg Customer Rating', format: 'number', width: 18 },
+  { key: 'ratedCount', header: 'Rated WOs', format: 'number', width: 12 },
   { key: 'firstTimeFixRate', header: 'First-Time Fix Rate', format: 'percent', width: 18 },
   { key: 'reworkRate', header: 'Rework Rate', format: 'percent', width: 15 },
   { key: 'firstTimeFixCount', header: 'First-Time Fix Count', format: 'number', width: 18 },
@@ -238,6 +259,11 @@ const exportColumns: ExportColumn[] = [
 const exportSummary = computed(() => ({
   'Total Technicians': summary.value.totalTechnicians,
   'WOs Completed': summary.value.totalCompletedWOs,
+  'Avg Customer Rating':
+    summary.value.overallCustomerRating !== null
+      ? formatRating(summary.value.overallCustomerRating)
+      : '-',
+  'Total Rated WOs': summary.value.totalRatedWOs,
   'First-Time Fix Rate': formatPercent(summary.value.overallFirstTimeFixRate),
   'Rework Rate': formatPercent(summary.value.overallReworkRate),
   'Avg Completion Time': formatHours(summary.value.avgCompletionHours),
@@ -362,6 +388,32 @@ const columns: TableColumn<TechnicianPerformance>[] = [
     },
   },
   {
+    accessorKey: 'avgCustomerRating',
+    header: () => {
+      return h(UButton, {
+        color: 'neutral',
+        variant: 'ghost',
+        label: 'Avg Rating',
+        icon: getSortIcon('avgCustomerRating'),
+        class: '-mx-2.5',
+        onClick: () => toggleSort('avgCustomerRating'),
+      })
+    },
+    cell: ({ row }) => {
+      const rating = row.original.avgCustomerRating
+      const ratedCount = row.original.ratedCount
+      if (rating === null || ratedCount === 0) {
+        return h('span', { class: 'text-muted' }, '-')
+      }
+      return h('div', { class: 'flex items-center gap-1' }, [
+        h(UIcon, { name: 'i-lucide-star', class: `w-4 h-4 text-${getRatingColor(rating)}-500` }),
+        h(UBadge, { variant: 'subtle', color: getRatingColor(rating), class: 'tabular-nums' }, () =>
+          formatRating(rating),
+        ),
+      ])
+    },
+  },
+  {
     accessorKey: 'reworkRate',
     header: () => {
       return h(UButton, {
@@ -465,7 +517,7 @@ const columns: TableColumn<TechnicianPerformance>[] = [
 
     <template #body>
       <!-- Summary Cards -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-6">
         <UCard :ui="{ body: 'p-4' }">
           <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30">
@@ -500,22 +552,6 @@ const columns: TableColumn<TechnicianPerformance>[] = [
 
         <UCard :ui="{ body: 'p-4' }">
           <div class="flex items-center gap-3">
-            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 dark:bg-success-900/30">
-              <UIcon name="i-lucide-target" class="w-5 h-5 text-success-600 dark:text-success-400" />
-            </div>
-            <div>
-              <p class="text-sm text-muted">
-                First-Time Fix Rate
-              </p>
-              <p class="text-2xl font-semibold text-highlighted tabular-nums">
-                {{ formatPercent(summary.overallFirstTimeFixRate) }}
-              </p>
-            </div>
-          </div>
-        </UCard>
-
-        <UCard :ui="{ body: 'p-4' }">
-          <div class="flex items-center gap-3">
             <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-warning-100 dark:bg-warning-900/30">
               <UIcon name="i-lucide-clock" class="w-5 h-5 text-warning-600 dark:text-warning-400" />
             </div>
@@ -525,6 +561,39 @@ const columns: TableColumn<TechnicianPerformance>[] = [
               </p>
               <p class="text-2xl font-semibold text-highlighted tabular-nums">
                 {{ formatHours(summary.avgCompletionHours) }}
+              </p>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard :ui="{ body: 'p-4' }">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+              <UIcon name="i-lucide-star" class="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p class="text-sm text-muted">
+                Avg Customer Rating
+              </p>
+              <p class="text-2xl font-semibold text-highlighted tabular-nums">
+                {{ summary.overallCustomerRating !== null ? formatRating(summary.overallCustomerRating) : '-' }}
+                <span v-if="summary.overallCustomerRating !== null" class="text-sm text-muted font-normal">/ 5</span>
+              </p>
+            </div>
+          </div>
+        </UCard>
+
+        <UCard :ui="{ body: 'p-4' }">
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 dark:bg-success-900/30">
+              <UIcon name="i-lucide-target" class="w-5 h-5 text-success-600 dark:text-success-400" />
+            </div>
+            <div>
+              <p class="text-sm text-muted">
+                First-Time Fix Rate
+              </p>
+              <p class="text-2xl font-semibold text-highlighted tabular-nums">
+                {{ formatPercent(summary.overallFirstTimeFixRate) }}
               </p>
             </div>
           </div>

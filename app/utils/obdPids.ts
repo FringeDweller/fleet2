@@ -135,6 +135,27 @@ export const PID_THROTTLE: ObdPid = {
 }
 
 /**
+ * Calculated Engine Load (PID 04)
+ * Formula: (A * 100) / 255
+ * Range: 0 - 100%
+ */
+export const PID_ENGINE_LOAD: ObdPid = {
+  command: '0104',
+  pid: '04',
+  name: 'Engine Load',
+  unit: '%',
+  description: 'Calculated engine load value',
+  min: 0,
+  max: 100,
+  bytes: 1,
+  formula: (bytes) => {
+    if (bytes.length < 1) return 0
+    return (bytes[0]! * 100) / 255
+  },
+  format: (value) => Math.round(value).toString(),
+}
+
+/**
  * All live data PIDs in order of priority for polling
  */
 export const LIVE_DATA_PIDS: readonly ObdPid[] = [
@@ -143,17 +164,19 @@ export const LIVE_DATA_PIDS: readonly ObdPid[] = [
   PID_COOLANT_TEMP,
   PID_FUEL_LEVEL,
   PID_THROTTLE,
+  PID_ENGINE_LOAD,
 ] as const
 
 /**
  * Map of PID codes to their definitions
  */
 export const PID_MAP: Record<string, ObdPid> = {
+  '04': PID_ENGINE_LOAD,
+  '05': PID_COOLANT_TEMP,
   '0C': PID_RPM,
   '0D': PID_SPEED,
-  '05': PID_COOLANT_TEMP,
-  '2F': PID_FUEL_LEVEL,
   '11': PID_THROTTLE,
+  '2F': PID_FUEL_LEVEL,
 }
 
 /**
@@ -243,6 +266,13 @@ export function getGaugeColor(
   if (pidName === 'Throttle Position') {
     if (percentage >= 90) return 'error'
     if (percentage >= 70) return 'warning'
+    return 'primary'
+  }
+
+  // Engine load - show strain level
+  if (pidName === 'Engine Load') {
+    if (percentage >= 90) return 'error' // Very high load
+    if (percentage >= 75) return 'warning' // High load
     return 'primary'
   }
 
