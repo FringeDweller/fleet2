@@ -1,27 +1,36 @@
 import { and, eq, like } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
+import { requireAuth } from '../../../utils/permissions'
 
 const updateFolderSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().optional().nullable(),
-  parentId: z.string().uuid().optional().nullable(),
+  name: z
+    .string()
+    .min(1, 'Name is required')
+    .max(255, 'Name must be at most 255 characters')
+    .regex(/^[^<>:"/\\|?*]+$/, 'Name contains invalid characters')
+    .optional(),
+  description: z
+    .string()
+    .max(1000, 'Description must be at most 1000 characters')
+    .optional()
+    .nullable(),
+  parentId: z.string().uuid('Invalid parent folder ID').optional().nullable(),
 })
 
 /**
  * PUT /api/documents/folders/[id] - Update a folder (rename or move)
- * Supports renaming and moving folders to a different parent
- * Updates materialized paths for moved folders and all descendants
+ *
+ * Request body (all optional):
+ * - name: New folder name (1-255 chars)
+ * - description: New description (max 1000 chars)
+ * - parentId: New parent folder UUID (or null for root)
+ *
+ * Supports renaming and moving folders to a different parent.
+ * Updates materialized paths for moved folders and all descendants.
  */
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  const user = await requireAuth(event)
 
   const id = getRouterParam(event, 'id')
 
@@ -47,7 +56,7 @@ export default defineEventHandler(async (event) => {
   const existing = await db.query.documentFolders.findFirst({
     where: and(
       eq(schema.documentFolders.id, id),
-      eq(schema.documentFolders.organisationId, session.user.organisationId),
+      eq(schema.documentFolders.organisationId, user.organisationId),
     ),
   })
 
@@ -87,7 +96,7 @@ export default defineEventHandler(async (event) => {
       const newParent = await db.query.documentFolders.findFirst({
         where: and(
           eq(schema.documentFolders.id, result.data.parentId),
-          eq(schema.documentFolders.organisationId, session.user.organisationId),
+          eq(schema.documentFolders.organisationId, user.organisationId),
         ),
       })
 
@@ -123,7 +132,7 @@ export default defineEventHandler(async (event) => {
     // Find all descendants (folders whose path starts with old path prefix)
     const descendants = await db.query.documentFolders.findMany({
       where: and(
-        eq(schema.documentFolders.organisationId, session.user.organisationId),
+        eq(schema.documentFolders.organisationId, user.organisationId),
         like(schema.documentFolders.path, `${oldPathPrefix}%`),
       ),
     })
@@ -146,13 +155,15 @@ export default defineEventHandler(async (event) => {
 
   // Audit log
   await db.insert(schema.auditLog).values({
-    organisationId: session.user.organisationId,
-    userId: session.user.id,
+    organisationId: user.organisationId,
+    userId: user.id,
     action: 'update',
     entityType: 'document_folder',
     entityId: id,
-    oldValues: { name: existing.name, parentId: existing.parentId },
+    oldValues: { name: existing.name, parentId: existing.parentId, path: existing.path },
     newValues: result.data,
+    ipAddress: getRequestIP(event),
+    userAgent: getHeader(event, 'user-agent'),
   })
 
   return updated

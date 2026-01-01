@@ -61,6 +61,14 @@ export default defineNuxtConfig({
         appId: 'com.fleet2.app',
         appName: 'Fleet2',
       },
+      // Firebase configuration for push notifications
+      // Set via NUXT_PUBLIC_FIREBASE_* environment variables
+      firebaseApiKey: '',
+      firebaseAuthDomain: '',
+      firebaseProjectId: '',
+      firebaseMessagingSenderId: '',
+      firebaseAppId: '',
+      firebaseVapidKey: '', // For web push
     },
   },
 

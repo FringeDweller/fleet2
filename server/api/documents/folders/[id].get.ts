@@ -1,19 +1,13 @@
 import { and, eq } from 'drizzle-orm'
 import { db, schema } from '../../../utils/db'
+import { requireAuth } from '../../../utils/permissions'
 
 /**
  * GET /api/documents/folders/[id] - Get a specific folder with its children and documents
  * Returns folder details, child folders, and documents in this folder
  */
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  const user = await requireAuth(event)
 
   const id = getRouterParam(event, 'id')
 
@@ -27,7 +21,7 @@ export default defineEventHandler(async (event) => {
   const folder = await db.query.documentFolders.findFirst({
     where: and(
       eq(schema.documentFolders.id, id),
-      eq(schema.documentFolders.organisationId, session.user.organisationId),
+      eq(schema.documentFolders.organisationId, user.organisationId),
     ),
     with: {
       parent: {

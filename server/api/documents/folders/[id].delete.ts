@@ -1,10 +1,11 @@
-import { and, eq, isNull, like } from 'drizzle-orm'
+import { and, eq, like } from 'drizzle-orm'
 import { z } from 'zod'
 import { db, schema } from '../../../utils/db'
+import { requireAuth } from '../../../utils/permissions'
 
 const querySchema = z.object({
   mode: z.enum(['cascade', 'move']).default('move'),
-  targetFolderId: z.string().uuid().optional(),
+  targetFolderId: z.string().uuid('Invalid target folder ID').optional(),
 })
 
 /**
@@ -13,16 +14,17 @@ const querySchema = z.object({
  * Query params:
  * - mode: 'cascade' (delete all contents) or 'move' (move contents to target/root)
  * - targetFolderId: Where to move contents when mode is 'move' (optional, defaults to root)
+ *
+ * When mode is 'move' (default):
+ * - Child folders are moved to the target folder or root
+ * - Documents in this folder are moved to the target folder or root
+ *
+ * When mode is 'cascade':
+ * - All descendant folders are deleted
+ * - Documents are orphaned (folderId set to null per schema onDelete: 'set null')
  */
 export default defineEventHandler(async (event) => {
-  const session = await getUserSession(event)
-
-  if (!session?.user) {
-    throw createError({
-      statusCode: 401,
-      statusMessage: 'Unauthorized',
-    })
-  }
+  const user = await requireAuth(event)
 
   const id = getRouterParam(event, 'id')
 
@@ -50,7 +52,7 @@ export default defineEventHandler(async (event) => {
   const folder = await db.query.documentFolders.findFirst({
     where: and(
       eq(schema.documentFolders.id, id),
-      eq(schema.documentFolders.organisationId, session.user.organisationId),
+      eq(schema.documentFolders.organisationId, user.organisationId),
     ),
     with: {
       children: true,
@@ -78,7 +80,7 @@ export default defineEventHandler(async (event) => {
     const targetFolder = await db.query.documentFolders.findFirst({
       where: and(
         eq(schema.documentFolders.id, targetFolderId),
-        eq(schema.documentFolders.organisationId, session.user.organisationId),
+        eq(schema.documentFolders.organisationId, user.organisationId),
       ),
     })
 
@@ -114,7 +116,7 @@ export default defineEventHandler(async (event) => {
     // Get all descendant folders
     const descendantFolders = await db.query.documentFolders.findMany({
       where: and(
-        eq(schema.documentFolders.organisationId, session.user.organisationId),
+        eq(schema.documentFolders.organisationId, user.organisationId),
         like(schema.documentFolders.path, `${folderPathPrefix}%`),
       ),
     })
@@ -161,7 +163,7 @@ export default defineEventHandler(async (event) => {
 
       const childDescendants = await db.query.documentFolders.findMany({
         where: and(
-          eq(schema.documentFolders.organisationId, session.user.organisationId),
+          eq(schema.documentFolders.organisationId, user.organisationId),
           like(schema.documentFolders.path, `${childOldPath}%`),
         ),
       })
@@ -192,18 +194,22 @@ export default defineEventHandler(async (event) => {
 
   // Audit log
   await db.insert(schema.auditLog).values({
-    organisationId: session.user.organisationId,
-    userId: session.user.id,
+    organisationId: user.organisationId,
+    userId: user.id,
     action: 'delete',
     entityType: 'document_folder',
     entityId: id,
     oldValues: {
       name: folder.name,
+      path: folder.path,
+      parentId: folder.parentId,
       mode,
       targetFolderId: targetFolderId || null,
       childCount: folder.children.length,
       documentCount: folder.documents.length,
     },
+    ipAddress: getRequestIP(event),
+    userAgent: getHeader(event, 'user-agent'),
   })
 
   return { success: true }

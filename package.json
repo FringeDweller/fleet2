@@ -59,6 +59,7 @@
     "bullmq": "^5.66.3",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.1",
+    "firebase": "^12.7.0",
     "html5-qrcode": "^2.3.8",
     "idb-keyval": "^6.2.2",
     "jspdf": "^3.0.4",

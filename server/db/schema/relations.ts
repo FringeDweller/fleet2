@@ -48,6 +48,7 @@ import { partCategories } from './part-categories'
 import { partLocationQuantities } from './part-location-quantities'
 import { partUsageHistory } from './part-usage-history'
 import { parts } from './parts'
+import { pushTokens } from './push-tokens'
 import { roles } from './roles'
 import { savedSearches } from './saved-searches'
 import { scheduledExports } from './scheduled-exports'
@@ -97,6 +98,7 @@ export const organisationsRelations = relations(organisations, ({ many }) => ({
   diagnosticCodes: many(diagnosticCodes),
   systemSettings: many(systemSettings),
   scheduledExports: many(scheduledExports),
+  pushTokens: many(pushTokens),
 }))
 
 // Work Order Approvals Relations
@@ -623,6 +625,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   notifications: many(notifications),
   sessions: many(sessions),
   certifications: many(operatorCertifications),
+  pushTokens: many(pushTokens),
   dashboardLayout: one(dashboardLayouts, {
     fields: [users.id],
     references: [dashboardLayouts.userId],
@@ -1274,6 +1277,30 @@ export const customReportsRelations = relations(customReports, ({ one }) => ({
   }),
   user: one(users, {
     fields: [customReports.userId],
+    references: [users.id],
+  }),
+}))
+
+// Push Tokens Relations
+export const pushTokensRelations = relations(pushTokens, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [pushTokens.organisationId],
+    references: [organisations.id],
+  }),
+  user: one(users, {
+    fields: [pushTokens.userId],
+    references: [users.id],
+  }),
+}))
+
+// Audit Log Relations
+export const auditLogRelations = relations(auditLog, ({ one }) => ({
+  organisation: one(organisations, {
+    fields: [auditLog.organisationId],
+    references: [organisations.id],
+  }),
+  user: one(users, {
+    fields: [auditLog.userId],
     references: [users.id],
   }),
 }))
