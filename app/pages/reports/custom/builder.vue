@@ -424,10 +424,10 @@ async function saveReport() {
       })
     } else {
       // Create new
-      const result = await $fetch('/api/reports/custom', {
+      const result = (await $fetch('/api/reports/custom', {
         method: 'POST',
         body,
-      })
+      })) as { id: string }
       toast.add({
         title: 'Report Saved',
         description: 'Your report has been saved',
