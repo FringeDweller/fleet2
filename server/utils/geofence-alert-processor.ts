@@ -2,6 +2,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import type { GeofenceAlert, NewGeofenceAlert } from '../db/schema/geofence-alerts'
 import type { Geofence } from '../db/schema/geofences'
 import { db, schema } from './db'
+import { queueGeofenceAlertEmail } from './email-notifications'
 import { recordJobSiteEntry, recordJobSiteExit } from './job-site-visit-processor'
 import { createNotification } from './notifications'
 
@@ -367,12 +368,32 @@ export async function sendGeofenceNotification(
     }
   }
 
-  // TODO: Implement email notifications when email service is available
-  // if (settings.notifyByEmail) {
-  //   for (const userId of userIdsToNotify) {
-  //     await sendEmailNotification(userId, title, body)
-  //   }
-  // }
+  // Send email notifications if enabled
+  if (settings.notifyByEmail) {
+    const alertTypeMap: Record<string, 'entry' | 'exit' | 'after_hours'> = {
+      entry: 'entry',
+      exit: 'exit',
+      after_hours_movement: 'after_hours',
+    }
+
+    for (const userId of userIdsToNotify) {
+      try {
+        await queueGeofenceAlertEmail({
+          userId,
+          assetNumber: asset.assetNumber,
+          assetName: asset.make
+            ? `${asset.make}${asset.model ? ` ${asset.model}` : ''}`
+            : asset.assetNumber,
+          assetId: asset.id,
+          geofenceName,
+          alertType: alertTypeMap[alert.alertType] || 'entry',
+          alertTime: alert.alertedAt,
+        })
+      } catch (error) {
+        console.error(`Failed to queue geofence email for user ${userId}:`, error)
+      }
+    }
+  }
 }
 
 /**

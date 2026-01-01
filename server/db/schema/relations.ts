@@ -38,6 +38,7 @@ import { inventoryTransfers } from './inventory-transfers'
 import { jobSiteVisits } from './job-site-visits'
 import { locationRecords } from './location-records'
 import { maintenanceSchedules, maintenanceScheduleWorkOrders } from './maintenance-schedules'
+import { notificationPreferences } from './notification-preferences'
 import { notifications } from './notifications'
 import { obdDevices } from './obd-devices'
 import { operationBlocks } from './operation-blocks'
@@ -195,6 +196,18 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, {
     fields: [notifications.userId],
     references: [users.id],
+  }),
+}))
+
+// Notification Preferences Relations (US-16.4)
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+  organisation: one(organisations, {
+    fields: [notificationPreferences.organisationId],
+    references: [organisations.id],
   }),
 }))
 
@@ -623,6 +636,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   }),
   workOrders: many(workOrders),
   notifications: many(notifications),
+  notificationPreferences: one(notificationPreferences, {
+    fields: [users.id],
+    references: [notificationPreferences.userId],
+  }),
   sessions: many(sessions),
   certifications: many(operatorCertifications),
   pushTokens: many(pushTokens),

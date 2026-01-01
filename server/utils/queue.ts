@@ -1,5 +1,27 @@
 import { type Job, type Processor, Queue, Worker } from 'bullmq'
+import type {
+  DocumentExpiringEmailData,
+  EmailTemplate,
+  FuelAnomalyEmailData,
+  GeofenceAlertEmailData,
+  NotificationDigestEmailData,
+  PasswordResetEmailData,
+  WorkOrderApprovalEmailData,
+  WorkOrderApprovedRejectedEmailData,
+  WorkOrderAssignedEmailData,
+} from './email-service'
 import { redis } from './redis'
+
+// Union of all email data types
+type EmailDataType =
+  | PasswordResetEmailData
+  | WorkOrderAssignedEmailData
+  | WorkOrderApprovalEmailData
+  | WorkOrderApprovedRejectedEmailData
+  | DocumentExpiringEmailData
+  | FuelAnomalyEmailData
+  | GeofenceAlertEmailData
+  | NotificationDigestEmailData
 
 // Queue configuration
 const defaultQueueOptions = {
@@ -41,10 +63,10 @@ export function createWorker<T>(
 
 // Job types
 export interface EmailJobData {
-  to: string
+  to: string | string[]
   subject: string
-  template: string
-  data: Record<string, unknown>
+  template: EmailTemplate
+  data: EmailDataType
 }
 
 export interface NotificationJobData {

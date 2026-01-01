@@ -42,6 +42,13 @@ export default defineNuxtConfig({
     },
     // Encryption key for sensitive data (generate with: openssl rand -base64 32)
     encryptionKey: '',
+    // Email configuration (Resend)
+    // Set via NUXT_RESEND_API_KEY environment variable
+    resendApiKey: '',
+    // Email sender configuration
+    // Set via NUXT_EMAIL_FROM (e.g., "Fleet2 <noreply@fleet.app>")
+    emailFrom: 'Fleet2 <noreply@fleet.app>',
+    emailReplyTo: '',
     // Session configuration for nuxt-auth-utils (US-18.2.5 CSRF Protection)
     // Cookie settings: sameSite=strict, secure in production, httpOnly
     // These are configured via environment variables:
