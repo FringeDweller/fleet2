@@ -42,7 +42,6 @@ export function useAssignedForms(
     status,
     error,
     refresh,
-    // @ts-expect-error - useFetch query typing is overly strict
   } = useFetch<AssignedFormsResponse>('/api/custom-form-assignments/for-entity', {
     query: computed(() => ({
       type: toValue(targetType),

@@ -1,5 +1,22 @@
 <script setup lang="ts">
-const { data, status, refresh } = await useFetch('/api/parts/low-stock', {
+interface LowStockPart {
+  id: string
+  partNumber: string
+  name: string
+  quantity: number
+  reorderPoint: number
+  reorderQuantity: number
+}
+
+interface LowStockResponse {
+  parts: LowStockPart[]
+  summary: {
+    totalLowStock: number
+    criticalCount: number
+  }
+}
+
+const { data, status, refresh } = await useFetch<LowStockResponse>('/api/parts/low-stock', {
   query: { includeOnOrder: 'true' },
 })
 

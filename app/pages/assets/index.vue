@@ -7,6 +7,11 @@ definePageMeta({
   middleware: 'auth',
 })
 
+interface AssetCategory {
+  id: string
+  name: string
+}
+
 interface Asset {
   id: string
   assetNumber: string
@@ -23,7 +28,7 @@ interface Asset {
   isArchived: boolean
   isOperationBlocked: boolean
   categoryId: string | null
-  category: { id: string; name: string } | null
+  category: AssetCategory | null
   createdAt: string
   updatedAt: string
 }
@@ -66,7 +71,7 @@ const newSearchName = ref('')
 const filters = ref({
   search: '',
   status: 'all',
-  categoryId: '',
+  categoryId: 'all',
   hasLocation: 'all', // 'all', 'true', 'false'
   make: '',
   model: '',
@@ -128,12 +133,9 @@ const {
 })
 
 // Fetch categories for filter dropdown
-const { data: categories } = await useFetch<{ id: string; name: string }[]>(
-  '/api/asset-categories',
-  {
-    lazy: true,
-  },
-)
+const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
+  lazy: true,
+})
 
 // Fetch saved searches
 const { data: savedSearches, refresh: refreshSavedSearches } = await useFetch<SavedSearch[]>(
@@ -176,7 +178,7 @@ function applySavedSearch(search: SavedSearch) {
   filters.value = {
     search: f.search || '',
     status: f.status || 'all',
-    categoryId: f.categoryId || '',
+    categoryId: f.categoryId || 'all',
     hasLocation: f.hasLocation || 'all',
     make: f.make || '',
     model: f.model || '',
@@ -206,7 +208,7 @@ async function saveCurrentSearch() {
         filters: {
           search: filters.value.search || undefined,
           status: filters.value.status !== 'all' ? filters.value.status : undefined,
-          categoryId: filters.value.categoryId || undefined,
+          categoryId: filters.value.categoryId !== 'all' ? filters.value.categoryId : undefined,
           make: filters.value.make || undefined,
           model: filters.value.model || undefined,
           yearMin: filters.value.yearMin ? parseInt(filters.value.yearMin, 10) : undefined,
@@ -300,7 +302,7 @@ function clearFilters() {
   filters.value = {
     search: '',
     status: 'all',
-    categoryId: '',
+    categoryId: 'all',
     hasLocation: 'all',
     make: '',
     model: '',
@@ -586,7 +588,7 @@ const columns: TableColumn<Asset>[] = [
           <USelect
             v-model="filters.categoryId"
             :items="[
-              { label: 'All Categories', value: '' },
+              { label: 'All Categories', value: 'all' },
               ...(categories || []).map(c => ({ label: c.name, value: c.id }))
             ]"
             :ui="{
