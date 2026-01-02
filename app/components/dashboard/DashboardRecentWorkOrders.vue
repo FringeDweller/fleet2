@@ -14,8 +14,25 @@ const props = withDefaults(
 const UBadge = resolveComponent('UBadge')
 const UAvatar = resolveComponent('UAvatar')
 
+interface WorkOrderListItem {
+  id: string
+  workOrderNumber: string
+  title: string
+  status: string
+  priority: string
+  dueDate: string | null
+  asset?: { id: string; assetNumber: string; make: string; model: string } | null
+  assignee?: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+    avatarUrl: string | null
+  } | null
+}
+
 // Fetch recent work orders
-const { data, status, refresh } = await useFetch('/api/work-orders', {
+const { data, status, refresh } = await useFetch<WorkOrderListItem[]>('/api/work-orders', {
   query: {
     status: undefined, // All statuses
   },

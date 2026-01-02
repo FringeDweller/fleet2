@@ -53,6 +53,7 @@ const emit = defineEmits<{
 }>()
 
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 const scannerContainerId = `checkpoint-scanner-${props.inspectionId}`
 const isScanning = ref(false)
 const nfcSupported = ref(false)
@@ -166,7 +167,7 @@ async function processScan(scanData: string, scanMethod: 'qr_code' | 'nfc') {
       // GPS is optional, continue without it
     }
 
-    await $fetch(`/api/inspections/${props.inspectionId}/scan-checkpoint`, {
+    await $fetchWithCsrf(`/api/inspections/${props.inspectionId}/scan-checkpoint`, {
       method: 'POST',
       body: {
         scanData,

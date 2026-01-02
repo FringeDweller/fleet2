@@ -10,6 +10,7 @@ const appConfig = useAppConfig()
 const router = useRouter()
 const toast = useToast()
 const { user: sessionUser, clear: clearSession } = useUserSession()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const colors = [
   'red',
@@ -50,7 +51,7 @@ const user = computed(() => {
 
 async function handleLogout() {
   try {
-    await $fetch('/api/auth/logout', { method: 'POST' })
+    await $fetchWithCsrf('/api/auth/logout', { method: 'POST' })
     await clearSession()
     toast.add({
       title: 'Signed out',

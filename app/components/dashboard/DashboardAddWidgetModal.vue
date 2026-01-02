@@ -13,7 +13,9 @@ const emit = defineEmits<{
 }>()
 
 // Fetch available widgets
-const { data: widgetsData } = await useFetch('/api/dashboard/widgets')
+const { data: widgetsData } = await useFetch<{ widgets: WidgetMetadata[] }>(
+  '/api/dashboard/widgets',
+)
 
 const availableWidgets = computed<WidgetMetadata[]>(() => {
   return widgetsData.value?.widgets ?? []
