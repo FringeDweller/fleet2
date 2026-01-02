@@ -32,6 +32,7 @@ interface Technician {
 
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
 const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
@@ -142,7 +143,7 @@ const loading = ref(false)
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    await $fetch('/api/maintenance-schedules', {
+    await $fetchWithCsrf('/api/maintenance-schedules', {
       method: 'POST',
       body: {
         ...event.data,

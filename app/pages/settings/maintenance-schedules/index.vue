@@ -35,6 +35,7 @@ const toast = useToast()
 const table = useTemplateRef('table')
 const router = useRouter()
 const route = useRoute()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const columnFilters = ref([
   {
@@ -115,8 +116,8 @@ function getRowItems(row: Row<MaintenanceScheduleRow>) {
 
 async function toggleActive(id: string, currentStatus: boolean) {
   try {
-    await $fetch(`/api/maintenance-schedules/${id}`, {
-      method: 'PUT' as const,
+    await $fetchWithCsrf(`/api/maintenance-schedules/${id}`, {
+      method: 'PUT',
       body: { isActive: !currentStatus },
     })
     toast.add({
@@ -135,7 +136,7 @@ async function toggleActive(id: string, currentStatus: boolean) {
 
 async function archiveSchedule(id: string) {
   try {
-    await $fetch(`/api/maintenance-schedules/${id}`, { method: 'DELETE' as const })
+    await $fetchWithCsrf(`/api/maintenance-schedules/${id}`, { method: 'DELETE' })
     toast.add({
       title: 'Schedule archived',
       description: 'The maintenance schedule has been archived successfully.',
