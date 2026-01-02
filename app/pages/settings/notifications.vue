@@ -28,6 +28,7 @@ interface NotificationPreferences {
 }
 
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 // Default preferences when none exist
 const defaultPreferences: NotificationPreferences = {
@@ -68,7 +69,7 @@ const isSaving = ref(false)
 const savePreferences = useDebounceFn(async (updates: Partial<NotificationPreferences>) => {
   isSaving.value = true
   try {
-    await $fetch('/api/user/notification-preferences', {
+    await $fetchWithCsrf('/api/user/notification-preferences', {
       method: 'PUT',
       body: updates,
     })
