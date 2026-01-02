@@ -114,7 +114,7 @@ const statusOptions = [
 ]
 
 const assetOptions = computed(() => {
-  return assets.value.map((a) => ({
+  return assets.value.map((a: Asset) => ({
     label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
     value: a.id,
   }))

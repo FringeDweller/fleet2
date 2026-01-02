@@ -37,12 +37,9 @@ export function useAssignedForms(
   targetType: MaybeRef<TargetType>,
   entityId?: MaybeRef<string | undefined>,
 ) {
-  const {
-    data: response,
-    status,
-    error,
-    refresh,
-  } = useFetch<AssignedFormsResponse>('/api/custom-form-assignments/for-entity', {
+  // Cast useFetch result to avoid deep type instantiation with complex CustomFormField types
+  // @ts-expect-error - useFetch with complex nested types causes "Type instantiation excessively deep" error
+  const fetchResult = useFetch('/api/custom-form-assignments/for-entity', {
     query: computed(() => ({
       type: toValue(targetType),
       id: toValue(entityId),
@@ -50,7 +47,12 @@ export function useAssignedForms(
     lazy: true,
   })
 
-  const assignedForms = computed(() => response.value?.data || [])
+  const data = fetchResult.data as Ref<AssignedFormsResponse | null>
+  const status = fetchResult.status as Ref<'idle' | 'pending' | 'success' | 'error'>
+  const error = fetchResult.error as Ref<Error | null>
+  const refresh = fetchResult.refresh as () => Promise<void>
+
+  const assignedForms = computed<AssignedForm[]>(() => data.value?.data || [])
 
   const requiredForms = computed(() =>
     assignedForms.value.filter((form: AssignedForm) => form.isRequired),
