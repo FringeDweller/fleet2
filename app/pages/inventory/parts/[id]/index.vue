@@ -62,6 +62,7 @@ const UBadge = resolveComponent('UBadge')
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const {
   data: part,
@@ -181,7 +182,7 @@ const adjusting = ref(false)
 async function submitAdjustment(event: FormSubmitEvent<AdjustmentSchema>) {
   adjusting.value = true
   try {
-    await $fetch(`/api/parts/${route.params.id}/adjust-stock`, {
+    await $fetchWithCsrf(`/api/parts/${route.params.id}/adjust-stock`, {
       method: 'POST',
       body: event.data,
     })
@@ -209,8 +210,7 @@ async function submitAdjustment(event: FormSubmitEvent<AdjustmentSchema>) {
 
 async function deletePart() {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await ($fetch as any)(`/api/parts/${route.params.id}`, { method: 'DELETE' })
+    await $fetchWithCsrf(`/api/parts/${route.params.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Part deleted',
       description: 'The part has been deleted successfully.',

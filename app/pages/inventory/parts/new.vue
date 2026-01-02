@@ -13,6 +13,7 @@ interface PartCategory {
 
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const { data: categories } = await useFetch<PartCategory[]>('/api/part-categories', {
   lazy: true,
@@ -65,7 +66,7 @@ const unitOptions = [
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    const part = await $fetch('/api/parts', {
+    const part = await $fetchWithCsrf('/api/parts', {
       method: 'POST',
       body: event.data,
     })
