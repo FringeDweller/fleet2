@@ -20,17 +20,17 @@ RUN apk add --no-cache wget
 # Set environment
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=3000
+ENV PORT=47293
 
 # Switch to non-root user
 USER nuxt
 
 # Expose port
-EXPOSE 3000
+EXPOSE 47293
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget -q --spider http://localhost:3000/api/_health || exit 1
+    CMD wget -q --spider http://localhost:47293/api/_health || exit 1
 
 # Start the application
 CMD ["bun", ".output/server/index.mjs"]
