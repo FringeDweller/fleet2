@@ -107,11 +107,19 @@ export default defineEventHandler(async (event) => {
     .from(schema.fuelTransactions)
     .where(whereClause)
 
-  const summary = summaryResult[0] || {
+  const rawSummary = summaryResult[0] || {
     totalQuantity: 0,
     totalCost: 0,
     avgUnitCost: 0,
     transactionCount: 0,
+  }
+
+  // Ensure numeric values are proper JavaScript numbers (PostgreSQL returns numeric as strings)
+  const summary = {
+    totalQuantity: Number(rawSummary.totalQuantity) || 0,
+    totalCost: Number(rawSummary.totalCost) || 0,
+    avgUnitCost: Number(rawSummary.avgUnitCost) || 0,
+    transactionCount: Number(rawSummary.transactionCount) || 0,
   }
 
   // Calculate fuel efficiency if we have odometer data
