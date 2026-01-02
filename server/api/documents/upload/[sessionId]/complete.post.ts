@@ -274,12 +274,14 @@ export default defineEventHandler(async (event) => {
         .where(eq(schema.documents.id, doc.id))
 
       // Update search vector using raw SQL
+      // Convert tags array to a space-separated string for full-text search
+      const tagsString = tags && tags.length > 0 ? tags.join(' ') : ''
       await tx.execute(sql`
         UPDATE documents
         SET search_vector =
           setweight(to_tsvector('english', coalesce(${documentName}, '')), 'A') ||
           setweight(to_tsvector('english', coalesce(${data.description || ''}, '')), 'B') ||
-          setweight(to_tsvector('english', coalesce(array_to_string(${tags || []}, ' '), '')), 'C')
+          setweight(to_tsvector('english', coalesce(${tagsString}, '')), 'C')
         WHERE id = ${doc.id}
       `)
 

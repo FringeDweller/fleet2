@@ -64,6 +64,7 @@ const UCheckbox = resolveComponent('UCheckbox')
 const toast = useToast()
 const table = useTemplateRef('table')
 const router = useRouter()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const columnVisibility = ref()
 const rowSelection = ref({})
@@ -82,7 +83,7 @@ const currentFolderId = ref<string | null>(null)
 // Filters
 const filters = ref({
   search: '',
-  category: '',
+  category: 'all',
   dateFrom: '',
   dateTo: '',
 })
@@ -116,7 +117,8 @@ const queryParams = computed(() => {
 
   if (currentFolderId.value) params.folderId = currentFolderId.value
   if (filters.value.search) params.q = filters.value.search
-  if (filters.value.category) params.category = filters.value.category
+  if (filters.value.category && filters.value.category !== 'all')
+    params.category = filters.value.category
   if (filters.value.dateFrom) params.dateFrom = filters.value.dateFrom
   if (filters.value.dateTo) params.dateTo = filters.value.dateTo
 
@@ -215,7 +217,7 @@ function navigateToFolder(folderId: string | null) {
 
 // Category options
 const categoryOptions = [
-  { label: 'All Categories', value: '' },
+  { label: 'All Categories', value: 'all' },
   { label: 'Registration', value: 'registration' },
   { label: 'Insurance', value: 'insurance' },
   { label: 'Inspection', value: 'inspection' },
@@ -293,7 +295,7 @@ async function createFolder() {
   }
 
   try {
-    await $fetch('/api/documents/folders', {
+    await $fetchWithCsrf('/api/documents/folders', {
       method: 'POST',
       body: {
         name: newFolderName.value.trim(),
@@ -316,8 +318,7 @@ async function createFolder() {
 // Delete folder
 async function deleteFolder(folderId: string, folderName: string) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await ($fetch as any)(`/api/documents/folders/${folderId}?mode=move`, {
+    await $fetchWithCsrf(`/api/documents/folders/${folderId}?mode=move`, {
       method: 'DELETE',
     })
 
@@ -338,8 +339,7 @@ async function deleteFolder(folderId: string, folderName: string) {
 // Delete document
 async function deleteDocument(id: string, name: string) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await ($fetch as any)(`/api/documents/${id}`, { method: 'DELETE' })
+    await $fetchWithCsrf(`/api/documents/${id}`, { method: 'DELETE' })
     toast.add({ title: 'Document deleted', description: `Deleted "${name}"` })
     refreshDocuments()
     refreshFolders() // Update document counts
@@ -363,7 +363,7 @@ async function moveDocument(targetFolderId: string | null) {
   if (!documentToMove.value) return
 
   try {
-    await $fetch(`/api/documents/${documentToMove.value.id}/move`, {
+    await $fetchWithCsrf(`/api/documents/${documentToMove.value.id}/move`, {
       method: 'POST',
       body: { folderId: targetFolderId },
     })
@@ -391,7 +391,7 @@ async function handleUpload(file: File): Promise<{ url: string; id?: string }> {
     formData.append('folderId', currentFolderId.value)
   }
 
-  const response = await $fetch<{ document: { id: string; filePath: string } }>(
+  const response = await $fetchWithCsrf<{ document: { id: string; filePath: string } }>(
     '/api/documents/upload',
     {
       method: 'POST',
@@ -412,7 +412,7 @@ async function handleUpload(file: File): Promise<{ url: string; id?: string }> {
 function clearFilters() {
   filters.value = {
     search: '',
-    category: '',
+    category: 'all',
     dateFrom: '',
     dateTo: '',
   }
@@ -756,7 +756,7 @@ const uploadedFiles = ref<
               />
 
               <UButton
-                v-if="filters.search || filters.category || filters.dateFrom || filters.dateTo"
+                v-if="filters.search || (filters.category && filters.category !== 'all') || filters.dateFrom || filters.dateTo"
                 label="Clear"
                 icon="i-lucide-x"
                 color="neutral"
