@@ -124,6 +124,10 @@ export default defineNuxtConfig({
     // US-18.1.1: Compression for API responses
     compressPublicAssets: true,
     minify: true,
+    // Bundle external dependencies for Docker deployment
+    externals: {
+      inline: ['xlsx', 'exceljs', 'pdfkit'],
+    },
   },
 
   // US-18.1.2: Build optimizations for faster page loads

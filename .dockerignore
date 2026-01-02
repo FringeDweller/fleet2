@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output (keep .output for pre-built deployment)
+.nuxt/
+dist/
+
+# Development
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment files (handled separately)
+.env
+.env.*
+!.env.example
+
+# Misc
+.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Documentation (not needed in image)
+docs/
+*.md
+!README.md
+
+# Beads workflow
+.beads/
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
