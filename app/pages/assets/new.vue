@@ -13,6 +13,7 @@ interface AssetCategory {
 
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const { data: categories } = await useFetch<AssetCategory[]>('/api/asset-categories', {
   lazy: true,
@@ -53,7 +54,7 @@ const loading = ref(false)
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    const asset = await $fetch('/api/assets', {
+    const asset = await $fetchWithCsrf('/api/assets', {
       method: 'POST',
       body: event.data,
     })

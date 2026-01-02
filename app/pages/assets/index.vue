@@ -106,7 +106,8 @@ const queryParams = computed(() => {
 
   if (filters.value.search) params.search = filters.value.search
   if (filters.value.status && filters.value.status !== 'all') params.status = filters.value.status
-  if (filters.value.categoryId) params.categoryId = filters.value.categoryId
+  if (filters.value.categoryId && filters.value.categoryId !== 'all')
+    params.categoryId = filters.value.categoryId
   if (filters.value.hasLocation && filters.value.hasLocation !== 'all')
     params.hasLocation = filters.value.hasLocation
   if (filters.value.make) params.make = filters.value.make
