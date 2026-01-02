@@ -10,6 +10,7 @@ definePageMeta({
 const toast = useToast()
 const router = useRouter()
 const { fetch: refreshSession } = useUserSession()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const isLoading = ref(false)
 const showPassword = ref(false)
@@ -30,13 +31,16 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
   isLoading.value = true
 
   try {
-    const response = await $fetch('/api/auth/login', {
-      method: 'POST',
-      body: {
-        email: event.data.email,
-        password: event.data.password,
+    const response = await $fetchWithCsrf<{ success: boolean; user?: { email: string } }>(
+      '/api/auth/login',
+      {
+        method: 'POST',
+        body: {
+          email: event.data.email,
+          password: event.data.password,
+        },
       },
-    })
+    )
 
     if (response.success) {
       await refreshSession()
