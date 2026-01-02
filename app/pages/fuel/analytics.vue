@@ -106,7 +106,7 @@ interface AnomalyItem {
   make: string | null
   model: string | null
   transactionDate: string
-  anomalyType: 'high_consumption' | 'low_consumption'
+  anomalyType: 'high_consumption' | 'low_consumption' | 'no_odometer'
   severity: 'warning' | 'critical'
   litersPerHundredKm: number
   expectedLitersPer100Km: number

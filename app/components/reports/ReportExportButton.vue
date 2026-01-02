@@ -10,7 +10,7 @@
 import type { ExportColumn, ExportOptions } from '~/composables/useReportExport'
 
 interface Props {
-  data: Record<string, unknown>[]
+  data: object[]
   filename: string
   title?: string
   sheetName?: string

@@ -100,7 +100,7 @@ export function useReportExport() {
   /**
    * Export data to CSV format
    */
-  function exportToCSV(data: Record<string, unknown>[], options: ExportOptions): boolean {
+  function exportToCSV(data: object[], options: ExportOptions): boolean {
     try {
       if (!data.length) {
         toast.add({
@@ -122,7 +122,7 @@ export function useReportExport() {
 
       const rows = data.map((row) =>
         columns.map((col) => {
-          const value = row[col.key]
+          const value = (row as Record<string, unknown>)[col.key]
           const formatted = formatValue(value, col.format)
           // Escape quotes and wrap in quotes if contains comma, quote, or newline
           if (typeof formatted === 'string' && /[",\n\r]/.test(formatted)) {
@@ -161,7 +161,7 @@ export function useReportExport() {
   /**
    * Export data to Excel (XLSX) format
    */
-  function exportToExcel(data: Record<string, unknown>[], options: ExportOptions): boolean {
+  function exportToExcel(data: object[], options: ExportOptions): boolean {
     try {
       if (!data.length) {
         toast.add({
@@ -210,7 +210,9 @@ export function useReportExport() {
 
       // Add data rows
       for (const row of data) {
-        wsData.push(columns.map((col) => getRawValue(row[col.key], col.format)))
+        wsData.push(
+          columns.map((col) => getRawValue((row as Record<string, unknown>)[col.key], col.format)),
+        )
       }
 
       // Create worksheet
@@ -252,7 +254,7 @@ export function useReportExport() {
   /**
    * Export data to PDF format with tables
    */
-  function exportToPDF(data: Record<string, unknown>[], options: ExportOptions): boolean {
+  function exportToPDF(data: object[], options: ExportOptions): boolean {
     try {
       if (!data.length) {
         toast.add({
@@ -318,7 +320,7 @@ export function useReportExport() {
       // Prepare table data
       const tableHeaders = columns.map((col) => col.header)
       const tableBody = data.map((row) =>
-        columns.map((col) => formatValue(row[col.key], col.format)),
+        columns.map((col) => formatValue((row as Record<string, unknown>)[col.key], col.format)),
       )
 
       // Add table using autoTable

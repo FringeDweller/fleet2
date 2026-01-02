@@ -3,9 +3,13 @@ interface LowStockPart {
   id: string
   partNumber: string
   name: string
+  sku: string | null
   quantity: number
+  quantityInStock: string | number
   reorderPoint: number
+  reorderThreshold: string | number | null
   reorderQuantity: number
+  isOnOrder: boolean
 }
 
 interface LowStockResponse {
@@ -13,6 +17,7 @@ interface LowStockResponse {
   summary: {
     totalLowStock: number
     criticalCount: number
+    onOrderCount: number
   }
 }
 
@@ -100,13 +105,13 @@ onMounted(() => {
               <div
                 :class="[
                   'font-semibold',
-                  parseFloat(part.quantityInStock) === 0 ? 'text-error' : 'text-warning',
+                  Number(part.quantityInStock) === 0 ? 'text-error' : 'text-warning',
                 ]"
               >
-                {{ parseFloat(part.quantityInStock).toFixed(0) }}
+                {{ Number(part.quantityInStock).toFixed(0) }}
               </div>
               <div class="text-xs text-muted">
-                / {{ parseFloat(part.reorderThreshold || '0').toFixed(0) }}
+                / {{ Number(part.reorderThreshold ?? 0).toFixed(0) }}
               </div>
             </div>
             <UBadge v-if="part.isOnOrder" color="info" variant="subtle" size="xs">
