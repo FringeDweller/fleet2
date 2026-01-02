@@ -17,6 +17,15 @@ const { assignedForms, hasAssignedForms, status, refresh } = useAssignedForms(
 )
 
 // Fetch existing submissions for this context
+// Only fetch when entityId is defined to prevent requests with undefined values
+const submissionsQuery = computed(() => {
+  if (!props.entityId) return undefined
+  return {
+    contextType: props.targetType,
+    contextId: props.entityId,
+  }
+})
+
 const { data: existingSubmissions, refresh: refreshSubmissions } = useFetch<{
   data: Array<{
     id: string
@@ -27,10 +36,7 @@ const { data: existingSubmissions, refresh: refreshSubmissions } = useFetch<{
     submittedBy: { firstName: string; lastName: string } | null
   }>
 }>('/api/custom-form-submissions/for-context', {
-  query: {
-    contextType: () => props.targetType,
-    contextId: () => props.entityId,
-  },
+  query: submissionsQuery,
   lazy: true,
   immediate: !!props.entityId,
 })

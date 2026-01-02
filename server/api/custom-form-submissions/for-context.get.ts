@@ -20,7 +20,8 @@ export default defineEventHandler(async (event) => {
   const contextType = query.contextType as string
   const contextId = query.contextId as string
 
-  if (!contextType || !contextId) {
+  // Check for missing or invalid values (including literal "undefined" strings)
+  if (!contextType || !contextId || contextType === 'undefined' || contextId === 'undefined') {
     throw createError({
       statusCode: 400,
       statusMessage: 'Context type and ID are required',

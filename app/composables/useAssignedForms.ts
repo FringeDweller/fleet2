@@ -37,13 +37,22 @@ export function useAssignedForms(
   targetType: MaybeRef<TargetType>,
   entityId?: MaybeRef<string | undefined>,
 ) {
+  // Only include id in query when it's defined to prevent sending "undefined" string
+  const queryParams = computed(() => {
+    const id = toValue(entityId)
+    if (!id) {
+      return { type: toValue(targetType) }
+    }
+    return {
+      type: toValue(targetType),
+      id,
+    }
+  })
+
   // Cast useFetch result to avoid deep type instantiation with complex CustomFormField types
   // @ts-expect-error - useFetch with complex nested types causes "Type instantiation excessively deep" error
   const fetchResult = useFetch('/api/custom-form-assignments/for-entity', {
-    query: computed(() => ({
-      type: toValue(targetType),
-      id: toValue(entityId),
-    })),
+    query: queryParams,
     lazy: true,
   })
 
