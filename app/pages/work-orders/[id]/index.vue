@@ -104,6 +104,7 @@ interface WorkOrder {
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
 const {
   data: workOrder,
@@ -180,7 +181,7 @@ const { isManager } = usePermissions()
 async function requestApproval() {
   approvalLoading.value = true
   try {
-    await $fetch(`/api/work-orders/${route.params.id}/request-approval`, {
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}/request-approval`, {
       method: 'POST',
       body: { notes: approvalNotes.value || undefined },
     })
@@ -206,7 +207,7 @@ async function requestApproval() {
 async function approveWorkOrder() {
   approvalLoading.value = true
   try {
-    await $fetch(`/api/work-orders/${route.params.id}/approve`, {
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}/approve`, {
       method: 'POST',
       body: { notes: approvalNotes.value || undefined },
     })
@@ -241,7 +242,7 @@ async function rejectWorkOrder() {
   }
   approvalLoading.value = true
   try {
-    await $fetch(`/api/work-orders/${route.params.id}/reject`, {
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}/reject`, {
       method: 'POST',
       body: { reason: rejectReason.value },
     })
@@ -276,7 +277,7 @@ async function emergencyOverride() {
   }
   approvalLoading.value = true
   try {
-    await $fetch(`/api/work-orders/${route.params.id}/emergency-override`, {
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}/emergency-override`, {
       method: 'POST',
       body: { emergencyReason: emergencyReason.value },
     })
@@ -303,7 +304,7 @@ async function emergencyOverride() {
 async function changeStatus(newStatus: string) {
   statusChangeLoading.value = true
   try {
-    await $fetch(`/api/work-orders/${route.params.id}/status`, {
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}/status`, {
       method: 'POST',
       body: { status: newStatus },
     })
@@ -325,8 +326,7 @@ async function changeStatus(newStatus: string) {
 
 async function archiveWorkOrder() {
   try {
-    // @ts-expect-error - Nuxt route typing issue with DELETE method
-    await $fetch(`/api/work-orders/${route.params.id}`, { method: 'DELETE' })
+    await $fetchWithCsrf(`/api/work-orders/${route.params.id}`, { method: 'DELETE' })
     toast.add({
       title: 'Work order archived',
       description: 'The work order has been archived successfully.',

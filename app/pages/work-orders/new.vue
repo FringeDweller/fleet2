@@ -13,6 +13,11 @@ interface Asset {
   model: string | null
 }
 
+interface AssetsResponse {
+  data: Asset[]
+  pagination: { total: number; limit: number; offset: number; hasMore: boolean }
+}
+
 interface Technician {
   id: string
   firstName: string
@@ -29,8 +34,10 @@ interface TaskTemplate {
 
 const router = useRouter()
 const toast = useToast()
+const { $fetchWithCsrf } = useCsrfToken()
 
-const { data: assets } = await useFetch<Asset[]>('/api/assets', { lazy: true })
+const { data: assetsResponse } = await useFetch<AssetsResponse>('/api/assets', { lazy: true })
+const assets = computed(() => assetsResponse.value?.data || [])
 const { data: technicians } = await useFetch<Technician[]>('/api/technicians', { lazy: true })
 const { data: templates } = await useFetch<TaskTemplate[]>('/api/task-templates?activeOnly=true', {
   lazy: true,
@@ -69,7 +76,7 @@ const loading = ref(false)
 async function onSubmit(event: FormSubmitEvent<Schema>) {
   loading.value = true
   try {
-    const workOrder = await $fetch('/api/work-orders', {
+    const workOrder = await $fetchWithCsrf('/api/work-orders', {
       method: 'POST',
       body: {
         ...event.data,
@@ -107,12 +114,10 @@ const statusOptions = [
 ]
 
 const assetOptions = computed(() => {
-  return (
-    assets.value?.map((a) => ({
-      label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
-      value: a.id,
-    })) || []
-  )
+  return assets.value.map((a) => ({
+    label: `${a.assetNumber} - ${a.make || ''} ${a.model || ''}`.trim(),
+    value: a.id,
+  }))
 })
 
 const technicianOptions = computed(() => {
